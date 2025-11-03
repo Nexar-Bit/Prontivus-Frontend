@@ -1,6 +1,7 @@
 {
   "build": {
     "env": {
+      "TAILWIND_DISABLE_OXIDE": "1",
       "TAILWIND_DISABLE_LIGHTNINGCSS": "1",
       "NEXT_DISABLE_TURBOPACK": "1"
     }
