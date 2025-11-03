@@ -1,0 +1,15 @@
+<svg width="200" height="260" viewBox="0 0 200 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="260" rx="4" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="2"/>
+  <!-- Header lines -->
+  <rect x="20" y="30" width="160" height="8" rx="2" fill="#F3F4F6"/>
+  <rect x="20" y="50" width="120" height="6" rx="2" fill="#F3F4F6"/>
+  <!-- Content lines -->
+  <rect x="20" y="80" width="180" height="4" rx="2" fill="#F3F4F6"/>
+  <rect x="20" y="90" width="160" height="4" rx="2" fill="#F3F4F6"/>
+  <rect x="20" y="100" width="170" height="4" rx="2" fill="#F3F4F6"/>
+  <rect x="20" y="110" width="140" height="4" rx="2" fill="#F3F4F6"/>
+  <!-- Medical symbol -->
+  <circle cx="180" cy="35" r="8" fill="#0F4C75" opacity="0.1"/>
+  <path d="M180 30 L180 40 M175 35 L185 35" stroke="#0F4C75" stroke-width="1.5" opacity="0.3"/>
+</svg>
+

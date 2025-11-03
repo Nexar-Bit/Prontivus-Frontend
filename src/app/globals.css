@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+	--color-background: oklch(1 0 0);
+	--color-foreground: oklch(0.24 0.02 262);
+}
+
+@layer base {
+	:root {
+		--radius: 0.5rem;
+	}
+	body {
+		@apply bg-background text-foreground antialiased;
+	}
+}
+
+/* Accessibility: larger tap targets already added in mobile work */
+@layer base {
+	/* High contrast (user toggle via class) */
+	html.a11y-high-contrast {
+		--color-background: oklch(1 0 0);
+		--color-foreground: oklch(0.2 0 0);
+		--color-card: oklch(1 0 0);
+		--color-card-foreground: oklch(0.2 0 0);
+		--color-muted: oklch(0.93 0 0);
+		--color-muted-foreground: oklch(0.15 0 0);
+		--color-primary: oklch(0.45 0.25 200);
+		--color-primary-foreground: oklch(1 0 0);
+	}
+
+	/* Large text (user toggle via class) */
+	html.a11y-large-text {
+		font-size: 112.5%; /* 18px base */
+	}
+
+	/* Reduced motion */
+	html.a11y-reduced-motion *, html.a11y-reduced-motion *::before, html.a11y-reduced-motion *::after {
+		animation: none !important;
+		transition: none !important;
+		scroll-behavior: auto !important;
+	}
+
+	/* Respect OS setting */
+	@media (prefers-reduced-motion: reduce) {
+		* { animation: none !important; transition: none !important; }
+	}
+
+	/* Focus outline for keyboard navigation */
+	:focus-visible {
+		outline: 2px solid var(--color-ring);
+		outline-offset: 2px;
+	}
+}
+
+@layer base {
+	@media (max-width: 768px) {
+		:where(button, a, [role="button"]) {
+			min-height: 44px;
+			min-width: 44px;
+		}
+	}
+}

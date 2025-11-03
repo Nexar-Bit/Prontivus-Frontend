@@ -1,0 +1,24 @@
+{
+  "name": "Prontivus - Healthcare Management System",
+  "short_name": "Prontivus",
+  "description": "Comprehensive healthcare management platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F4C75",
+  "theme_color": "#0F4C75",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/svg/prontivus-icon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml"
+    }
+  ]
+}
+

@@ -1,0 +1,84 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic [active]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - navigation [ref=e6]:
+          - button "previous" [disabled] [ref=e7]:
+            - img "previous" [ref=e8]
+          - generic [ref=e10]:
+            - generic [ref=e11]: 1/
+            - text: "1"
+          - button "next" [disabled] [ref=e12]:
+            - img "next" [ref=e13]
+        - link "Next.js 16.0.0 (stale) Turbopack" [ref=e16] [cursor=pointer]:
+          - /url: https://nextjs.org/docs/messages/version-staleness
+          - img [ref=e17]
+          - generic "There is a newer version (16.0.1) available, upgrade recommended!" [ref=e19]: Next.js 16.0.0 (stale)
+          - generic [ref=e20]: Turbopack
+      - dialog "Build Error" [ref=e22]:
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e29]: Build Error
+              - generic [ref=e30]:
+                - button "Copy Error Info" [ref=e31] [cursor=pointer]:
+                  - img [ref=e32]
+                - link "Go to related documentation" [ref=e34] [cursor=pointer]:
+                  - /url: https://nextjs.org/docs/app/api-reference/directives/use-client
+                  - img [ref=e35]
+                - link "Learn more about enabling Node.js inspector for server code with Chrome DevTools" [ref=e37] [cursor=pointer]:
+                  - /url: https://nextjs.org/docs/app/building-your-application/configuring/debugging#server-side-code
+                  - img [ref=e38]
+            - generic [ref=e47]: Ecmascript file had an error
+          - generic [ref=e49]:
+            - generic [ref=e51]:
+              - img [ref=e53]
+              - generic [ref=e56]: ./src/app/portal/layout.tsx (10:14)
+              - button "Open in editor" [ref=e57] [cursor=pointer]:
+                - img [ref=e59]
+            - generic [ref=e62]:
+              - generic [ref=e63]: Ecmascript file had an error
+              - generic [ref=e64]: 8 |
+              - text: import FeatureGate from "@/components/flags/FeatureGate";
+              - generic [ref=e65]: 9 |
+              - text: ">"
+              - generic [ref=e66]: 10 |
+              - text: export const
+              - generic [ref=e67]: metadata
+              - text: =
+              - generic [ref=e68]: "{"
+              - generic [ref=e69]: "|"
+              - text: ^^^^^^^^
+              - generic [ref=e70]: 11 |
+              - generic [ref=e71]: title
+              - text: ":"
+              - generic [ref=e72]: "\"Patient Portal\""
+              - text: ","
+              - generic [ref=e73]: 12 |
+              - generic [ref=e74]: description
+              - text: ":"
+              - generic [ref=e75]: "\"Manage appointments, records, and messages\""
+              - text: ","
+              - generic [ref=e76]: 13 |
+              - generic [ref=e77]: "}"
+              - text: ;
+              - generic [ref=e78]:
+                - text: "You are attempting to export \"metadata\" from a component marked with \"use client\", which is disallowed. Either remove the export, or the \"use client\" directive. Read more:"
+                - link "https://nextjs.org/docs/app/api-reference/directives/use-client" [ref=e79] [cursor=pointer]:
+                  - /url: https://nextjs.org/docs/app/api-reference/directives/use-client
+                - text: "Import traces: Client Component Browser: ./src/app/portal/layout.tsx [Client Component Browser] ./src/app/portal/layout.tsx [Server Component] Client Component SSR: ./src/app/portal/layout.tsx [Client Component SSR] ./src/app/portal/layout.tsx [Server Component]"
+        - generic [ref=e80]: "1"
+        - generic [ref=e81]: "2"
+    - generic [ref=e86] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e87]:
+        - img [ref=e88]
+      - button "Open issues overlay" [ref=e92]:
+        - generic [ref=e93]:
+          - generic [ref=e94]: "0"
+          - generic [ref=e95]: "1"
+        - generic [ref=e96]: Issue
+  - alert [ref=e97]
+```

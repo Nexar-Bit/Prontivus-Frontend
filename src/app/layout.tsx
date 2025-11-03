@@ -1,0 +1,18 @@
+// app/layout.tsx
+import React from "react";
+import "./globals.css";
+import { Providers } from "@/components/providers";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import A11yLiveAnnouncer from "@/components/accessibility/A11yLiveAnnouncer";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className="min-h-screen bg-background text-foreground antialiased">
+        <A11yLiveAnnouncer />
+        <ServiceWorkerRegister />
+        <Providers>{children}</Providers>
+      </body>
+    </html>
+  );
+}

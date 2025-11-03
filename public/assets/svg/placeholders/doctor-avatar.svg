@@ -1,0 +1,10 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="64" cy="64" r="64" fill="#0F4C75" opacity="0.1"/>
+  <circle cx="64" cy="48" r="20" fill="#0F4C75" opacity="0.3"/>
+  <path d="M24 108 Q24 80 64 80 Q104 80 104 108" stroke="#0F4C75" stroke-width="3" fill="none" opacity="0.3"/>
+  <!-- Stethoscope -->
+  <path d="M44 56 Q44 52 48 52 Q52 52 52 56 L52 64 Q52 68 56 68 Q60 68 64 64 Q68 68 72 68 Q76 68 76 64 L76 56 Q76 52 80 52 Q84 52 84 56" 
+        stroke="#0F4C75" stroke-width="2" fill="none" opacity="0.4"/>
+  <circle cx="64" cy="64" r="60" stroke="#0F4C75" stroke-width="2" opacity="0.2" fill="none"/>
+</svg>
+
