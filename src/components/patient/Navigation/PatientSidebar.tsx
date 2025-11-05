@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts";
-import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,13 +80,11 @@ export function PatientSidebar({ className, items }: PatientSidebarProps) {
 
   const handleLogout = async () => {
     try {
-      await logout();
-      authLogout();
-      router.push("/login");
+      // Use the logout function from AuthContext which handles everything
+      await authLogout();
     } catch (error) {
       console.error("Logout error:", error);
-      // Force logout even if API call fails
-      authLogout();
+      // Force redirect even if API call fails
       router.push("/login");
     }
   };

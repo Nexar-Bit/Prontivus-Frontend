@@ -78,9 +78,10 @@ export function PatientHeader({
     return () => clearInterval(interval);
   }, []);
 
-  // Calculate unread notification count
+  // Calculate unread notification count from database
   const unreadCount = notifications.filter(n => !n.read).length;
-  const notificationCount = propNotificationCount !== undefined ? propNotificationCount : unreadCount;
+  // Always use the count from database (ignore deprecated prop)
+  const notificationCount = unreadCount;
 
   const getUserInitials = () => {
     if (user?.first_name && user?.last_name) {
