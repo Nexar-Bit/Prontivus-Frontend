@@ -60,3 +60,29 @@
 		}
 	}
 }
+
+/* Modern Scrollbar Styles for Sidebar */
+.sidebar-scrollbar {
+	/* For Firefox */
+	scrollbar-width: thin;
+	scrollbar-color: rgba(27, 154, 170, 0.5) transparent;
+}
+
+/* For Webkit browsers (Chrome, Safari, Edge) */
+.sidebar-scrollbar::-webkit-scrollbar {
+	width: 6px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+	background: rgba(27, 154, 170, 0.4);
+	border-radius: 10px;
+	transition: background 0.2s ease;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+	background: rgba(27, 154, 170, 0.7);
+}

@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, Stethoscope } from "lucide-react";
-import { ProntivusLogo, MedicalPattern } from "@/components/assets";
+import { MedicalPattern } from "@/components/assets";
+import Image from "next/image";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -32,60 +33,106 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="relative min-h-screen bg-[#FAFBFC] overflow-hidden">
       <MedicalPattern variant="dots" intensity="subtle" color="#0F4C75" />
-      <div className="max-w-4xl w-full space-y-8 relative z-10">
-        <div className="text-center flex flex-col items-center">
-          <ProntivusLogo variant="full" size="xl" includeMedicalSymbol />
-          <p className="text-sm text-[#5D737E] mt-2 font-medium">Prontivus — Cuidado inteligente</p>
-        </div>
+      <style jsx>{`
+        @keyframes spin-ring { to { transform: rotate(360deg); } }
+        .star-trail::after {
+          content: "";
+          position: absolute;
+          inset: -6px;
+          border-radius: 9999px;
+          pointer-events: none;
+          /* Create a thin ring, then use a conic gradient as a moving highlight */
+          -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+                  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+          background:
+            conic-gradient(from 0deg,
+              rgba(15,76,117,0) 0deg, rgba(15,76,117,0) 300deg,
+              rgba(27,154,170,0.9) 312deg, rgba(15,76,117,0) 324deg,
+              rgba(27,154,170,0.7) 336deg, rgba(15,76,117,0) 348deg,
+              rgba(15,76,117,0) 360deg);
+          animation: spin-ring 6s linear infinite;
+          filter: drop-shadow(0 0 6px rgba(27,154,170,0.6));
+        }
+      `}</style>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Login do Portal do Paciente */}
-          <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-primary-accent medical-card" onClick={handlePortalLogin}>
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-[#1B9AAA]/10 rounded-full flex items-center justify-center mb-4 transition-colors group-hover:bg-[#1B9AAA]/20">
-                <Users className="h-8 w-8 text-[#1B9AAA]" />
+      {/* Logo centralizado na tela */}
+      <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+        <div className="text-center relative">
+          <div className="mx-auto flex items-center justify-center w-40 h-40 rounded-full bg-white/90 shadow-lg ring-1 ring-[#0F4C75]/10 relative overflow-visible star-trail">
+            <Image
+              src="/Logo/Sublogo PNG Transparente.png"
+              alt="Prontivus"
+              width={220}
+              height={60}
+              priority
+              className="w-[75%] h-auto"
+            />
               </div>
-              <CardTitle className="text-2xl text-[#0F4C75]">Portal do Paciente</CardTitle>
-              <CardDescription className="text-[#5D737E]">
-                Acesse seu prontuário, agende consultas e gerencie seu cuidado
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button className="w-full" onClick={handlePortalLogin}>
-                Entrar como Paciente
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Login do Painel da Equipe */}
-          <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-primary-accent medical-card" onClick={handleDashboardLogin}>
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-[#0F4C75]/10 rounded-full flex items-center justify-center mb-4 transition-colors group-hover:bg-[#0F4C75]/20">
-                <Stethoscope className="h-8 w-8 text-[#0F4C75]" />
+          <p className="text-sm text-[#5D737E] mt-3 font-medium">Prontivus — Cuidado inteligente</p>
               </div>
-              <CardTitle className="text-2xl text-[#0F4C75]">Painel da Equipe</CardTitle>
-              <CardDescription className="text-[#5D737E]">
-                Gerencie pacientes, agendamentos, faturamento e operações da clínica
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button className="w-full" onClick={handleDashboardLogin}>
-                Entrar como Equipe
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
         </div>
 
-        <div className="text-center text-sm text-[#5D737E]">
-          <p>
-            Pacientes e equipe utilizam o mesmo sistema de login. 
-            Seu perfil será definido após a autenticação.
-          </p>
+      {/* Metade esquerda/direita ocupadas pelos botões */}
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 min-h-screen">
+        {/* Angled divider ~20deg */}
+        <div className="pointer-events-none absolute inset-0 hidden md:flex items-center justify-center">
+          <div className="w-px h-[130%] bg-gradient-to-b from-[#0F4C75]/20 via-[#1B9AAA] to-[#0F4C75]/20 transform rotate-[20deg]"></div>
         </div>
+        {/* Metade Paciente */}
+        <button
+          className="group relative overflow-hidden w-full h-full flex flex-col items-center justify-center p-10 bg-white/70 hover:bg-white transition-colors"
+          onClick={handlePortalLogin}
+          aria-label="Entrar como Paciente"
+        >
+          {/* Background image */}
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-40"
+            style={{ backgroundImage: "url('/resource image/image (1).jpg')" } as React.CSSProperties}
+          />
+          {/* Subtle gradient for readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/40 to-white/60" />
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-[#1B9AAA]/10 flex items-center justify-center mb-4 group-hover:bg-[#1B9AAA]/20 transition-colors">
+              <Users className="h-10 w-10 text-[#1B9AAA]" />
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-[#0F4C75]">Portal do Paciente</div>
+              <div className="text-[#0F4C75]/80 mt-1">Acesse seu prontuário e agendamentos</div>
+              <div className="mt-4 inline-flex items-center gap-2 text-[#0F4C75] font-medium">
+                Entrar <ArrowRight className="h-4 w-4" />
+        </div>
+            </div>
+          </div>
+        </button>
+
+        {/* Metade Equipe */}
+        <button
+          className="group relative overflow-hidden w-full h-full flex flex-col items-center justify-center p-10 bg-white/70 hover:bg-white transition-colors"
+          onClick={handleDashboardLogin}
+          aria-label="Entrar como Equipe"
+        >
+          {/* Background image */}
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-40"
+            style={{ backgroundImage: "url('/resource image/image (3).jpg')" } as React.CSSProperties}
+          />
+          {/* Subtle gradient for readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/40 to-white/60" />
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            <div className="w-20 h-20 rounded-full bg-[#0F4C75]/10 flex items-center justify-center mb-4 group-hover:bg-[#0F4C75]/20 transition-colors">
+              <Stethoscope className="h-10 w-10 text-[#0F4C75]" />
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-semibold text-[#0F4C75]">Painel da Equipe</div>
+              <div className="text-[#0F4C75]/80 mt-1">Gerencie pacientes e operações</div>
+              <div className="mt-4 inline-flex items-center gap-2 text-[#0F4C75] font-medium">
+                Entrar <ArrowRight className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+        </button>
       </div>
     </div>
   );

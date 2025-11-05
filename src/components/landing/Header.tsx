@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Menu,
@@ -10,7 +11,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ProntivusLogo } from "@/components/assets";
+// Logo now uses public/Logo/Prontivus Horizontal Transparents.png
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -130,7 +131,13 @@ export function LandingHeader({ className }: HeaderProps) {
             }}
           >
             <div className="transition-transform duration-200 group-hover:scale-105">
-              <ProntivusLogo variant="full" size="md" includeMedicalSymbol />
+              <Image
+                src="/Logo/Prontivus Horizontal Transparents.png"
+                alt="Prontivus"
+                width={160}
+                height={40}
+                priority
+              />
             </div>
             <div className="hidden sm:block">
               <div className="text-xs font-medium text-[#1B9AAA] tracking-wide">
@@ -219,7 +226,12 @@ export function LandingHeader({ className }: HeaderProps) {
             >
               <SheetHeader className="pb-6 border-b border-gray-200">
                 <SheetTitle className="flex items-center space-x-3">
-                  <ProntivusLogo variant="full" size="sm" includeMedicalSymbol />
+                  <Image
+                    src="/Logo/Prontivus Horizontal Transparents.png"
+                    alt="Prontivus"
+                    width={120}
+                    height={30}
+                  />
                   <div className="text-xs font-medium text-[#1B9AAA]">
                     Cuidado Inteligente
                   </div>

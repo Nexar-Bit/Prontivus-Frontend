@@ -589,17 +589,17 @@ export function AppSidebar() {
           <Image
             src={"/Logo/Prontivus Horizontal Transparents.png"}
             alt="Prontivus"
-            width={140}
-            height={26}
+            width={200}
+            height={37}
             priority
-            className="h-6 w-auto"
+            className="h-9 w-auto"
           />
         </Link>
         <p className="text-white/70 text-xs mt-2 ml-1">Cuidado Inteligente</p>
       </div>
 
       {/* Navigation Content */}
-      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1 sidebar-scrollbar">
         {/* Dashboard - Always visible */}
         {menuItems.filter(m => m.url === '/').map(item => (
           <div key={item.url}>{renderNavItem(item)}</div>
@@ -743,10 +743,10 @@ export function AppSidebar() {
               <Image
                 src={"/Logo/Prontivus Horizontal Transparents.png"}
                 alt="Prontivus"
-                width={120}
-                height={22}
-                className="h-5 w-auto"
-                style={{ height: 22, width: "auto" }}
+                width={160}
+                height={30}
+                className="h-7 w-auto"
+                style={{ height: 30, width: "auto" }}
               />
               <button
                 onClick={() => setIsMobileMenuOpen(false)}

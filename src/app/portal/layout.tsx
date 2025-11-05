@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { usePathname } from "next/navigation";
 import PortalNavbar from "@/components/portal/portal-navbar";
 import MobileTabBar from "@/components/mobile/MobileTabBar";
 import PullToRefresh from "@/components/mobile/PullToRefresh";
@@ -12,9 +13,12 @@ export default function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isLoginPage = pathname === "/portal/login";
+
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
-      <PortalNavbar />
+      {!isLoginPage && <PortalNavbar />}
       <FeatureGate name="newMobileNav" fallback={
         <main id="main" role="main" className="container mx-auto px-4 py-4 md:py-8">{children}</main>
       }>
@@ -23,8 +27,8 @@ export default function PortalLayout({
             {children}
           </main>
         </PullToRefresh>
-        <EmergencyButton onTrigger={() => alert("Emergency contact triggered")}/>
-        <MobileTabBar />
+        {!isLoginPage && <EmergencyButton onTrigger={() => alert("Emergency contact triggered")}/>}
+        {!isLoginPage && <MobileTabBar />}
       </FeatureGate>
     </div>
   );
