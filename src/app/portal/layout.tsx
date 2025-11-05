@@ -15,20 +15,22 @@ export default function PortalLayout({
 }) {
   const pathname = usePathname();
   const isLoginPage = pathname === "/portal/login";
+  const isRegisterPage = pathname === "/portal/register";
+  const isAuthPage = isLoginPage || isRegisterPage;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
-      {!isLoginPage && <PortalNavbar />}
+      {!isAuthPage && <PortalNavbar />}
       <FeatureGate name="newMobileNav" fallback={
-        <main id="main" role="main" className="container mx-auto px-4 py-4 md:py-8">{children}</main>
+        <main id="main" role="main" className={isAuthPage ? "" : "container mx-auto px-4 py-4 md:py-8"}>{children}</main>
       }>
         <PullToRefresh onRefresh={() => location.reload()}>
-          <main id="main" role="main" className="container mx-auto px-4 py-4 md:py-8">
+          <main id="main" role="main" className={isAuthPage ? "" : "container mx-auto px-4 py-4 md:py-8"}>
             {children}
           </main>
         </PullToRefresh>
-        {!isLoginPage && <EmergencyButton onTrigger={() => alert("Emergency contact triggered")}/>}
-        {!isLoginPage && <MobileTabBar />}
+        {!isAuthPage && <EmergencyButton onTrigger={() => alert("Emergency contact triggered")}/>}
+        {!isAuthPage && <MobileTabBar />}
       </FeatureGate>
     </div>
   );

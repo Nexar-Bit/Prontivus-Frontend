@@ -311,6 +311,7 @@ export interface RegisterData {
   first_name?: string;
   last_name?: string;
   role: 'admin' | 'secretary' | 'doctor' | 'patient';
+  clinic_id: number;
 }
 
 /**
@@ -327,7 +328,25 @@ export async function register(userData: RegisterData): Promise<LoginResponse> {
 
   if (!response.ok) {
     const errorData = await response.json();
-    throw new Error(errorData.detail || 'Registration failed');
+    
+    // Handle validation errors (array of error objects)
+    if (errorData.detail && Array.isArray(errorData.detail)) {
+      const errorMessages = errorData.detail.map((err: any) => {
+        if (typeof err === 'string') return err;
+        if (err.msg) return err.msg;
+        if (err.type && err.loc) {
+          return `${err.loc.join('.')}: ${err.msg || err.type}`;
+        }
+        return JSON.stringify(err);
+      });
+      throw new Error(errorMessages.join(', '));
+    }
+    
+    // Handle single error message
+    const errorMessage = typeof errorData.detail === 'string' 
+      ? errorData.detail 
+      : errorData.message || 'Registration failed';
+    throw new Error(errorMessage);
   }
 
   const data: LoginResponse = await response.json();

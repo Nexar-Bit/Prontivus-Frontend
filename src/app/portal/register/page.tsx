@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts";
 
@@ -91,30 +91,30 @@ function RegisterPageContent() {
   };
 
   const validatePatientForm = (): string | null => {
-    if (!patientFormData.first_name.trim()) return "First name is required";
-    if (!patientFormData.last_name.trim()) return "Last name is required";
-    if (!patientFormData.email.trim()) return "Email is required";
-    if (!patientFormData.password) return "Password is required";
-    if (patientFormData.password.length < 6) return "Password must be at least 6 characters";
-    if (patientFormData.password !== patientFormData.confirm_password) return "Passwords do not match";
-    if (!patientFormData.phone.trim()) return "Phone number is required";
-    if (!patientFormData.date_of_birth) return "Date of birth is required";
-    if (!patientFormData.gender) return "Gender is required";
-    if (!patientFormData.cpf.trim()) return "CPF is required";
-    if (!patientFormData.address.trim()) return "Address is required";
-    if (!patientFormData.emergency_contact_name.trim()) return "Emergency contact name is required";
-    if (!patientFormData.emergency_contact_phone.trim()) return "Emergency contact phone is required";
-    if (!patientFormData.emergency_contact_relationship.trim()) return "Emergency contact relationship is required";
+    if (!patientFormData.first_name.trim()) return "Nome é obrigatório";
+    if (!patientFormData.last_name.trim()) return "Sobrenome é obrigatório";
+    if (!patientFormData.email.trim()) return "E-mail é obrigatório";
+    if (!patientFormData.password) return "Senha é obrigatória";
+    if (patientFormData.password.length < 8) return "A senha deve ter pelo menos 8 caracteres";
+    if (patientFormData.password !== patientFormData.confirm_password) return "As senhas não coincidem";
+    if (!patientFormData.phone.trim()) return "Telefone é obrigatório";
+    if (!patientFormData.date_of_birth) return "Data de nascimento é obrigatória";
+    if (!patientFormData.gender) return "Gênero é obrigatório";
+    if (!patientFormData.cpf.trim()) return "CPF é obrigatório";
+    if (!patientFormData.address.trim()) return "Endereço é obrigatório";
+    if (!patientFormData.emergency_contact_name.trim()) return "Nome do contato de emergência é obrigatório";
+    if (!patientFormData.emergency_contact_phone.trim()) return "Telefone do contato de emergência é obrigatório";
+    if (!patientFormData.emergency_contact_relationship.trim()) return "Parentesco do contato de emergência é obrigatório";
     return null;
   };
 
   const validateEmployeeForm = (): string | null => {
-    if (!employeeFormData.first_name.trim()) return "First name is required";
-    if (!employeeFormData.last_name.trim()) return "Last name is required";
-    if (!employeeFormData.email.trim()) return "Email is required";
-    if (!employeeFormData.password) return "Password is required";
-    if (employeeFormData.password.length < 6) return "Password must be at least 6 characters";
-    if (employeeFormData.password !== employeeFormData.confirm_password) return "Passwords do not match";
+    if (!employeeFormData.first_name.trim()) return "Nome é obrigatório";
+    if (!employeeFormData.last_name.trim()) return "Sobrenome é obrigatório";
+    if (!employeeFormData.email.trim()) return "E-mail é obrigatório";
+    if (!employeeFormData.password) return "Senha é obrigatória";
+    if (employeeFormData.password.length < 8) return "A senha deve ter pelo menos 8 caracteres";
+    if (employeeFormData.password !== employeeFormData.confirm_password) return "As senhas não coincidem";
     return null;
   };
 
@@ -151,13 +151,14 @@ function RegisterPageContent() {
         first_name: formData.first_name,
         last_name: formData.last_name,
         role: userRole,
+        clinic_id: 1, // TODO: Get clinic_id from context or default clinic
       };
 
       await register(userData);
 
       // Note: Patient profile creation would need to be handled separately
       // or integrated into the registration process on the backend
-      toast.success("Registration successful! Welcome to the portal.");
+      toast.success("Cadastro realizado com sucesso! Bem-vindo ao portal.");
       
       // Redirect based on role: patients to patient dashboard, staff to main dashboard
       if (userRole === 'patient') {
@@ -167,47 +168,90 @@ function RegisterPageContent() {
       }
     } catch (err: any) {
       console.error("Registration error:", err);
-      setError(err.message || "Registration failed. Please try again.");
+      
+      // Extract error message from various error formats
+      let errorMessage = "Falha no cadastro. Por favor, tente novamente.";
+      
+      if (err?.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      } else if (err?.response?.data?.detail) {
+        const detail = err.response.data.detail;
+        if (Array.isArray(detail)) {
+          errorMessage = detail.map((e: any) => 
+            e.msg || e.message || JSON.stringify(e)
+          ).join(', ');
+        } else {
+          errorMessage = detail;
+        }
+      }
+      
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <Link href="/portal" className="inline-flex items-center text-blue-600 hover:text-blue-500 mb-4">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Portal
-          </Link>
-          <h2 className="text-3xl font-bold text-gray-900">Create Account</h2>
-          <p className="mt-2 text-sm text-gray-600">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#FAFBFC] via-[#F0F4F8] to-[#E8F0F5] relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[#1B9AAA]/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[#0F4C75]/5 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#16C79A]/5 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="max-w-2xl w-full space-y-6 relative z-10">
+        {/* Back button */}
+        <Link 
+          href={`/portal/login${roleParam && roleParam !== 'patient' ? `?role=${roleParam}` : ''}`}
+          className="inline-flex items-center text-[#0F4C75] hover:text-[#1B9AAA] transition-colors mb-2 group"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+          <span className="text-sm font-medium">Voltar para login</span>
+        </Link>
+
+        {/* Avatar and Welcome Section */}
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-6">
+            <div className="relative group">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#1B9AAA] to-[#0F4C75] blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
+              <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-[#1B9AAA] to-[#0F4C75] flex items-center justify-center shadow-xl ring-4 ring-white/50">
+                <UserPlus className="w-14 h-14 text-white" />
+              </div>
+            </div>
+          </div>
+          <h2 className="text-4xl font-bold text-[#0F4C75] mb-2">Criar Conta</h2>
+          <p className="text-base text-[#5D737E]">
             {roleParam === 'staff' || roleParam === 'employee' 
-              ? 'Register for staff access to the dashboard' 
-              : 'Join our patient portal to manage your healthcare'}
+              ? 'Cadastre-se para acessar o painel da equipe' 
+              : 'Junte-se ao portal do paciente para gerenciar sua saúde'}
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{roleParam === 'staff' || roleParam === 'employee' ? 'Staff Registration' : 'Patient Registration'}</CardTitle>
-            <CardDescription>
-              Please fill in your information to create your account
+        <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-sm">
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-2xl text-[#0F4C75]">
+              {roleParam === 'staff' || roleParam === 'employee' ? 'Cadastro da Equipe' : 'Cadastro do Paciente'}
+            </CardTitle>
+            <CardDescription className="text-[#5D737E]">
+              Preencha suas informações para criar sua conta
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
+                <Alert variant="destructive" className="border-red-200 bg-red-50">
+                  <AlertDescription className="text-red-800">{error}</AlertDescription>
                 </Alert>
               )}
 
               {/* Common fields for both forms */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="first_name">First Name *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="first_name" className="text-[#0F4C75] font-medium">Nome *</Label>
                   <Input
                     id="first_name"
                     name="first_name"
@@ -215,10 +259,12 @@ function RegisterPageContent() {
                     required
                     value={isEmployee ? employeeFormData.first_name : patientFormData.first_name}
                     onChange={isEmployee ? handleEmployeeInputChange : handlePatientInputChange}
+                    placeholder="Seu nome"
+                    className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="last_name">Last Name *</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="last_name" className="text-[#0F4C75] font-medium">Sobrenome *</Label>
                   <Input
                     id="last_name"
                     name="last_name"
@@ -226,12 +272,14 @@ function RegisterPageContent() {
                     required
                     value={isEmployee ? employeeFormData.last_name : patientFormData.last_name}
                     onChange={isEmployee ? handleEmployeeInputChange : handlePatientInputChange}
+                    placeholder="Seu sobrenome"
+                    className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                   />
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="email">Email Address *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-[#0F4C75] font-medium">Endereço de e-mail *</Label>
                 <Input
                   id="email"
                   name="email"
@@ -239,12 +287,14 @@ function RegisterPageContent() {
                   required
                   value={isEmployee ? employeeFormData.email : patientFormData.email}
                   onChange={isEmployee ? handleEmployeeInputChange : handlePatientInputChange}
+                  placeholder="seu.email@exemplo.com"
+                  className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="password">Password *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-[#0F4C75] font-medium">Senha *</Label>
                   <Input
                     id="password"
                     name="password"
@@ -252,10 +302,12 @@ function RegisterPageContent() {
                     required
                     value={isEmployee ? employeeFormData.password : patientFormData.password}
                     onChange={isEmployee ? handleEmployeeInputChange : handlePatientInputChange}
+                    placeholder="Mínimo 8 caracteres"
+                    className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="confirm_password">Confirm Password *</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm_password" className="text-[#0F4C75] font-medium">Confirmar Senha *</Label>
                   <Input
                     id="confirm_password"
                     name="confirm_password"
@@ -263,12 +315,14 @@ function RegisterPageContent() {
                     required
                     value={isEmployee ? employeeFormData.confirm_password : patientFormData.confirm_password}
                     onChange={isEmployee ? handleEmployeeInputChange : handlePatientInputChange}
+                    placeholder="Confirme sua senha"
+                    className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                   />
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="phone">Phone Number {isEmployee ? '' : '*'}</Label>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-[#0F4C75] font-medium">Telefone {isEmployee ? '' : '*'}</Label>
                 <Input
                   id="phone"
                   name="phone"
@@ -276,15 +330,17 @@ function RegisterPageContent() {
                   required={!isEmployee}
                   value={isEmployee ? employeeFormData.phone : patientFormData.phone}
                   onChange={isEmployee ? handleEmployeeInputChange : handlePatientInputChange}
+                  placeholder="(00) 00000-0000"
+                  className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                 />
               </div>
 
               {/* Patient-specific fields */}
               {!isEmployee && (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="date_of_birth">Date of Birth *</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date_of_birth" className="text-[#0F4C75] font-medium">Data de Nascimento *</Label>
                       <Input
                         id="date_of_birth"
                         name="date_of_birth"
@@ -292,30 +348,31 @@ function RegisterPageContent() {
                         required
                         value={patientFormData.date_of_birth}
                         onChange={handlePatientInputChange}
+                        className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="gender">Gender *</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="gender" className="text-[#0F4C75] font-medium">Gênero *</Label>
                       <select
                         id="gender"
                         name="gender"
                         required
                         value={patientFormData.gender}
                         onChange={handlePatientInputChange}
-                        aria-label="Gender selection"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        aria-label="Seleção de gênero"
+                        className="flex h-11 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1B9AAA] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                       >
-                        <option value="">Select Gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                        <option value="other">Other</option>
-                        <option value="prefer_not_to_say">Prefer not to say</option>
+                        <option value="">Selecione o gênero</option>
+                        <option value="male">Masculino</option>
+                        <option value="female">Feminino</option>
+                        <option value="other">Outro</option>
+                        <option value="prefer_not_to_say">Prefiro não informar</option>
                       </select>
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="cpf">CPF *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf" className="text-[#0F4C75] font-medium">CPF *</Label>
                     <Input
                       id="cpf"
                       name="cpf"
@@ -324,74 +381,95 @@ function RegisterPageContent() {
                       placeholder="000.000.000-00"
                       value={patientFormData.cpf}
                       onChange={handlePatientInputChange}
+                      className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="address">Address *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="address" className="text-[#0F4C75] font-medium">Endereço *</Label>
                     <Input
                       id="address"
                       name="address"
                       type="text"
                       required
+                      placeholder="Rua, número, bairro, cidade"
                       value={patientFormData.address}
                       onChange={handlePatientInputChange}
+                      className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                     />
                   </div>
 
-                  <div className="border-t pt-4">
-                    <h3 className="text-lg font-medium mb-4">Emergency Contact</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="emergency_contact_name">Contact Name *</Label>
+                  <div className="border-t border-gray-200 pt-6 mt-6">
+                    <h3 className="text-lg font-semibold text-[#0F4C75] mb-4">Contato de Emergência</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="emergency_contact_name" className="text-[#0F4C75] font-medium">Nome do Contato *</Label>
                         <Input
                           id="emergency_contact_name"
                           name="emergency_contact_name"
                           type="text"
                           required
+                          placeholder="Nome completo"
                           value={patientFormData.emergency_contact_name}
                           onChange={handlePatientInputChange}
+                          className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                         />
                       </div>
-                      <div>
-                        <Label htmlFor="emergency_contact_phone">Contact Phone *</Label>
+                      <div className="space-y-2">
+                        <Label htmlFor="emergency_contact_phone" className="text-[#0F4C75] font-medium">Telefone do Contato *</Label>
                         <Input
                           id="emergency_contact_phone"
                           name="emergency_contact_phone"
                           type="tel"
                           required
+                          placeholder="(00) 00000-0000"
                           value={patientFormData.emergency_contact_phone}
                           onChange={handlePatientInputChange}
+                          className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                         />
                       </div>
                     </div>
-                    <div className="mt-4">
-                      <Label htmlFor="emergency_contact_relationship">Relationship *</Label>
+                    <div className="mt-4 space-y-2">
+                      <Label htmlFor="emergency_contact_relationship" className="text-[#0F4C75] font-medium">Parentesco *</Label>
                       <Input
                         id="emergency_contact_relationship"
                         name="emergency_contact_relationship"
                         type="text"
                         required
-                        placeholder="e.g., Spouse, Parent, Sibling"
+                        placeholder="Ex: Cônjuge, Pai, Mãe, Irmão"
                         value={patientFormData.emergency_contact_relationship}
                         onChange={handlePatientInputChange}
+                        className="h-11 border-gray-300 focus:border-[#1B9AAA] focus:ring-[#1B9AAA] transition-colors"
                       />
                     </div>
                   </div>
                 </>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Account
+              <Button 
+                type="submit" 
+                className="w-full h-11 bg-gradient-to-r from-[#1B9AAA] to-[#0F4C75] hover:from-[#0F4C75] hover:to-[#1B9AAA] text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 mt-6" 
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Criando conta...
+                  </>
+                ) : (
+                  'Criar Conta'
+                )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{" "}
-                <Link href={`/portal/login${roleParam && roleParam !== 'patient' ? `?role=${roleParam}` : ''}`} className="font-medium text-blue-600 hover:text-blue-500">
-                  Sign in
+            <div className="mt-6 pt-6 border-t border-gray-200 text-center">
+              <p className="text-sm text-[#5D737E]">
+                Já tem uma conta?{" "}
+                <Link 
+                  href={`/portal/login${roleParam && roleParam !== 'patient' ? `?role=${roleParam}` : ''}`} 
+                  className="font-semibold text-[#1B9AAA] hover:text-[#0F4C75] transition-colors"
+                >
+                  Entrar
                 </Link>
               </p>
             </div>
