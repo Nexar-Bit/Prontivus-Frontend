@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { getUserSettings, updateUserSettings, updateUserProfile, type UserSettings as ApiUserSettings } from "@/lib/settings-api";
 import { 
   Settings, 
   User, 
@@ -143,50 +144,11 @@ export default function SettingsPage() {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await settingsApi.getUserSettings();
-      // setSettings(response);
-      
-      // Mock data for now
-      const mockSettings: UserSettings = {
-        profile: {
-          firstName: user?.first_name || 'John',
-          lastName: user?.last_name || 'Doe',
-          email: user?.email || 'user@example.com',
-          phone: '+55 11 99999-9999',
-        },
-        notifications: {
-          email: true,
-          push: true,
-          sms: false,
-          appointmentReminders: true,
-          systemUpdates: true,
-          marketing: false,
-        },
-        privacy: {
-          profileVisibility: 'contacts',
-          showOnlineStatus: true,
-          allowDirectMessages: true,
-          dataSharing: false,
-        },
-        appearance: {
-          theme: 'system',
-          language: 'pt-BR',
-          timezone: 'America/Sao_Paulo',
-          dateFormat: 'DD/MM/YYYY',
-        },
-        security: {
-          twoFactorAuth: false,
-          loginAlerts: true,
-          sessionTimeout: 30,
-          passwordExpiry: 90,
-        },
-      };
-      
-      setSettings(mockSettings);
+      const response = await getUserSettings();
+      setSettings(response);
     } catch (error) {
       console.error("Failed to load settings:", error);
-      toast.error("Failed to load settings");
+      toast.error("Falha ao carregar configurações");
     } finally {
       setLoading(false);
     }
@@ -195,16 +157,29 @@ export default function SettingsPage() {
   const saveSettings = async () => {
     try {
       setSaving(true);
-      // TODO: Replace with actual API call
-      // await settingsApi.updateUserSettings(settings);
       
-      // Mock save
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Update profile first (name, email, phone)
+      await updateUserProfile({
+        firstName: settings.profile.firstName,
+        lastName: settings.profile.lastName,
+        email: settings.profile.email,
+        phone: settings.profile.phone,
+      });
       
-      toast.success("Settings saved successfully");
-    } catch (error) {
+      // Then update other settings
+      await updateUserSettings({
+        phone: settings.profile.phone,
+        notifications: settings.notifications,
+        privacy: settings.privacy,
+        appearance: settings.appearance,
+        security: settings.security,
+      });
+      
+      toast.success("Configurações salvas com sucesso");
+    } catch (error: any) {
       console.error("Failed to save settings:", error);
-      toast.error("Failed to save settings");
+      const errorMessage = error?.response?.data?.detail || error?.message || "Falha ao salvar configurações";
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -248,25 +223,25 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Settings className="h-8 w-8" />
-            Settings
+            Configurações
           </h1>
           <p className="text-muted-foreground mt-2">
-            Manage your account settings and preferences
+            Gerencie suas configurações e preferências da conta
           </p>
         </div>
         <Button onClick={saveSettings} disabled={saving}>
           <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Saving...' : 'Save Changes'}
+          {saving ? 'Salvando...' : 'Salvar Alterações'}
         </Button>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="privacy">Privacy</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
+          <TabsTrigger value="profile">Perfil</TabsTrigger>
+          <TabsTrigger value="notifications">Notificações</TabsTrigger>
+          <TabsTrigger value="privacy">Privacidade</TabsTrigger>
+          <TabsTrigger value="appearance">Aparência</TabsTrigger>
+          <TabsTrigger value="security">Segurança</TabsTrigger>
         </TabsList>
 
         {/* Profile Settings */}
@@ -275,16 +250,16 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
-                Profile Information
+                Informações do Perfil
               </CardTitle>
               <CardDescription>
-                Update your personal information and contact details
+                Atualize suas informações pessoais e dados de contato
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="firstName">Nome</Label>
                   <Input
                     id="firstName"
                     value={settings.profile.firstName}
@@ -292,7 +267,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="lastName">Sobrenome</Label>
                   <Input
                     id="lastName"
                     value={settings.profile.lastName}
@@ -302,7 +277,7 @@ export default function SettingsPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">E-mail</Label>
                   <Input
                     id="email"
                     type="email"
@@ -311,7 +286,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">Telefone</Label>
                   <Input
                     id="phone"
                     value={settings.profile.phone}
@@ -329,20 +304,20 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
-                Notification Preferences
+                Preferências de Notificações
               </CardTitle>
               <CardDescription>
-                Choose how you want to be notified about different activities
+                Escolha como deseja ser notificado sobre diferentes atividades
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Notification Channels</h3>
+                <h3 className="text-lg font-semibold">Canais de Notificação</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Mail className="h-4 w-4" />
-                      <Label htmlFor="emailNotifications">Email Notifications</Label>
+                      <Label htmlFor="emailNotifications">Notificações por E-mail</Label>
                     </div>
                     <Switch
                       id="emailNotifications"
@@ -353,7 +328,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Smartphone className="h-4 w-4" />
-                      <Label htmlFor="pushNotifications">Push Notifications</Label>
+                      <Label htmlFor="pushNotifications">Notificações Push</Label>
                     </div>
                     <Switch
                       id="pushNotifications"
@@ -364,7 +339,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <Bell className="h-4 w-4" />
-                      <Label htmlFor="smsNotifications">SMS Notifications</Label>
+                      <Label htmlFor="smsNotifications">Notificações SMS</Label>
                     </div>
                     <Switch
                       id="smsNotifications"
@@ -378,10 +353,10 @@ export default function SettingsPage() {
               <Separator />
               
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Notification Types</h3>
+                <h3 className="text-lg font-semibold">Tipos de Notificação</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="appointmentReminders">Appointment Reminders</Label>
+                    <Label htmlFor="appointmentReminders">Lembretes de Consultas</Label>
                     <Switch
                       id="appointmentReminders"
                       checked={settings.notifications.appointmentReminders}
@@ -389,7 +364,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="systemUpdates">System Updates</Label>
+                    <Label htmlFor="systemUpdates">Atualizações do Sistema</Label>
                     <Switch
                       id="systemUpdates"
                       checked={settings.notifications.systemUpdates}
@@ -397,7 +372,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="marketingNotifications">Marketing Notifications</Label>
+                    <Label htmlFor="marketingNotifications">Notificações de Marketing</Label>
                     <Switch
                       id="marketingNotifications"
                       checked={settings.notifications.marketing}
@@ -416,16 +391,16 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Privacy & Data
+                Privacidade e Dados
               </CardTitle>
               <CardDescription>
-                Control your privacy settings and data sharing preferences
+                Controle suas configurações de privacidade e preferências de compartilhamento de dados
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="profileVisibility">Profile Visibility</Label>
+                  <Label htmlFor="profileVisibility">Visibilidade do Perfil</Label>
                   <Select
                     value={settings.privacy.profileVisibility}
                     onValueChange={(value) => handleSettingChange('privacy', 'profileVisibility', value)}
@@ -434,16 +409,16 @@ export default function SettingsPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="public">Public</SelectItem>
-                      <SelectItem value="contacts">Contacts Only</SelectItem>
-                      <SelectItem value="private">Private</SelectItem>
+                      <SelectItem value="public">Público</SelectItem>
+                      <SelectItem value="contacts">Apenas Contatos</SelectItem>
+                      <SelectItem value="private">Privado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="showOnlineStatus">Show Online Status</Label>
+                    <Label htmlFor="showOnlineStatus">Mostrar Status Online</Label>
                     <Switch
                       id="showOnlineStatus"
                       checked={settings.privacy.showOnlineStatus}
@@ -451,7 +426,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="allowDirectMessages">Allow Direct Messages</Label>
+                    <Label htmlFor="allowDirectMessages">Permitir Mensagens Diretas</Label>
                     <Switch
                       id="allowDirectMessages"
                       checked={settings.privacy.allowDirectMessages}
@@ -459,7 +434,7 @@ export default function SettingsPage() {
                     />
                   </div>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="dataSharing">Allow Data Sharing</Label>
+                    <Label htmlFor="dataSharing">Permitir Compartilhamento de Dados</Label>
                     <Switch
                       id="dataSharing"
                       checked={settings.privacy.dataSharing}
@@ -478,16 +453,16 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Palette className="h-5 w-5" />
-                Appearance & Language
+                Aparência e Idioma
               </CardTitle>
               <CardDescription>
-                Customize the look and feel of your interface
+                Personalize a aparência e o idioma da sua interface
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="theme">Theme</Label>
+                  <Label htmlFor="theme">Tema</Label>
                   <Select
                     value={settings.appearance.theme}
                     onValueChange={(value) => handleSettingChange('appearance', 'theme', value)}
@@ -499,19 +474,19 @@ export default function SettingsPage() {
                       <SelectItem value="light">
                         <div className="flex items-center gap-2">
                           <Sun className="h-4 w-4" />
-                          Light
+                          Claro
                         </div>
                       </SelectItem>
                       <SelectItem value="dark">
                         <div className="flex items-center gap-2">
                           <Moon className="h-4 w-4" />
-                          Dark
+                          Escuro
                         </div>
                       </SelectItem>
                       <SelectItem value="system">
                         <div className="flex items-center gap-2">
                           <Monitor className="h-4 w-4" />
-                          System
+                          Sistema
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -519,7 +494,7 @@ export default function SettingsPage() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="language">Language</Label>
+                  <Label htmlFor="language">Idioma</Label>
                   <Select
                     value={settings.appearance.language}
                     onValueChange={(value) => handleSettingChange('appearance', 'language', value)}
@@ -540,7 +515,7 @@ export default function SettingsPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="timezone">Timezone</Label>
+                  <Label htmlFor="timezone">Fuso Horário</Label>
                   <Select
                     value={settings.appearance.timezone}
                     onValueChange={(value) => handleSettingChange('appearance', 'timezone', value)}
@@ -559,7 +534,7 @@ export default function SettingsPage() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="dateFormat">Date Format</Label>
+                  <Label htmlFor="dateFormat">Formato de Data</Label>
                   <Select
                     value={settings.appearance.dateFormat}
                     onValueChange={(value) => handleSettingChange('appearance', 'dateFormat', value)}
@@ -587,19 +562,19 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
-                Security & Authentication
+                Segurança e Autenticação
               </CardTitle>
               <CardDescription>
-                Manage your account security and authentication settings
+                Gerencie as configurações de segurança e autenticação da sua conta
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="twoFactorAuth">Two-Factor Authentication</Label>
+                    <Label htmlFor="twoFactorAuth">Autenticação de Dois Fatores</Label>
                     <p className="text-sm text-muted-foreground">
-                      Add an extra layer of security to your account
+                      Adicione uma camada extra de segurança à sua conta
                     </p>
                   </div>
                   <Switch
@@ -611,9 +586,9 @@ export default function SettingsPage() {
                 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="loginAlerts">Login Alerts</Label>
+                    <Label htmlFor="loginAlerts">Alertas de Login</Label>
                     <p className="text-sm text-muted-foreground">
-                      Get notified when someone logs into your account
+                      Seja notificado quando alguém fizer login na sua conta
                     </p>
                   </div>
                   <Switch
@@ -628,7 +603,7 @@ export default function SettingsPage() {
               
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                  <Label htmlFor="sessionTimeout">Tempo Limite de Sessão (minutos)</Label>
                   <Input
                     id="sessionTimeout"
                     type="number"
@@ -640,7 +615,7 @@ export default function SettingsPage() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="passwordExpiry">Password Expiry (days)</Label>
+                  <Label htmlFor="passwordExpiry">Expiração de Senha (dias)</Label>
                   <Input
                     id="passwordExpiry"
                     type="number"

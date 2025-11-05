@@ -18,6 +18,7 @@ import {
   AlertCircle,
   ArrowUpRight,
   ArrowDownRight,
+  Loader2,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,16 @@ import { PatientVitalsChart } from "@/components/dashboard/patient-vitals-chart"
 import { AppointmentHeatmap } from "@/components/dashboard/appointment-heatmap";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { api } from "@/lib/api";
+
+interface DashboardStats {
+  patients: { value: number; change: number };
+  appointments: { value: number; change: number };
+  revenue: { value: number; change: number };
+  satisfaction: { value: number; change: number };
+  today_appointments: { value: number; change: number };
+  pending_results: { value: number; change: number };
+}
 
 export default function Dashboard() {
   const { 
@@ -40,6 +51,37 @@ export default function Dashboard() {
     getRoleDisplayName,
     canAccessFinancial,
   } = usePermissions();
+
+  const [stats, setStats] = React.useState<DashboardStats | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const data = await api.get<DashboardStats>("/api/analytics/dashboard/stats");
+        setStats(data);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats:", err);
+        setError(err instanceof Error ? err.message : "Failed to load dashboard data");
+        // Set default values on error
+        setStats({
+          patients: { value: 0, change: 0 },
+          appointments: { value: 0, change: 0 },
+          revenue: { value: 0, change: 0 },
+          satisfaction: { value: 0, change: 0 },
+          today_appointments: { value: 0, change: 0 },
+          pending_results: { value: 0, change: 0 },
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const getWelcomeMessage = () => {
     if (isPatient()) {
@@ -54,57 +96,57 @@ export default function Dashboard() {
     return "Bem-vindo(a) ao Prontivus!";
   };
 
-  // Mock metrics data - replace with API calls
+  // Use real data from API or fallback to defaults
   const metrics = {
     patients: {
-      value: 2847,
-      change: 12.5,
-      trend: 'up' as const,
+      value: stats?.patients.value ?? 0,
+      change: stats?.patients.change ?? 0,
+      trend: (stats?.patients.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Users,
       color: 'blue' as const,
       label: 'Pacientes Ativos',
       subtitle: 'Total cadastrado',
     },
     appointments: {
-      value: 342,
-      change: 8.2,
-      trend: 'up' as const,
+      value: stats?.appointments.value ?? 0,
+      change: stats?.appointments.change ?? 0,
+      trend: (stats?.appointments.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Calendar,
       color: 'orange' as const,
       label: 'Agendamentos Este Mês',
       subtitle: 'Consultas agendadas',
     },
     revenue: {
-      value: 245800,
-      change: -3.1,
-      trend: 'down' as const,
+      value: stats?.revenue.value ?? 0,
+      change: stats?.revenue.change ?? 0,
+      trend: (stats?.revenue.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: DollarSign,
       color: 'green' as const,
       label: 'Receita Mensal',
       subtitle: 'Faturamento total',
     },
     satisfaction: {
-      value: 94.2,
-      change: 2.3,
-      trend: 'up' as const,
+      value: stats?.satisfaction.value ?? 0,
+      change: stats?.satisfaction.change ?? 0,
+      trend: (stats?.satisfaction.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Heart,
       color: 'teal' as const,
       label: 'Satisfação dos Pacientes',
       subtitle: 'Avaliação média',
     },
     todayAppointments: {
-      value: 48,
-      change: 4,
-      trend: 'up' as const,
+      value: stats?.today_appointments.value ?? 0,
+      change: stats?.today_appointments.change ?? 0,
+      trend: (stats?.today_appointments.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Clock,
       color: 'orange' as const,
       label: 'Agendamentos Hoje',
       subtitle: 'Consultas agendadas',
     },
     pendingResults: {
-      value: 23,
-      change: -12,
-      trend: 'down' as const,
+      value: stats?.pending_results.value ?? 0,
+      change: stats?.pending_results.change ?? 0,
+      trend: (stats?.pending_results.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Activity,
       color: 'blue' as const,
       label: 'Resultados Pendentes',
@@ -123,14 +165,57 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" disabled>
             Últimos 30 dias
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => {
+            // Open export endpoint in new window to trigger file download
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const token = localStorage.getItem('access_token');
+            const url = `${apiUrl}/api/analytics/export/financial/excel?period=last_month`;
+            // Create a temporary link to trigger download with auth header
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`;
+            // For authenticated downloads, we need to use fetch with the token
+            fetch(url, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            })
+              .then(response => response.blob())
+              .then(blob => {
+                const downloadUrl = window.URL.createObjectURL(blob);
+                link.href = downloadUrl;
+                link.click();
+                window.URL.revokeObjectURL(downloadUrl);
+              })
+              .catch(err => {
+                console.error("Failed to export:", err);
+                // Fallback: open in new tab
+                window.open(url, '_blank');
+              });
+          }}>
             Exportar
           </Button>
         </div>
       </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">Carregando dados...</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-yellow-600" />
+            <p className="text-sm text-yellow-800">{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Key Metrics - Top Section */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

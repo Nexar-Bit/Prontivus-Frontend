@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable react/forbid-dom-props */
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +43,7 @@ import { PatientHeader } from "@/components/patient/Navigation/PatientHeader";
 import { PatientSidebar } from "@/components/patient/Navigation/PatientSidebar";
 import { PatientMobileNav } from "@/components/patient/Navigation/PatientMobileNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { api } from "@/lib/api";
 
 // Types
 interface Doctor {
@@ -76,90 +77,8 @@ interface BookingStep {
   description: string;
 }
 
-// Mock data
-const mockDoctors: Doctor[] = [
-  {
-    id: 1,
-    first_name: 'Maria',
-    last_name: 'Silva',
-    specialty: 'Cardiologia',
-    rating: 4.8,
-    available: true,
-    nextAvailable: '2024-01-20T09:00:00',
-  },
-  {
-    id: 2,
-    first_name: 'João',
-    last_name: 'Santos',
-    specialty: 'Clínico Geral',
-    rating: 4.9,
-    available: true,
-    nextAvailable: '2024-01-19T14:00:00',
-  },
-  {
-    id: 3,
-    first_name: 'Ana',
-    last_name: 'Costa',
-    specialty: 'Pediatria',
-    rating: 4.7,
-    available: false,
-    nextAvailable: '2024-01-22T10:00:00',
-  },
-  {
-    id: 4,
-    first_name: 'Pedro',
-    last_name: 'Oliveira',
-    specialty: 'Dermatologia',
-    rating: 4.6,
-    available: true,
-    nextAvailable: '2024-01-19T15:00:00',
-  },
-];
-
-const mockAppointments: Appointment[] = [
-  {
-    id: 1,
-    scheduled_datetime: '2024-01-25T14:00:00',
-    duration_minutes: 30,
-    status: 'confirmed',
-    appointment_type: 'telemedicine',
-    reason: 'Consulta de rotina',
-    doctor: mockDoctors[0],
-    preparation_checklist: [
-      'Ter lista de medicamentos em uso',
-      'Verificar conexão de internet',
-      'Estar em local silencioso e iluminado',
-    ],
-  },
-  {
-    id: 2,
-    scheduled_datetime: '2024-01-28T10:00:00',
-    duration_minutes: 45,
-    status: 'scheduled',
-    appointment_type: 'consultation',
-    reason: 'Acompanhamento',
-    doctor: mockDoctors[1],
-    location: 'Clínica Prontivus - Av. Principal, 123',
-  },
-  {
-    id: 3,
-    scheduled_datetime: '2024-01-15T09:00:00',
-    duration_minutes: 30,
-    status: 'completed',
-    appointment_type: 'consultation',
-    doctor: mockDoctors[1],
-    visit_summary: 'Consulta realizada com sucesso. Paciente apresentou melhora nos sintomas relatados.',
-  },
-  {
-    id: 4,
-    scheduled_datetime: '2024-01-10T14:30:00',
-    duration_minutes: 30,
-    status: 'completed',
-    appointment_type: 'telemedicine',
-    doctor: mockDoctors[0],
-    visit_summary: 'Consulta de telemedicina concluída. Prescrição atualizada.',
-  },
-];
+// Data
+const mockDoctors: Doctor[] = [];
 
 const bookingSteps: BookingStep[] = [
   { step: 1, label: 'Médico', description: 'Escolha o médico' },
@@ -193,6 +112,50 @@ const specialtyIcons: Record<string, string> = {
 };
 
 export default function PatientAppointmentsPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [appts, doctors] = await Promise.all([
+          api.get<any[]>(`/api/appointments/patient-appointments`),
+          api.get<any[]>(`/api/users/doctors`),
+        ]);
+        // Map doctors by name for display enrichment
+        const docById = new Map<number, Partial<Doctor>>();
+        doctors.forEach((d: any) => {
+          docById.set(d.id, {
+            id: d.id,
+            first_name: (d.first_name || (d.username || '')).toString(),
+            last_name: (d.last_name || '').toString(),
+            specialty: d.specialty || undefined,
+          });
+        });
+        const mapped: Appointment[] = appts.map((a: any) => ({
+          id: a.id,
+          scheduled_datetime: a.scheduled_datetime,
+          duration_minutes: a.duration_minutes,
+          status: (a.status || 'scheduled').toLowerCase(),
+          appointment_type: (a.appointment_type || 'consultation'),
+          reason: a.reason || undefined,
+          notes: a.notes || undefined,
+          doctor: {
+            id: a.doctor_id,
+            first_name: (docById.get(a.doctor_id)?.first_name as string) || (a.doctor_name?.split(' ')[0] || 'Médico'),
+            last_name: (docById.get(a.doctor_id)?.last_name as string) || (a.doctor_name?.split(' ').slice(1).join(' ') || ''),
+          } as Doctor,
+          location: undefined,
+          preparation_checklist: undefined,
+          visit_summary: undefined,
+        }));
+        setAppointments(mapped);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [bookingStep, setBookingStep] = useState(1);
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
@@ -208,23 +171,23 @@ export default function PatientAppointmentsPage() {
   // Separate upcoming and past appointments
   const upcomingAppointments = useMemo(() => {
     const now = new Date();
-    return mockAppointments
+    return appointments
       .filter(apt => {
         const aptDate = parseISO(apt.scheduled_datetime);
         return isAfter(aptDate, now) && apt.status !== 'cancelled' && apt.status !== 'completed';
       })
       .sort((a, b) => parseISO(a.scheduled_datetime).getTime() - parseISO(b.scheduled_datetime).getTime());
-  }, []);
+  }, [appointments]);
 
   const pastAppointments = useMemo(() => {
     const now = new Date();
-    return mockAppointments
+    return appointments
       .filter(apt => {
         const aptDate = parseISO(apt.scheduled_datetime);
         return isBefore(aptDate, now) || apt.status === 'completed' || apt.status === 'cancelled';
       })
       .sort((a, b) => parseISO(b.scheduled_datetime).getTime() - parseISO(a.scheduled_datetime).getTime());
-  }, []);
+  }, [appointments]);
 
   // Available time slots
   const timeSlots = useMemo(() => {
@@ -476,11 +439,38 @@ export default function PatientAppointmentsPage() {
                             Entrar na Consulta
                           </Button>
                         )}
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            // Simple reschedule to +7 days same time
+                            const current = parseISO(appointment.scheduled_datetime);
+                            const newDate = addDays(current, 7);
+                            await api.post(`/api/appointments/${appointment.id}/reschedule`, {
+                              scheduled_datetime: newDate.toISOString(),
+                            });
+                            // reload
+                            const appts = await api.get<any[]>(`/api/appointments/patient-appointments`);
+                            setAppointments(appts.map((a:any)=>({
+                              id:a.id, scheduled_datetime:a.scheduled_datetime, duration_minutes:a.duration_minutes, status:(a.status||'scheduled').toLowerCase(), appointment_type:(a.appointment_type||'consultation'), reason:a.reason, notes:a.notes, doctor:{ id:a.doctor_id, first_name:a.doctor_name?.split(' ')[0]||'Médico', last_name:a.doctor_name?.split(' ').slice(1).join(' ')||''} as Doctor
+                            })) as any);
+                          }}
+                        >
                           <CalendarIcon className="h-4 w-4 mr-2" />
                           Reagendar
                         </Button>
-                        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={async () => {
+                            await api.post(`/api/appointments/${appointment.id}/cancel`, {});
+                            const appts = await api.get<any[]>(`/api/appointments/patient-appointments`);
+                            setAppointments(appts.map((a:any)=>({
+                              id:a.id, scheduled_datetime:a.scheduled_datetime, duration_minutes:a.duration_minutes, status:(a.status||'scheduled').toLowerCase(), appointment_type:(a.appointment_type||'consultation'), reason:a.reason, notes:a.notes, doctor:{ id:a.doctor_id, first_name:a.doctor_name?.split(' ')[0]||'Médico', last_name:a.doctor_name?.split(' ').slice(1).join(' ')||''} as Doctor
+                            })) as any);
+                          }}
+                        >
                           <X className="h-4 w-4 mr-2" />
                           Cancelar
                         </Button>

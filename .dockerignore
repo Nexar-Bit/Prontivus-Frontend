@@ -1,0 +1,24 @@
+# Frontend-specific ignores
+
+.git
+.gitignore
+node_modules
+.next
+out
+.cache
+.turbo
+
+# Logs and env
+*.log
+.env*
+
+# Tests and reports
+tests/**
+test-results/**
+coverage/**
+playwright-report/**
+
+# Dev-only assets
+temp_backup/**
+docs/**
+

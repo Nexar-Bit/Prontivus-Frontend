@@ -50,30 +50,30 @@ export function LandingFooter({ className }: FooterProps) {
   };
 
   const patientLinks = [
-    { label: "Patient Portal", href: "/login" },
-    { label: "Mobile App", href: "#" },
-    { label: "Telemedicine", href: "#patients" },
-    { label: "Medical Records", href: "#features" },
-    { label: "Support Center", href: "/help" },
-    { label: "Patient Resources", href: "#" },
+    { label: "Portal do Paciente", href: "/login" },
+    { label: "App Mobile", href: "#" },
+    { label: "Telemedicina", href: "#patients" },
+    { label: "Prontuário", href: "#features" },
+    { label: "Central de Suporte", href: "/help" },
+    { label: "Recursos para Pacientes", href: "#" },
   ];
 
   const providerLinks = [
-    { label: "Clinic Solutions", href: "#providers" },
-    { label: "EHR System", href: "#features" },
-    { label: "Implementation", href: "#" },
-    { label: "Training & Support", href: "/help" },
-    { label: "Partner Program", href: "#" },
-    { label: "API Documentation", href: "#" },
+    { label: "Soluções para Clínicas", href: "#providers" },
+    { label: "Sistema de PEP", href: "#features" },
+    { label: "Implantação", href: "#" },
+    { label: "Treinamento & Suporte", href: "/help" },
+    { label: "Programa de Parcerias", href: "#" },
+    { label: "Documentação da API", href: "#" },
   ];
 
   const legalLinks = [
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
-    { label: "HIPAA Compliance", href: "#" },
-    { label: "GDPR Policy", href: "#" },
-    { label: "Cookie Policy", href: "#" },
-    { label: "Accessibility", href: "#" },
+    { label: "Política de Privacidade", href: "/privacy" },
+    { label: "Termos de Uso", href: "/terms" },
+    { label: "Conformidade HIPAA", href: "#" },
+    { label: "Política GDPR", href: "#" },
+    { label: "Política de Cookies", href: "#" },
+    { label: "Acessibilidade", href: "#" },
   ];
 
   const contactInfo = [
@@ -90,10 +90,10 @@ export function LandingFooter({ className }: FooterProps) {
   ];
 
   const complianceBadges = [
-    { icon: Shield, label: "HIPAA Compliant" },
+    { icon: Shield, label: "Conforme HIPAA" },
     { icon: Award, label: "ISO 27001" },
-    { icon: CheckCircle2, label: "SOC 2 Type II" },
-    { icon: CheckCircle2, label: "GDPR Compliant" },
+    { icon: CheckCircle2, label: "SOC 2 Tipo II" },
+    { icon: CheckCircle2, label: "Conforme GDPR" },
   ];
 
   return (
@@ -112,7 +112,7 @@ export function LandingFooter({ className }: FooterProps) {
               <div className="mb-6">
                 <ProntivusLogo variant="full" size="md" includeMedicalSymbol={false} />
                 <p className="text-sm text-white/70 mt-3 mb-4">
-                  Comprehensive healthcare management platform for modern medical practices.
+                  Plataforma completa de gestão em saúde para clínicas modernas.
                 </p>
                 <p className="text-xs text-white/60 font-medium">Prontivus — Cuidado inteligente</p>
               </div>
@@ -136,7 +136,7 @@ export function LandingFooter({ className }: FooterProps) {
 
               {/* App Download Badges */}
               <div className="space-y-2">
-                <div className="text-xs font-medium text-white/80 mb-2">Download our app:</div>
+              <div className="text-xs font-medium text-white/80 mb-2">Baixe nosso app:</div>
                 <div className="flex flex-col gap-2">
                   <AppStoreBadge platform="apple" />
                   <AppStoreBadge platform="google" />
@@ -146,7 +146,7 @@ export function LandingFooter({ className }: FooterProps) {
 
             {/* Column 2: For Patients */}
             <div>
-              <h3 className="font-semibold text-lg mb-4">For Patients</h3>
+              <h3 className="font-semibold text-lg mb-4">Para Pacientes</h3>
               <ul className="space-y-3">
                 {patientLinks.map((link, index) => (
                   <li key={index}>
@@ -163,7 +163,7 @@ export function LandingFooter({ className }: FooterProps) {
 
             {/* Column 3: For Providers */}
             <div>
-              <h3 className="font-semibold text-lg mb-4">For Providers</h3>
+              <h3 className="font-semibold text-lg mb-4">Para Profissionais</h3>
               <ul className="space-y-3">
                 {providerLinks.map((link, index) => (
                   <li key={index}>
@@ -180,7 +180,7 @@ export function LandingFooter({ className }: FooterProps) {
 
             {/* Column 4: Legal & Contact */}
             <div>
-              <h3 className="font-semibold text-lg mb-4">Legal & Contact</h3>
+              <h3 className="font-semibold text-lg mb-4">Legal & Contato</h3>
               
               {/* Contact Information */}
               <div className="space-y-3 mb-6">
@@ -234,7 +234,7 @@ export function LandingFooter({ className }: FooterProps) {
         {/* Bottom Bar */}
         <div className="py-6 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-sm text-white/70 text-center md:text-left">
-            © {new Date().getFullYear()} Prontivus. All rights reserved.
+            © {new Date().getFullYear()} Prontivus. Todos os direitos reservados.
           </div>
           
           <div className="flex items-center gap-4">
@@ -305,7 +305,7 @@ function AppStoreBadge({ platform }: { platform: "apple" | "google" }) {
             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
           </svg>
           <div className="text-left">
-            <div className="text-[9px] leading-tight">Download on the</div>
+            <div className="text-[9px] leading-tight">Disponível na</div>
             <div className="text-xs font-semibold">App Store</div>
           </div>
         </>
@@ -315,7 +315,7 @@ function AppStoreBadge({ platform }: { platform: "apple" | "google" }) {
             <path d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.61 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,15.12M20.16,10.81C20.5,11.08 20.75,11.5 20.75,12C20.75,12.5 20.5,12.92 20.16,13.19L16.81,15.12L14.54,12.85L16.81,10.81L20.16,10.81M20.84,9.69L21.94,8.31C22.18,7.96 22.18,7.5 21.94,7.15L14.54,1.54L6.05,11.03L16.81,17.25L20.84,9.69Z" />
           </svg>
           <div className="text-left">
-            <div className="text-[9px] leading-tight">Get it on</div>
+            <div className="text-[9px] leading-tight">Disponível no</div>
             <div className="text-xs font-semibold">Google Play</div>
           </div>
         </>

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { appointmentsApi } from "@/lib/appointments-api";
+import { api } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Search, RefreshCw, Stethoscope, Mail, Phone, Building2, ArrowRight } from "lucide-react";
+import { Search, RefreshCw, Stethoscope, Mail, Phone, Building2, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 type Doctor = {
@@ -33,10 +33,15 @@ export default function SecretariaMedicosPage() {
   const load = async () => {
     try {
       setLoading(true);
-      const data = await appointmentsApi.getDoctors();
-      setItems(data as any);
+      // Use the correct endpoint for doctors
+      const data = await api.get<Doctor[]>("/api/users/doctors");
+      setItems(data || []);
     } catch (e: any) {
-      toast.error("Erro ao carregar médicos", { description: e?.message });
+      console.error("Failed to load doctors:", e);
+      toast.error("Erro ao carregar médicos", { 
+        description: e?.message || "Não foi possível carregar a lista de médicos" 
+      });
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -112,11 +117,24 @@ export default function SecretariaMedicosPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+            <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando médicos...
+            </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Stethoscope className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              Nenhum médico encontrado.
+              {items.length === 0 ? (
+                <>
+                  <p className="text-base font-medium mb-2">Nenhum médico cadastrado</p>
+                  <p className="text-sm">Adicione médicos através do menu de usuários.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-base font-medium mb-2">Nenhum médico encontrado</p>
+                  <p className="text-sm">Tente ajustar os filtros de busca.</p>
+                </>
+              )}
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -124,27 +142,53 @@ export default function SecretariaMedicosPage() {
                 <div key={d.id} className="border rounded-lg p-4 hover:bg-accent/50 transition-colors">
                   <div className="flex items-start gap-3">
                     <Avatar>
-                      <AvatarFallback>{(d.first_name?.[0] || 'M')}{(d.last_name?.[0] || '')}</AvatarFallback>
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {(d.first_name?.[0] || 'M')}{(d.last_name?.[0] || '')}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold truncate">Dr(a). {d.first_name} {d.last_name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold truncate">Dr(a). {d.first_name || ''} {d.last_name || ''}</h3>
                         {d.crm && <Badge variant="secondary">CRM {d.crm}</Badge>}
                       </div>
                       <div className="text-sm text-muted-foreground mt-1 flex flex-wrap items-center gap-2">
-                        {d.specialty && <><Stethoscope className="h-3 w-3"/> {d.specialty}</>}
-                        {d.clinic_name && <><Separator orientation="vertical" className="h-4"/> <Building2 className="h-3 w-3"/> {d.clinic_name}</>}
+                        {d.specialty && (
+                          <>
+                            <Stethoscope className="h-3 w-3"/> 
+                            <span>{d.specialty}</span>
+                          </>
+                        )}
+                        {d.clinic_name && (
+                          <>
+                            {d.specialty && <Separator orientation="vertical" className="h-4"/>}
+                            <Building2 className="h-3 w-3"/> 
+                            <span>{d.clinic_name}</span>
+                          </>
+                        )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-2 flex flex-wrap items-center gap-4">
-                        {d.email && <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3"/> {d.email}</span>}
-                        {d.phone && <span className="inline-flex items-center gap-1"><Phone className="h-3 w-3"/> {d.phone}</span>}
+                        {d.email && (
+                          <span className="inline-flex items-center gap-1">
+                            <Mail className="h-3 w-3"/> 
+                            <span className="truncate max-w-[150px]">{d.email}</span>
+                          </span>
+                        )}
+                        {d.phone && (
+                          <span className="inline-flex items-center gap-1">
+                            <Phone className="h-3 w-3"/> 
+                            <span>{d.phone}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between">
                     <div className="text-xs text-muted-foreground">ID #{d.id}</div>
                     <Link href={`/secretaria/agendamentos?doctor_id=${d.id}`}>
-                      <Button size="sm" variant="outline">Agendar <ArrowRight className="h-3 w-3 ml-2"/></Button>
+                      <Button size="sm" variant="outline" className="gap-1">
+                        Agendar 
+                        <ArrowRight className="h-3 w-3"/>
+                      </Button>
                     </Link>
                   </div>
                 </div>

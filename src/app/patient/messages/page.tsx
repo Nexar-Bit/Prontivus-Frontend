@@ -42,26 +42,14 @@ import {
 } from "lucide-react";
 import { PatientHeader, PatientSidebar, PatientMobileNav } from "@/components/patient/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
+import { format, formatDistanceToNow, isToday, isYesterday, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { messagesApi, MessageThread, Message as ApiMessage } from "@/lib/messages-api";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Types
-interface Message {
-  id: string;
-  senderId: string;
-  senderName: string;
-  senderType: "patient" | "provider" | "system";
-  content: string;
-  timestamp: Date;
-  read: boolean;
-  urgent?: boolean;
-  topic?: string;
-  attachments?: Attachment[];
-  medicalContext?: MedicalContext;
-}
-
 interface Attachment {
-  id: string;
+  id?: string;
   name: string;
   type: "image" | "document" | "pdf";
   url: string;
@@ -75,168 +63,19 @@ interface MedicalContext {
   metadata?: Record<string, any>;
 }
 
-interface Conversation {
-  id: string;
-  providerId: string;
-  providerName: string;
-  providerPhoto?: string;
-  providerSpecialty?: string;
-  lastMessage?: string;
-  lastMessageTime?: Date;
-  unreadCount: number;
-  isUrgent?: boolean;
+interface Message {
+  id: number;
+  senderId: number;
+  senderName: string;
+  senderType: "patient" | "provider" | "system";
+  content: string;
+  timestamp: Date;
+  read: boolean;
+  urgent?: boolean;
   topic?: string;
+  attachments?: Attachment[];
+  medicalContext?: MedicalContext;
 }
-
-// Mock data
-const mockConversations: Conversation[] = [
-  {
-    id: "1",
-    providerId: "doc1",
-    providerName: "Dr. Maria Silva",
-    providerSpecialty: "Cardiologia",
-    lastMessage: "Seus exames estão normais. Podemos agendar um retorno em 3 meses.",
-    lastMessageTime: new Date(Date.now() - 2 * 60 * 60 * 1000),
-    unreadCount: 0,
-    topic: "Test Results",
-  },
-  {
-    id: "2",
-    providerId: "doc2",
-    providerName: "Dr. João Santos",
-    providerSpecialty: "Ortopedia",
-    lastMessage: "Preciso renovar sua receita de paracetamol?",
-    lastMessageTime: new Date(Date.now() - 5 * 60 * 60 * 1000),
-    unreadCount: 2,
-    isUrgent: false,
-    topic: "Prescription Renewal",
-  },
-  {
-    id: "3",
-    providerId: "doc3",
-    providerName: "Dra. Ana Costa",
-    providerSpecialty: "Clínica Geral",
-    lastMessage: "URGENTE: Sua consulta foi reagendada para amanhã às 14h",
-    lastMessageTime: new Date(Date.now() - 1 * 60 * 60 * 1000),
-    unreadCount: 1,
-    isUrgent: true,
-    topic: "Appointment",
-  },
-];
-
-const mockMessages: Record<string, Message[]> = {
-  "1": [
-    {
-      id: "m1",
-      senderId: "doc1",
-      senderName: "Dr. Maria Silva",
-      senderType: "provider",
-      content: "Olá! Recebi seus exames de sangue. Vou analisar e te retorno em breve.",
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      read: true,
-      topic: "Test Results",
-      medicalContext: {
-        type: "test_result",
-        referenceId: "test-123",
-      },
-    },
-    {
-      id: "m2",
-      senderId: "doc1",
-      senderName: "Dr. Maria Silva",
-      senderType: "provider",
-      content: "Seus exames estão normais. Podemos agendar um retorno em 3 meses.",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      read: true,
-      topic: "Test Results",
-      medicalContext: {
-        type: "test_result",
-        referenceId: "test-123",
-      },
-      attachments: [
-        {
-          id: "att1",
-          name: "Hemograma_Completo.pdf",
-          type: "pdf",
-          url: "#",
-          size: 245760,
-        },
-      ],
-    },
-    {
-      id: "m3",
-      senderId: "patient",
-      senderName: "Você",
-      senderType: "patient",
-      content: "Ótimo! Obrigado, doutora. Quando seria melhor para o retorno?",
-      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      read: true,
-      topic: "Test Results",
-    },
-  ],
-  "2": [
-    {
-      id: "m4",
-      senderId: "patient",
-      senderName: "Você",
-      senderType: "patient",
-      content: "Bom dia, doutor. Gostaria de renovar minha receita de paracetamol 500mg.",
-      timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      read: true,
-      topic: "Prescription Renewal",
-      medicalContext: {
-        type: "prescription",
-        referenceId: "rx-456",
-      },
-    },
-    {
-      id: "m5",
-      senderId: "doc2",
-      senderName: "Dr. João Santos",
-      senderType: "provider",
-      content: "Preciso renovar sua receita de paracetamol?",
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-      read: false,
-      topic: "Prescription Renewal",
-      medicalContext: {
-        type: "prescription",
-        referenceId: "rx-456",
-      },
-    },
-  ],
-  "3": [
-    {
-      id: "m6",
-      senderId: "system",
-      senderName: "Sistema",
-      senderType: "system",
-      content: "Sua consulta foi reagendada para 15/01/2024 às 14:00",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      read: true,
-      urgent: false,
-      topic: "Appointment",
-      medicalContext: {
-        type: "appointment",
-        referenceId: "apt-789",
-      },
-    },
-    {
-      id: "m7",
-      senderId: "doc3",
-      senderName: "Dra. Ana Costa",
-      senderType: "provider",
-      content: "URGENTE: Sua consulta foi reagendada para amanhã às 14h",
-      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      read: false,
-      urgent: true,
-      topic: "Appointment",
-      medicalContext: {
-        type: "appointment",
-        referenceId: "apt-789",
-      },
-    },
-  ],
-};
 
 const quickResponses = [
   "Obrigado pela informação",
@@ -251,31 +90,126 @@ const quickResponses = [
 ];
 
 export default function MessagesPage() {
-  const [selectedConversation, setSelectedConversation] = useState<string>("1");
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [threads, setThreads] = useState<MessageThread[]>([]);
+  const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
+  const [currentThread, setCurrentThread] = useState<MessageThread | null>(null);
+  // Ensure currentThread is always defined (no currentConversation reference)
+  const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showQuickResponses, setShowQuickResponses] = useState(false);
   const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-  const currentConversation = mockConversations.find((c) => c.id === selectedConversation);
-  const currentMessages = mockMessages[selectedConversation] || [];
+  // Load threads on mount
+  useEffect(() => {
+    loadThreads();
+  }, []);
 
+  // Load thread details when selected
+  useEffect(() => {
+    if (selectedThreadId) {
+      loadThread(selectedThreadId);
+    }
+  }, [selectedThreadId]);
+
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [currentMessages]);
 
-  const filteredConversations = mockConversations.filter((conv) =>
-    conv.providerName.toLowerCase().includes(searchQuery.toLowerCase())
+  const loadThreads = async () => {
+    try {
+      setLoading(true);
+      const data = await messagesApi.listThreads(false);
+      setThreads(data);
+      if (data.length > 0 && !selectedThreadId) {
+        setSelectedThreadId(data[0].id);
+      }
+    } catch (error) {
+      console.error("Failed to load threads:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadThread = async (threadId: number) => {
+    try {
+      const thread = await messagesApi.getThread(threadId);
+      setCurrentThread(thread);
+      
+      // Map API messages to UI format
+      const mappedMessages: Message[] = thread.messages.map((msg) => ({
+        id: msg.id,
+        senderId: msg.sender_id,
+        senderName: msg.sender_type === "patient" ? "Você" : thread.provider_name,
+        senderType: msg.sender_type,
+        content: msg.content,
+        timestamp: parseISO(msg.created_at),
+        read: msg.status === "read",
+        urgent: thread.is_urgent,
+        topic: thread.topic,
+        attachments: msg.attachments?.map((att, idx) => ({
+          id: String(idx),
+          name: att.name,
+          type: att.type === "pdf" ? "pdf" : att.type === "image" ? "image" : "document",
+          url: att.url,
+          size: att.size,
+        })),
+        medicalContext: msg.medical_context ? {
+          type: msg.medical_context.type as any,
+          referenceId: msg.medical_context.reference_id,
+        } : undefined,
+      }));
+      
+      setCurrentMessages(mappedMessages);
+      
+      // Update thread in list
+      setThreads(prev => prev.map(t => t.id === threadId ? thread : t));
+    } catch (error) {
+      console.error("Failed to load thread:", error);
+    }
+  };
+
+  const filteredConversations = threads.filter((conv) =>
+    conv.provider_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() && uploadedFiles.length === 0) return;
-    // In real app, this would send to API
-    setMessageInput("");
-    setUploadedFiles([]);
+  const handleSendMessage = async () => {
+    if ((!messageInput.trim() && uploadedFiles.length === 0) || !selectedThreadId || sending) return;
+    
+    try {
+      setSending(true);
+      
+      // TODO: Upload files first if needed
+      const attachments = uploadedFiles.length > 0 ? uploadedFiles.map(file => ({
+        name: file.name,
+        type: file.type.startsWith("image/") ? "image" : file.type === "application/pdf" ? "pdf" : "document",
+        url: "#", // TODO: Upload and get URL
+        size: file.size,
+      })) : undefined;
+      
+      await messagesApi.sendMessage(selectedThreadId, {
+        content: messageInput.trim(),
+        attachments,
+      });
+      
+      setMessageInput("");
+      setUploadedFiles([]);
+      
+      // Reload thread to get updated messages
+      await loadThread(selectedThreadId);
+      await loadThreads(); // Refresh thread list
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,81 +282,85 @@ export default function MessagesPage() {
 
             {/* Conversation List */}
             <div className="flex-1 overflow-y-auto">
-              {filteredConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  onClick={() => setSelectedConversation(conversation.id)}
-                  className={cn(
-                    "p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors",
-                    selectedConversation === conversation.id && "bg-blue-50 border-l-4 border-l-blue-500"
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={conversation.providerPhoto} />
-                      <AvatarFallback className="bg-[#1B9AAA] text-white">
-                        {conversation.providerName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()
-                          .slice(0, 2)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <h3 className="font-semibold text-gray-900 truncate">
-                          {conversation.providerName}
-                        </h3>
-                        {conversation.lastMessageTime && (
-                          <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                            {formatMessageTime(conversation.lastMessageTime)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mb-1">
-                        {conversation.topic && (
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
-                            {getTopicIcon(conversation.topic)}
-                            <span>{conversation.topic}</span>
+              {loading ? (
+                <div className="p-4 text-center text-gray-500">Carregando...</div>
+              ) : filteredConversations.length === 0 ? (
+                <div className="p-4 text-center text-gray-500">Nenhuma conversa encontrada</div>
+              ) : (
+                filteredConversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    onClick={() => setSelectedThreadId(conversation.id)}
+                    className={cn(
+                      "p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors",
+                      selectedThreadId === conversation.id && "bg-blue-50 border-l-4 border-l-blue-500"
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback className="bg-[#1B9AAA] text-white">
+                          {conversation.provider_name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="font-semibold text-gray-900 truncate">
+                            {conversation.provider_name}
+                          </h3>
+                          {conversation.last_message_at && (
+                            <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
+                              {formatMessageTime(parseISO(conversation.last_message_at))}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                          {conversation.topic && (
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              {getTopicIcon(conversation.topic)}
+                              <span>{conversation.topic}</span>
+                            </div>
+                          )}
+                          {conversation.is_urgent && (
+                            <Badge className="bg-yellow-100 text-yellow-700 text-xs px-1.5 py-0">
+                              <Zap className="h-3 w-3 mr-1" />
+                              Urgente
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 truncate line-clamp-1">
+                          {conversation.last_message || "Nenhuma mensagem"}
+                        </p>
+                        {conversation.unread_count > 0 && (
+                          <div className="flex items-center justify-between mt-2">
+                            <Badge className="bg-blue-600 text-white text-xs">
+                              {conversation.unread_count} nova{conversation.unread_count > 1 ? "s" : ""}
+                            </Badge>
                           </div>
                         )}
-                        {conversation.isUrgent && (
-                          <Badge className="bg-yellow-100 text-yellow-700 text-xs px-1.5 py-0">
-                            <Zap className="h-3 w-3 mr-1" />
-                            Urgente
-                          </Badge>
-                        )}
                       </div>
-                      <p className="text-sm text-gray-600 truncate line-clamp-1">
-                        {conversation.lastMessage || "Nenhuma mensagem"}
-                      </p>
-                      {conversation.unreadCount > 0 && (
-                        <div className="flex items-center justify-between mt-2">
-                          <Badge className="bg-blue-600 text-white text-xs">
-                            {conversation.unreadCount} nova{conversation.unreadCount > 1 ? "s" : ""}
-                          </Badge>
-                        </div>
-                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
           {/* Message Thread */}
           <div className="flex-1 flex flex-col bg-white">
-            {currentConversation ? (
+            {currentThread ? (
               <>
                 {/* Header */}
                 <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={currentConversation.providerPhoto} />
                         <AvatarFallback className="bg-[#1B9AAA] text-white">
-                          {currentConversation.providerName
+                          {currentThread.provider_name
                             .split(" ")
                             .map((n) => n[0])
                             .join("")
@@ -432,18 +370,18 @@ export default function MessagesPage() {
                       </Avatar>
                       <div>
                         <h2 className="font-semibold text-gray-900">
-                          {currentConversation.providerName}
+                          {currentThread.provider_name}
                         </h2>
                         <p className="text-sm text-gray-500">
-                          {currentConversation.providerSpecialty}
+                          {currentThread.provider_specialty || "Provedor"}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      {currentConversation.topic && (
+                      {currentThread.topic && (
                         <Badge variant="outline" className="flex items-center gap-1">
-                          {getTopicIcon(currentConversation.topic)}
-                          {currentConversation.topic}
+                          {getTopicIcon(currentThread.topic)}
+                          {currentThread.topic}
                         </Badge>
                       )}
                       <Button variant="ghost" size="icon">
@@ -458,17 +396,20 @@ export default function MessagesPage() {
 
                 {/* Messages Area */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-                  {currentMessages.map((message, index) => {
-                    const isPatient = message.senderType === "patient";
-                    const isSystem = message.senderType === "system";
-                    const showAvatar = index === 0 || currentMessages[index - 1].senderId !== message.senderId;
-                    const showTimestamp =
-                      index === 0 ||
-                      Math.abs(
-                        message.timestamp.getTime() -
-                          currentMessages[index - 1].timestamp.getTime()
-                      ) >
-                        5 * 60 * 1000; // 5 minutes
+                  {currentMessages.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">Nenhuma mensagem ainda</div>
+                  ) : (
+                    currentMessages.map((message, index) => {
+                      const isPatient = message.senderType === "patient";
+                      const isSystem = message.senderType === "system";
+                      const showAvatar = index === 0 || currentMessages[index - 1].senderId !== message.senderId;
+                      const showTimestamp =
+                        index === 0 ||
+                        Math.abs(
+                          message.timestamp.getTime() -
+                            currentMessages[index - 1].timestamp.getTime()
+                        ) >
+                          5 * 60 * 1000; // 5 minutes
 
                     return (
                       <div key={message.id}>
@@ -717,7 +658,7 @@ export default function MessagesPage() {
                         </div>
                       </div>
                     );
-                  })}
+                  }))}
                   <div ref={messagesEndRef} />
                 </div>
 
@@ -817,7 +758,7 @@ export default function MessagesPage() {
                     <Button
                       onClick={handleSendMessage}
                       className="bg-[#0F4C75] hover:bg-[#0F4C75]/90 flex-shrink-0"
-                      disabled={!messageInput.trim() && uploadedFiles.length === 0}
+                      disabled={(!messageInput.trim() && uploadedFiles.length === 0) || sending}
                     >
                       <Send className="h-4 w-4" />
                     </Button>

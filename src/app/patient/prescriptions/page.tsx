@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable react/forbid-dom-props */
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,6 +52,7 @@ import { PatientHeader } from "@/components/patient/Navigation/PatientHeader";
 import { PatientSidebar } from "@/components/patient/Navigation/PatientSidebar";
 import { PatientMobileNav } from "@/components/patient/Navigation/PatientMobileNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { api } from "@/lib/api";
 
 // Types
 interface Medication {
@@ -104,108 +105,9 @@ interface RefillRequest {
   pharmacyId?: string;
 }
 
-// Mock data
-const mockActiveMedications: Medication[] = [
-  {
-    id: '1',
-    name: 'Losartana',
-    dosage: '50mg',
-    frequency: '1 comprimido ao dia pela manhã',
-    duration: '30 dias',
-    instructions: 'Tomar com água, preferencialmente pela manhã',
-    issuedDate: '2024-01-15',
-    prescriber: 'Dr. Maria Silva',
-    status: 'active',
-    refillsRemaining: 2,
-    refillsTotal: 3,
-    nextRefillDate: '2024-02-14',
-    adherence: 93,
-    type: 'tablet',
-    color: 'Azul',
-    sideEffects: ['Tontura leve', 'Fadiga'],
-    interactions: ['Evitar com anti-inflamatórios'],
-    warnings: ['Não interromper sem orientação médica'],
-    pharmacyId: 'ph1',
-    pharmacyName: 'Farmácia Central',
-    cost: 45.90,
-    insuranceCoverage: 80,
-    takenToday: 1,
-    scheduledToday: 1,
-    lastTaken: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Ácido Acetilsalicílico',
-    dosage: '100mg',
-    frequency: '1 comprimido ao dia',
-    duration: 'Contínuo',
-    instructions: 'Tomar após o café da manhã',
-    issuedDate: '2024-01-10',
-    prescriber: 'Dr. João Santos',
-    status: 'active',
-    refillsRemaining: 5,
-    refillsTotal: 6,
-    adherence: 100,
-    type: 'tablet',
-    color: 'Branco',
-    warnings: ['Evitar em caso de úlcera'],
-    pharmacyId: 'ph1',
-    pharmacyName: 'Farmácia Central',
-    cost: 12.50,
-    insuranceCoverage: 100,
-    takenToday: 1,
-    scheduledToday: 1,
-    lastTaken: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Metformina',
-    dosage: '500mg',
-    frequency: '2 comprimidos ao dia (manhã e noite)',
-    duration: '60 dias',
-    instructions: 'Tomar com as refeições',
-    issuedDate: '2024-01-08',
-    prescriber: 'Dr. Maria Silva',
-    status: 'active',
-    refillsRemaining: 0,
-    refillsTotal: 2,
-    nextRefillDate: '2024-01-25',
-    adherence: 87,
-    type: 'tablet',
-    color: 'Branco',
-    sideEffects: ['Náusea leve', 'Desconforto gastrointestinal'],
-    pharmacyId: 'ph2',
-    pharmacyName: 'Farmácia Popular',
-    cost: 28.90,
-    insuranceCoverage: 70,
-    takenToday: 1,
-    scheduledToday: 2,
-    lastTaken: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-  },
-];
-
-const mockPastMedications: Medication[] = [
-  {
-    id: '4',
-    name: 'Dipirona',
-    dosage: '500mg',
-    frequency: '1 comprimido a cada 8h se necessário',
-    duration: '5 dias',
-    instructions: 'Apenas em caso de dor ou febre',
-    issuedDate: '2023-12-20',
-    prescriber: 'Dr. Pedro Costa',
-    status: 'completed',
-    refillsRemaining: 0,
-    refillsTotal: 0,
-    adherence: 100,
-    type: 'tablet',
-    pharmacyId: 'ph1',
-    cost: 8.90,
-    insuranceCoverage: 0,
-    takenToday: 0,
-    scheduledToday: 0,
-  },
-];
+// Data state (from DB)
+const mockActiveMedications: Medication[] = [];
+const mockPastMedications: Medication[] = [];
 
 const mockPharmacies: Pharmacy[] = [
   {
@@ -259,6 +161,39 @@ const medicationTypeIcons: Record<string, React.ReactNode> = {
 };
 
 export default function PrescriptionsPage() {
+  const [activeMeds, setActiveMeds] = useState<Medication[]>([]);
+  const [pastMeds, setPastMeds] = useState<Medication[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const history = await api.get<any[]>(`/api/clinical/me/history`);
+      const meds: Medication[] = [];
+      history.forEach(item => {
+        item.clinical_record?.prescriptions?.forEach((p: any) => {
+          meds.push({
+            id: String(p.id),
+            name: p.medication_name,
+            dosage: p.dosage || '',
+            frequency: p.frequency || '',
+            duration: p.duration || '',
+            instructions: p.instructions || '',
+            issuedDate: p.issued_date,
+            prescriber: item.doctor_name,
+            status: p.is_active ? 'active' : 'completed',
+            refillsRemaining: 0,
+            refillsTotal: 0,
+            adherence: 0,
+            type: 'tablet',
+            takenToday: 0,
+            scheduledToday: 0,
+          });
+        });
+      });
+      setActiveMeds(meds.filter(m => m.status === 'active'));
+      setPastMeds(meds.filter(m => m.status !== 'active'));
+    };
+    load();
+  }, []);
   const [activeTab, setActiveTab] = useState<string>('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null);
@@ -269,22 +204,22 @@ export default function PrescriptionsPage() {
 
   // Filter medications
   const filteredActive = useMemo(() => {
-    if (!searchQuery) return mockActiveMedications;
+    if (!searchQuery) return activeMeds;
     const query = searchQuery.toLowerCase();
-    return mockActiveMedications.filter(med =>
+    return activeMeds.filter(med =>
       med.name.toLowerCase().includes(query) ||
       med.prescriber.toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [searchQuery, activeMeds]);
 
   const filteredPast = useMemo(() => {
-    if (!searchQuery) return mockPastMedications;
+    if (!searchQuery) return pastMeds;
     const query = searchQuery.toLowerCase();
-    return mockPastMedications.filter(med =>
+    return pastMeds.filter(med =>
       med.name.toLowerCase().includes(query) ||
       med.prescriber.toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [searchQuery, pastMeds]);
 
   // Pending refills
   const pendingRefills = useMemo(() => {
@@ -438,10 +373,10 @@ export default function PrescriptionsPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="active">
-                Ativos ({mockActiveMedications.length})
+                Ativos ({activeMeds.length})
               </TabsTrigger>
               <TabsTrigger value="past">
-                Histórico ({mockPastMedications.length})
+                Histórico ({pastMeds.length})
               </TabsTrigger>
               <TabsTrigger value="refills">
                 Renovações ({pendingRefills.length})
@@ -695,7 +630,14 @@ export default function PrescriptionsPage() {
                                 <Share2 className="h-4 w-4 mr-2" />
                                 Compartilhar
                               </Button>
-                              <Button variant="outline" size="sm">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const url = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/prescriptions/${medication.id}/pdf`;
+                                window.open(url, '_blank');
+                              }}
+                            >
                                 <Download className="h-4 w-4 mr-2" />
                                 Baixar Receita
                               </Button>

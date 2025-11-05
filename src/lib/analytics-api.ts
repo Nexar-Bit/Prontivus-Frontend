@@ -41,6 +41,34 @@ export interface FinancialAnalytics {
   }>;
   total_revenue: number;
   average_invoice_value: number;
+  total_invoices?: number;
+  ar_aging?: {
+    current: number;
+    "1-30": number;
+    "31-60": number;
+    "61-90": number;
+    ">90": number;
+  };
+  cost_per_procedure?: Array<{
+    service_name: string;
+    avg_cost: number;
+  }>;
+  denial_patterns?: Array<any>;
+}
+
+export interface OperationalAnalytics {
+  period: string;
+  start_date: string;
+  end_date: string;
+  utilization: Array<{
+    label: string;
+    value: number;
+  }>;
+  avg_wait_time_minutes: number;
+  no_shows: number;
+  total_appointments?: number;
+  completed_appointments?: number;
+  completion_rate?: number;
 }
 
 export interface InventoryAnalytics {
@@ -69,6 +97,10 @@ export const analyticsApi = {
 
   getFinancialAnalytics: async (period: string = 'last_month'): Promise<FinancialAnalytics> => {
     return api.get<FinancialAnalytics>(`/api/analytics/financial?period=${period}`);
+  },
+
+  getOperationalAnalytics: async (period: string = 'last_30_days'): Promise<OperationalAnalytics> => {
+    return api.get<OperationalAnalytics>(`/api/analytics/operational?period=${period}`);
   },
 
   getInventoryAnalytics: async (period: string = 'last_30_days'): Promise<InventoryAnalytics> => {

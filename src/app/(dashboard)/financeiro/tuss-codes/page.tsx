@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { ServiceCategory } from "@/lib/types";
+import { financialApi } from "@/lib/financial-api";
 import { 
   Plus, 
   Search, 
@@ -23,11 +28,11 @@ import {
 } from "lucide-react";
 
 interface TussCode {
-  id: string;
+  id: number;
   codigo: string;
   descricao: string;
-  tabela: string;
-  categoria: string;
+  tabela?: string;
+  categoria: ServiceCategory;
   ativo: boolean;
   observacoes?: string;
 }
@@ -40,15 +45,9 @@ const TUSS_TABLES = {
   "99": "Outros"
 };
 
-const TUSS_CATEGORIES = {
-  "CONSULTATION": "Consulta",
-  "PROCEDURE": "Procedimento",
-  "EXAM": "Exame", 
-  "MEDICATION": "Medicamento",
-  "OTHER": "Outro"
-};
-
 export default function TussCodesPage() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
   const [tussCodes, setTussCodes] = useState<TussCode[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -59,139 +58,148 @@ export default function TussCodesPage() {
     codigo: "",
     descricao: "",
     tabela: "01",
-    categoria: "CONSULTATION",
+    categoria: ServiceCategory.CONSULTATION,
     ativo: true,
     observacoes: ""
   });
 
   useEffect(() => {
-    loadTussCodes();
-  }, []);
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    if (isAuthenticated) {
+      loadTussCodes();
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   const loadTussCodes = async () => {
     setLoading(true);
     try {
-      // Load from localStorage (in a real app, this would be from the backend)
-      const savedCodes = localStorage.getItem('tuss-codes');
-      if (savedCodes) {
-        setTussCodes(JSON.parse(savedCodes));
-      } else {
-        // Load default TUSS codes
-        const defaultCodes: TussCode[] = [
-          {
-            id: "1",
-            codigo: "10101012",
-            descricao: "Consulta médica em consultório",
-            tabela: "01",
-            categoria: "CONSULTATION",
-            ativo: true,
-            observacoes: "Consulta de rotina"
-          },
-          {
-            id: "2", 
-            codigo: "20101010",
-            descricao: "Eletrocardiograma",
-            tabela: "03",
-            categoria: "EXAM",
-            ativo: true,
-            observacoes: "ECG de 12 derivações"
-          },
-          {
-            id: "3",
-            codigo: "40301010", 
-            descricao: "Hemograma completo",
-            tabela: "03",
-            categoria: "EXAM",
-            ativo: true,
-            observacoes: "Inclui contagem diferencial"
-          },
-          {
-            id: "4",
-            codigo: "30101010",
-            descricao: "Curativo simples",
-            tabela: "02", 
-            categoria: "PROCEDURE",
-            ativo: true,
-            observacoes: "Curativo de pequeno porte"
-          },
-          {
-            id: "5",
-            codigo: "30101020",
-            descricao: "Aplicação de injeção",
-            tabela: "02",
-            categoria: "PROCEDURE", 
-            ativo: true,
-            observacoes: "Aplicação intramuscular ou subcutânea"
-          }
-        ];
-        setTussCodes(defaultCodes);
-        localStorage.setItem('tuss-codes', JSON.stringify(defaultCodes));
-      }
+      // Load service items that have TUSS codes (code field is not empty)
+      const serviceItems = await financialApi.getServiceItems();
+      
+      // Filter service items that have codes and map them to TUSS codes format
+      const codes: TussCode[] = serviceItems
+        .filter(item => item.code && item.code.trim() !== "")
+        .map(item => {
+          // Extract table from code if possible (first 2 digits)
+          const code = item.code || "";
+          const tabela = code.length >= 2 ? code.substring(0, 2) : "01";
+          
+          return {
+            id: item.id,
+            codigo: code,
+            descricao: item.name,
+            tabela: tabela,
+            categoria: item.category,
+            ativo: item.is_active,
+            observacoes: item.description || undefined
+          };
+        });
+      
+      setTussCodes(codes);
     } catch (error: any) {
+      console.error("Failed to load TUSS codes:", error);
       toast.error("Erro ao carregar códigos TUSS", {
-        description: error.message
+        description: error.message || "Não foi possível carregar os códigos TUSS"
       });
+      setTussCodes([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
+    if (!formData.codigo || !formData.descricao) {
+      toast.error("Erro de validação", {
+        description: "Código e descrição são obrigatórios"
+      });
+      return;
+    }
+
     try {
-      let updatedCodes;
-      
       if (editingCode) {
-        // Update existing code
-        updatedCodes = tussCodes.map(code => 
-          code.id === editingCode.id ? { ...code, ...formData } : code
-        );
+        // Update existing service item
+        await financialApi.updateServiceItem(editingCode.id, {
+          name: formData.descricao || "",
+          code: formData.codigo || "",
+          description: formData.observacoes || "",
+          category: formData.categoria || ServiceCategory.CONSULTATION,
+          is_active: formData.ativo ?? true,
+          price: 0 // TUSS codes don't have prices, but ServiceItem requires it
+        });
+        toast.success("Código TUSS atualizado!");
       } else {
-        // Add new code
-        const { id, ...formDataWithoutId } = formData as TussCode;
-        const newCode: TussCode = {
-          id: Date.now().toString(),
-          ...formDataWithoutId
-        };
-        updatedCodes = [...tussCodes, newCode];
+        // Create new service item with TUSS code
+        await financialApi.createServiceItem({
+          name: formData.descricao || "",
+          code: formData.codigo || "",
+          description: formData.observacoes || "",
+          category: formData.categoria || ServiceCategory.CONSULTATION,
+          is_active: formData.ativo ?? true,
+          price: 0 // TUSS codes don't have prices, but ServiceItem requires it
+        });
+        toast.success("Código TUSS adicionado!");
       }
       
-      setTussCodes(updatedCodes);
-      localStorage.setItem('tuss-codes', JSON.stringify(updatedCodes));
-      
-      toast.success(editingCode ? "Código TUSS atualizado!" : "Código TUSS adicionado!");
       setIsDialogOpen(false);
       setEditingCode(null);
       setFormData({
         codigo: "",
         descricao: "",
         tabela: "01",
-        categoria: "CONSULTATION",
+        categoria: ServiceCategory.CONSULTATION,
         ativo: true,
         observacoes: ""
       });
+      await loadTussCodes();
     } catch (error: any) {
+      console.error("Failed to save TUSS code:", error);
       toast.error("Erro ao salvar código TUSS", {
-        description: error.message
+        description: error.message || "Não foi possível salvar o código TUSS"
       });
     }
   };
 
   const handleEdit = (code: TussCode) => {
     setEditingCode(code);
-    setFormData(code);
+    setFormData({
+      codigo: code.codigo,
+      descricao: code.descricao,
+      tabela: code.tabela || "01",
+      categoria: code.categoria,
+      ativo: code.ativo,
+      observacoes: code.observacoes || ""
+    });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm("Tem certeza que deseja excluir este código TUSS?")) {
       try {
-        const updatedCodes = tussCodes.filter(code => code.id !== id);
-        setTussCodes(updatedCodes);
-        localStorage.setItem('tuss-codes', JSON.stringify(updatedCodes));
+        // Get the current service item to preserve other fields
+        const currentCode = tussCodes.find(c => c.id === id);
+        if (!currentCode) {
+          toast.error("Código TUSS não encontrado");
+          return;
+        }
+
+        // Delete by setting is_active to false (soft delete) - preserve other fields
+        await financialApi.updateServiceItem(id, {
+          name: currentCode.descricao,
+          code: currentCode.codigo,
+          description: currentCode.observacoes || "",
+          category: currentCode.categoria,
+          is_active: false,
+          price: 0 // ServiceItem requires price, but we set it to 0 for TUSS codes
+        });
         toast.success("Código TUSS excluído!");
+        await loadTussCodes();
       } catch (error: any) {
+        console.error("Failed to delete TUSS code:", error);
         toast.error("Erro ao excluir código TUSS", {
-          description: error.message
+          description: error.message || "Não foi possível excluir o código TUSS"
         });
       }
     }
@@ -207,10 +215,13 @@ export default function TussCodesPage() {
     return matchesSearch && matchesTable;
   });
 
-  if (loading) {
+  if (isLoading || (loading && tussCodes.length === 0)) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando códigos TUSS...</p>
+        </div>
       </div>
     );
   }
@@ -233,7 +244,7 @@ export default function TussCodesPage() {
                 codigo: "",
                 descricao: "",
                 tabela: "01",
-                categoria: "CONSULTATION",
+                categoria: ServiceCategory.CONSULTATION,
                 ativo: true,
                 observacoes: ""
               });
@@ -294,24 +305,24 @@ export default function TussCodesPage() {
                 />
               </div>
               
-              <div>
-                <Label htmlFor="categoria">Categoria</Label>
-                <Select
-                  value={formData.categoria || "CONSULTATION"}
-                  onValueChange={(value) => setFormData({...formData, categoria: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(TUSS_CATEGORIES).map(([code, name]) => (
-                      <SelectItem key={code} value={code}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div>
+                  <Label htmlFor="categoria">Categoria</Label>
+                  <Select
+                    value={formData.categoria || ServiceCategory.CONSULTATION}
+                    onValueChange={(value) => setFormData({...formData, categoria: value as ServiceCategory})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ServiceCategory.CONSULTATION}>Consulta</SelectItem>
+                      <SelectItem value={ServiceCategory.PROCEDURE}>Procedimento</SelectItem>
+                      <SelectItem value={ServiceCategory.EXAM}>Exame</SelectItem>
+                      <SelectItem value={ServiceCategory.MEDICATION}>Medicamento</SelectItem>
+                      <SelectItem value={ServiceCategory.OTHER}>Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               
               <div>
                 <Label htmlFor="observacoes">Observações</Label>
@@ -422,7 +433,11 @@ export default function TussCodesPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary">
-                      {TUSS_CATEGORIES[code.categoria as keyof typeof TUSS_CATEGORIES]}
+                      {code.categoria === ServiceCategory.CONSULTATION && "Consulta"}
+                      {code.categoria === ServiceCategory.PROCEDURE && "Procedimento"}
+                      {code.categoria === ServiceCategory.EXAM && "Exame"}
+                      {code.categoria === ServiceCategory.MEDICATION && "Medicamento"}
+                      {code.categoria === ServiceCategory.OTHER && "Outro"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -465,11 +480,29 @@ export default function TussCodesPage() {
             </TableBody>
           </Table>
           
-          {filteredCodes.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum código TUSS encontrado.
+          {loading && tussCodes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando códigos TUSS...
             </div>
-          )}
+          ) : filteredCodes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileCode className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum código TUSS encontrado</p>
+              {searchTerm || filterTable !== "all" ? (
+                <p className="text-sm mt-2">Tente ajustar os filtros de busca</p>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Adicionar Primeiro Código TUSS
+                </Button>
+              )}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

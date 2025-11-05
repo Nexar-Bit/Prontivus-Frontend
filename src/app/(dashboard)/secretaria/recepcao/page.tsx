@@ -12,6 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { appointmentsApi } from "@/lib/appointments-api";
+import { patientsApi } from "@/lib/patients-api";
+import { Appointment, AppointmentStatus, Patient } from "@/lib/types";
+import { format } from "date-fns";
+import { Loader2 } from "lucide-react";
 import { 
   Users, 
   Search, 
@@ -32,15 +37,16 @@ import {
   Trash2
 } from "lucide-react";
 
-interface Patient {
-  id: string;
+interface ReceptionPatient {
+  id: number;
+  appointmentId: number;
   name: string;
-  cpf: string;
-  phone: string;
-  email: string;
-  address: string;
-  birthDate: string;
-  gender: 'male' | 'female' | 'other';
+  cpf?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  birthDate?: string;
+  gender?: 'male' | 'female' | 'other';
   status: 'waiting' | 'in_consultation' | 'completed' | 'cancelled';
   arrivalTime: string;
   appointmentTime?: string;
@@ -76,14 +82,16 @@ export default function ReceptionPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patients, setPatients] = useState<ReceptionPatient[]>([]);
   const [stats, setStats] = useState<ReceptionStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<ReceptionPatient | null>(null);
+  const [selectedPatientDetails, setSelectedPatientDetails] = useState<Patient | null>(null);
   const [showPatientDialog, setShowPatientDialog] = useState(false);
+  const [loadingPatientDetails, setLoadingPatientDetails] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -104,125 +112,136 @@ export default function ReceptionPage() {
   const loadReceptionData = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await receptionApi.getReceptionData();
-      // setPatients(response.patients);
-      // setStats(response.stats);
       
-      // Mock data for now
-      const mockPatients: Patient[] = [
-        {
-          id: "1",
-          name: "João Silva",
-          cpf: "123.456.789-00",
-          phone: "(11) 99999-9999",
-          email: "joao@email.com",
-          address: "Rua das Flores, 123",
-          birthDate: "1985-03-15",
-          gender: "male",
-          status: "waiting",
-          arrivalTime: new Date().toISOString(),
-          appointmentTime: "14:00",
-          doctor: "Dr. Maria Santos",
-          reason: "Consulta de rotina",
-          priority: "medium"
-        },
-        {
-          id: "2",
-          name: "Maria Santos",
-          cpf: "987.654.321-00",
-          phone: "(11) 88888-8888",
-          email: "maria@email.com",
-          address: "Av. Paulista, 456",
-          birthDate: "1990-07-22",
-          gender: "female",
-          status: "in_consultation",
-          arrivalTime: new Date(Date.now() - 1800000).toISOString(),
-          appointmentTime: "13:30",
-          doctor: "Dr. Carlos Lima",
-          reason: "Dor de cabeça",
-          priority: "high"
-        },
-        {
-          id: "3",
-          name: "Pedro Costa",
-          cpf: "456.789.123-00",
-          phone: "(11) 77777-7777",
-          email: "pedro@email.com",
-          address: "Rua da Paz, 789",
-          birthDate: "1978-11-10",
-          gender: "male",
-          status: "waiting",
-          arrivalTime: new Date(Date.now() - 3600000).toISOString(),
-          appointmentTime: "15:30",
-          doctor: "Dr. Ana Oliveira",
-          reason: "Exame de sangue",
-          priority: "low"
-        },
-        {
-          id: "4",
-          name: "Ana Oliveira",
-          cpf: "789.123.456-00",
-          phone: "(11) 66666-6666",
-          email: "ana@email.com",
-          address: "Rua da Esperança, 321",
-          birthDate: "1995-05-18",
-          gender: "female",
-          status: "completed",
-          arrivalTime: new Date(Date.now() - 7200000).toISOString(),
-          appointmentTime: "12:00",
-          doctor: "Dr. Roberto Silva",
-          reason: "Retorno",
-          priority: "medium"
-        },
-        {
-          id: "5",
-          name: "Carlos Lima",
-          cpf: "321.654.987-00",
-          phone: "(11) 55555-5555",
-          email: "carlos@email.com",
-          address: "Av. Brasil, 654",
-          birthDate: "1982-09-03",
-          gender: "male",
-          status: "waiting",
-          arrivalTime: new Date(Date.now() - 900000).toISOString(),
-          appointmentTime: "16:00",
-          doctor: "Dr. Maria Santos",
-          reason: "Emergência",
-          priority: "urgent"
+      // Get today's appointments
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      const appointments = await appointmentsApi.getAll({
+        start_date: format(today, "yyyy-MM-dd"),
+        end_date: format(tomorrow, "yyyy-MM-dd"),
+      });
+      
+      // Convert appointments to reception patients
+      const receptionPatients: ReceptionPatient[] = appointments.map((apt: Appointment) => {
+        // Map appointment status to reception status
+        let receptionStatus: 'waiting' | 'in_consultation' | 'completed' | 'cancelled' = 'waiting';
+        if (apt.status === AppointmentStatus.CHECKED_IN || apt.status === AppointmentStatus.SCHEDULED) {
+          receptionStatus = 'waiting';
+        } else if (apt.status === AppointmentStatus.IN_CONSULTATION) {
+          receptionStatus = 'in_consultation';
+        } else if (apt.status === AppointmentStatus.COMPLETED) {
+          receptionStatus = 'completed';
+        } else if (apt.status === AppointmentStatus.CANCELLED) {
+          receptionStatus = 'cancelled';
         }
-      ];
+        
+        // Determine priority based on appointment type and time
+        let priority: 'low' | 'medium' | 'high' | 'urgent' = 'medium';
+        if (apt.appointment_type?.toLowerCase().includes('emergência') || apt.appointment_type?.toLowerCase().includes('urgente')) {
+          priority = 'urgent';
+        } else if (apt.appointment_type?.toLowerCase().includes('retorno')) {
+          priority = 'low';
+        } else if (apt.appointment_type?.toLowerCase().includes('procedimento')) {
+          priority = 'high';
+        }
+        
+        // Use appointment created_at as arrival time, or scheduled_datetime if checked in
+        const arrivalTime = apt.status === AppointmentStatus.CHECKED_IN 
+          ? apt.scheduled_datetime 
+          : apt.created_at || apt.scheduled_datetime;
+        
+        return {
+          id: apt.patient_id,
+          appointmentId: apt.id,
+          name: apt.patient_name || 'Paciente',
+          doctor: apt.doctor_name || 'Médico',
+          appointmentTime: format(new Date(apt.scheduled_datetime), "HH:mm"),
+          reason: apt.reason,
+          status: receptionStatus,
+          arrivalTime: arrivalTime,
+          priority: priority,
+        };
+      });
       
-      const mockStats: ReceptionStats = {
-        totalWaiting: 3,
-        inConsultation: 1,
-        completedToday: 1,
-        averageWaitTime: 25
-      };
+      // Calculate stats
+      const totalWaiting = receptionPatients.filter(p => p.status === 'waiting').length;
+      const inConsultation = receptionPatients.filter(p => p.status === 'in_consultation').length;
+      const completedToday = receptionPatients.filter(p => p.status === 'completed').length;
       
-      setPatients(mockPatients);
-      setStats(mockStats);
-    } catch (error) {
+      // Calculate average wait time for waiting patients
+      const waitingPatients = receptionPatients.filter(p => p.status === 'waiting');
+      let totalWaitTime = 0;
+      waitingPatients.forEach(patient => {
+        const waitTime = getWaitTime(patient.arrivalTime);
+        totalWaitTime += waitTime;
+      });
+      const averageWaitTime = waitingPatients.length > 0 ? Math.round(totalWaitTime / waitingPatients.length) : 0;
+      
+      setStats({
+        totalWaiting,
+        inConsultation,
+        completedToday,
+        averageWaitTime,
+      });
+      
+      setPatients(receptionPatients);
+    } catch (error: any) {
       console.error("Failed to load reception data:", error);
-      toast.error("Failed to load reception data");
+      toast.error("Erro ao carregar dados da recepção", {
+        description: error.message || "Não foi possível carregar os agendamentos",
+      });
+      setPatients([]);
+      setStats({
+        totalWaiting: 0,
+        inConsultation: 0,
+        completedToday: 0,
+        averageWaitTime: 0,
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const updatePatientStatus = async (patientId: string, status: string) => {
+  const updatePatientStatus = async (appointmentId: number, receptionStatus: string) => {
     try {
-      // TODO: Replace with actual API call
-      // await receptionApi.updatePatientStatus(patientId, status);
+      // Map reception status to appointment status
+      let appointmentStatus: AppointmentStatus;
+      if (receptionStatus === 'in_consultation') {
+        appointmentStatus = AppointmentStatus.IN_CONSULTATION;
+      } else if (receptionStatus === 'completed') {
+        appointmentStatus = AppointmentStatus.COMPLETED;
+      } else if (receptionStatus === 'cancelled') {
+        appointmentStatus = AppointmentStatus.CANCELLED;
+      } else {
+        appointmentStatus = AppointmentStatus.CHECKED_IN;
+      }
       
-      setPatients(prev => 
-        prev.map(p => p.id === patientId ? { ...p, status: status as any } : p)
-      );
+      await appointmentsApi.updateStatus(appointmentId, appointmentStatus);
       
-      toast.success("Patient status updated successfully");
-    } catch (error) {
+      // Reload data to get updated information
+      await loadReceptionData();
+      
+      toast.success("Status atualizado com sucesso");
+    } catch (error: any) {
       console.error("Failed to update patient status:", error);
-      toast.error("Failed to update patient status");
+      toast.error("Erro ao atualizar status", {
+        description: error.message || "Não foi possível atualizar o status do agendamento",
+      });
+    }
+  };
+
+  const handleCheckIn = async (appointmentId: number) => {
+    try {
+      await appointmentsApi.updateStatus(appointmentId, AppointmentStatus.CHECKED_IN);
+      await loadReceptionData();
+      toast.success("Check-in realizado com sucesso");
+    } catch (error: any) {
+      toast.error("Erro ao realizar check-in", {
+        description: error.message,
+      });
     }
   };
 
@@ -288,8 +307,8 @@ export default function ReceptionPage() {
   const filteredPatients = patients.filter(patient => {
     const matchesSearch = !searchTerm || 
       patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.cpf.includes(searchTerm) ||
-      patient.phone.includes(searchTerm);
+      (patient.cpf && patient.cpf.includes(searchTerm)) ||
+      (patient.phone && patient.phone.includes(searchTerm));
     
     const matchesPriority = priorityFilter === 'all' || patient.priority === priorityFilter;
     const matchesStatus = statusFilter === 'all' || patient.status === statusFilter;
@@ -300,7 +319,10 @@ export default function ReceptionPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando dados da recepção...</p>
+        </div>
       </div>
     );
   }
@@ -312,20 +334,24 @@ export default function ReceptionPage() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <Users className="h-8 w-8" />
-            Reception
+            Recepção
           </h1>
           <p className="text-muted-foreground mt-2">
-            Manage patient arrivals and reception workflow
+            Gerencie chegadas de pacientes e o fluxo da recepção
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => router.push('/notificacoes')}>
             <Bell className="h-4 w-4 mr-2" />
-            Notifications
+            Notificações
           </Button>
-          <Button>
+          <Button onClick={() => router.push('/secretaria/pacientes')}>
             <Plus className="h-4 w-4 mr-2" />
-            New Patient
+            Novo Paciente
+          </Button>
+          <Button variant="outline" onClick={() => router.push('/secretaria/agendamentos')}>
+            <Calendar className="h-4 w-4 mr-2" />
+            Agendamentos
           </Button>
         </div>
       </div>
@@ -334,52 +360,52 @@ export default function ReceptionPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Waiting</CardTitle>
+            <CardTitle className="text-sm font-medium">Aguardando</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalWaiting || 0}</div>
             <p className="text-xs text-muted-foreground">
-              patients waiting
+              pacientes aguardando
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">In Consultation</CardTitle>
+            <CardTitle className="text-sm font-medium">Em Atendimento</CardTitle>
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.inConsultation || 0}</div>
             <p className="text-xs text-muted-foreground">
-              currently consulting
+              em atendimento
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Today</CardTitle>
+            <CardTitle className="text-sm font-medium">Concluídos Hoje</CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.completedToday || 0}</div>
             <p className="text-xs text-muted-foreground">
-              consultations completed
+              consultas concluídas
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Wait Time</CardTitle>
+            <CardTitle className="text-sm font-medium">Tempo Médio de Espera</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.averageWaitTime || 0}min</div>
             <p className="text-xs text-muted-foreground">
-              average waiting time
+              tempo médio de espera
             </p>
           </CardContent>
         </Card>
@@ -393,7 +419,7 @@ export default function ReceptionPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Search patients..."
+                  placeholder="Buscar pacientes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -431,22 +457,22 @@ export default function ReceptionPage() {
       {/* Patients Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Patient Queue ({filteredPatients.length})</CardTitle>
+          <CardTitle>Fila de Pacientes ({filteredPatients.length})</CardTitle>
           <CardDescription>
-            Manage patient arrivals and consultation status
+            Gerencie chegadas de pacientes e status de consultas
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead>Priority</TableHead>
+                <TableHead>Paciente</TableHead>
+                <TableHead>Prioridade</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Arrival Time</TableHead>
-                <TableHead>Wait Time</TableHead>
-                <TableHead>Doctor</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Hora de Chegada</TableHead>
+                <TableHead>Tempo de Espera</TableHead>
+                <TableHead>Médico</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -455,9 +481,11 @@ export default function ReceptionPage() {
                   <TableCell>
                     <div>
                       <div className="font-medium">{patient.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        CPF: {patient.cpf}
-                      </div>
+                      {patient.cpf && (
+                        <div className="text-sm text-muted-foreground">
+                          CPF: {patient.cpf}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -482,7 +510,7 @@ export default function ReceptionPage() {
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      {patient.doctor || 'Not assigned'}
+                      {patient.doctor || 'Não atribuído'}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -490,29 +518,53 @@ export default function ReceptionPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
+                        onClick={async () => {
                           setSelectedPatient(patient);
                           setShowPatientDialog(true);
+                          // Load patient details
+                          try {
+                            setLoadingPatientDetails(true);
+                            const patientDetails = await patientsApi.getById(patient.id);
+                            setSelectedPatientDetails(patientDetails);
+                          } catch (error: any) {
+                            console.error("Failed to load patient details:", error);
+                            toast.error("Erro ao carregar detalhes do paciente");
+                          } finally {
+                            setLoadingPatientDetails(false);
+                          }
                         }}
+                        title="Ver detalhes"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
                       {patient.status === 'waiting' && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => updatePatientStatus(patient.id, 'in_consultation')}
-                        >
-                          <User className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleCheckIn(patient.appointmentId)}
+                            title="Check-in"
+                          >
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updatePatientStatus(patient.appointmentId, 'in_consultation')}
+                            title="Iniciar atendimento"
+                          >
+                            <User className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        </>
                       )}
                       {patient.status === 'in_consultation' && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => updatePatientStatus(patient.id, 'completed')}
+                          onClick={() => updatePatientStatus(patient.appointmentId, 'completed')}
+                          title="Marcar como concluído"
                         >
-                          <CheckCircle className="h-4 w-4" />
+                          <CheckCircle className="h-4 w-4 text-green-600" />
                         </Button>
                       )}
                     </div>
@@ -524,7 +576,7 @@ export default function ReceptionPage() {
           {filteredPatients.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No patients found matching your criteria</p>
+              <p>Nenhum paciente encontrado com os critérios selecionados</p>
             </div>
           )}
         </CardContent>
@@ -534,62 +586,111 @@ export default function ReceptionPage() {
       <Dialog open={showPatientDialog} onOpenChange={setShowPatientDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Patient Details</DialogTitle>
+            <DialogTitle>Detalhes do Paciente</DialogTitle>
             <DialogDescription>
-              View and manage patient information
+              Visualize e gerencie informações do paciente
             </DialogDescription>
           </DialogHeader>
-          {selectedPatient && (
+          {loadingPatientDetails ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2 text-muted-foreground">Carregando detalhes...</span>
+            </div>
+          ) : selectedPatient && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Name</Label>
-                  <p className="text-sm font-medium">{selectedPatient.name}</p>
-                </div>
-                <div>
-                  <Label>CPF</Label>
-                  <p className="text-sm font-medium">{selectedPatient.cpf}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Phone</Label>
-                  <p className="text-sm font-medium">{selectedPatient.phone}</p>
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <p className="text-sm font-medium">{selectedPatient.email}</p>
-                </div>
-              </div>
-              <div>
-                <Label>Address</Label>
-                <p className="text-sm font-medium">{selectedPatient.address}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Birth Date</Label>
+                  <Label>Nome</Label>
                   <p className="text-sm font-medium">
-                    {new Date(selectedPatient.birthDate).toLocaleDateString('pt-BR')}
+                    {selectedPatientDetails?.first_name && selectedPatientDetails?.last_name
+                      ? `${selectedPatientDetails.first_name} ${selectedPatientDetails.last_name}`
+                      : selectedPatient.name}
                   </p>
                 </div>
                 <div>
-                  <Label>Gender</Label>
-                  <p className="text-sm font-medium capitalize">{selectedPatient.gender}</p>
+                  <Label>CPF</Label>
+                  <p className="text-sm font-medium">
+                    {selectedPatientDetails?.cpf || selectedPatient.cpf || 'Não informado'}
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Appointment Time</Label>
-                  <p className="text-sm font-medium">{selectedPatient.appointmentTime || 'Not scheduled'}</p>
+                  <Label>Telefone</Label>
+                  <p className="text-sm font-medium">
+                    {selectedPatientDetails?.phone || selectedPatient.phone || 'Não informado'}
+                  </p>
                 </div>
                 <div>
-                  <Label>Doctor</Label>
-                  <p className="text-sm font-medium">{selectedPatient.doctor || 'Not assigned'}</p>
+                  <Label>Email</Label>
+                  <p className="text-sm font-medium">
+                    {selectedPatientDetails?.email || selectedPatient.email || 'Não informado'}
+                  </p>
                 </div>
               </div>
-              <div>
-                <Label>Reason for Visit</Label>
-                <p className="text-sm font-medium">{selectedPatient.reason || 'Not specified'}</p>
+              {selectedPatientDetails?.address && (
+                <div>
+                  <Label>Endereço</Label>
+                  <p className="text-sm font-medium">{selectedPatientDetails.address}</p>
+                </div>
+              )}
+              {(selectedPatientDetails?.date_of_birth || selectedPatient.birthDate) && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Data de Nascimento</Label>
+                    <p className="text-sm font-medium">
+                      {selectedPatientDetails?.date_of_birth
+                        ? format(new Date(selectedPatientDetails.date_of_birth), "dd/MM/yyyy")
+                        : selectedPatient.birthDate
+                        ? format(new Date(selectedPatient.birthDate), "dd/MM/yyyy")
+                        : 'Não informado'}
+                    </p>
+                  </div>
+                  {selectedPatientDetails?.gender && (
+                    <div>
+                      <Label>Gênero</Label>
+                      <p className="text-sm font-medium capitalize">
+                        {selectedPatientDetails.gender === 'male' ? 'Masculino' : 
+                         selectedPatientDetails.gender === 'female' ? 'Feminino' : 
+                         selectedPatientDetails.gender}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Horário do Agendamento</Label>
+                  <p className="text-sm font-medium">{selectedPatient.appointmentTime || 'Não agendado'}</p>
+                </div>
+                <div>
+                  <Label>Médico</Label>
+                  <p className="text-sm font-medium">{selectedPatient.doctor || 'Não atribuído'}</p>
+                </div>
+              </div>
+              {selectedPatient.reason && (
+                <div>
+                  <Label>Motivo da Consulta</Label>
+                  <p className="text-sm font-medium">{selectedPatient.reason}</p>
+                </div>
+              )}
+              <div className="flex items-center gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/secretaria/pacientes?id=${selectedPatient.id}`)}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar Paciente
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`/secretaria/agendamentos/new?patient_id=${selectedPatient.id}`)}
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Novo Agendamento
+                </Button>
               </div>
             </div>
           )}

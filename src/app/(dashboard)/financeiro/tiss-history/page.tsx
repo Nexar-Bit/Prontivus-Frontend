@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { financialApi } from "@/lib/financial-api";
+import { Invoice } from "@/lib/types";
+import { Loader2 } from "lucide-react";
 import { 
   Search, 
   Download, 
@@ -23,84 +29,116 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface TissHistoryEntry {
-  id: string;
+  id: number;
   invoiceId: number;
   patientName: string;
   generatedAt: string;
-  generatedBy: string;
-  status: 'success' | 'error';
+  generatedBy?: string;
+  status: 'success' | 'error' | 'pending';
   fileName: string;
   fileSize: number;
   errorMessage?: string;
   downloadCount: number;
   lastDownloaded?: string;
+  issueDate: string;
+  totalAmount: number;
 }
 
+
 export default function TissHistoryPage() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
   const [historyEntries, setHistoryEntries] = useState<TissHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    if (isAuthenticated && !['admin', 'secretary'].includes(user?.role || '')) {
+      router.push("/unauthorized");
+      return;
+    }
+    if (isAuthenticated) {
+      loadHistory();
+    }
+  }, [isAuthenticated, isLoading, user, router]);
 
   const loadHistory = async () => {
     setLoading(true);
     try {
-      // Load from localStorage (in a real app, this would be from the backend)
-      const savedHistory = localStorage.getItem('tiss-history');
-      if (savedHistory) {
-        setHistoryEntries(JSON.parse(savedHistory));
-      } else {
-        // Generate sample data
-        const sampleData: TissHistoryEntry[] = [
-          {
-            id: "1",
-            invoiceId: 1,
-            patientName: "João Silva",
-            generatedAt: new Date().toISOString(),
-            generatedBy: "admin@clinica.com",
-            status: 'success',
-            fileName: "tiss_invoice_000001.xml",
-            fileSize: 15420,
-            downloadCount: 2,
-            lastDownloaded: new Date(Date.now() - 3600000).toISOString()
-          },
-          {
-            id: "2",
-            invoiceId: 2,
-            patientName: "Maria Santos",
-            generatedAt: new Date(Date.now() - 86400000).toISOString(),
-            generatedBy: "secretaria@clinica.com",
-            status: 'success',
-            fileName: "tiss_invoice_000002.xml",
-            fileSize: 12850,
-            downloadCount: 1,
-            lastDownloaded: new Date(Date.now() - 86400000).toISOString()
-          },
-          {
-            id: "3",
-            invoiceId: 3,
-            patientName: "Pedro Costa",
-            generatedAt: new Date(Date.now() - 172800000).toISOString(),
-            generatedBy: "admin@clinica.com",
-            status: 'error',
-            fileName: "tiss_invoice_000003.xml",
-            fileSize: 0,
-            errorMessage: "Dados do paciente incompletos",
-            downloadCount: 0
+      // Load invoices from database using financialApi
+      const invoices = await financialApi.getInvoices();
+      
+      // Load download history from localStorage (tracking downloads)
+      const downloadHistory = JSON.parse(localStorage.getItem('tiss-download-history') || '{}');
+      
+      // Convert invoices to TISS history entries
+      const entries: TissHistoryEntry[] = await Promise.all(
+        invoices.map(async (invoice) => {
+          const invoiceId = invoice.id;
+          const downloadInfo = downloadHistory[invoiceId] || { count: 0, lastDownloaded: null };
+          
+          // Try to validate/get TISS XML to check if it can be generated
+          let status: 'success' | 'error' | 'pending' = 'pending';
+          let errorMessage: string | undefined = undefined;
+          let fileSize = 0;
+          
+          try {
+            // Try to get preview to check if XML can be generated
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/invoices/${invoiceId}/tiss-xml/preview`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('clinicore_access_token')}`,
+              },
+            });
+            
+            if (response.ok) {
+              const xmlContent = await response.text();
+              fileSize = new Blob([xmlContent]).size;
+              status = 'success';
+            } else {
+              status = 'error';
+              errorMessage = await response.text().catch(() => 'Não foi possível gerar XML TISS');
+            }
+          } catch (error: any) {
+            status = 'error';
+            errorMessage = error.message || 'Erro ao verificar XML TISS';
           }
-        ];
-        setHistoryEntries(sampleData);
-        localStorage.setItem('tiss-history', JSON.stringify(sampleData));
-      }
+          
+          return {
+            id: invoiceId,
+            invoiceId: invoiceId,
+            patientName: invoice.patient_name || `Paciente #${invoice.patient_id}`,
+            generatedAt: invoice.issue_date || invoice.created_at,
+            generatedBy: user?.email || user?.username || 'Sistema',
+            status: status,
+            fileName: `tiss_invoice_${String(invoiceId).padStart(6, '0')}.xml`,
+            fileSize: fileSize,
+            errorMessage: errorMessage,
+            downloadCount: downloadInfo.count || 0,
+            lastDownloaded: downloadInfo.lastDownloaded || undefined,
+            issueDate: invoice.issue_date,
+            totalAmount: invoice.total_amount
+          };
+        })
+      );
+      
+      // Sort by date (most recent first)
+      entries.sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
+      
+      setHistoryEntries(entries);
     } catch (error: any) {
+      console.error("Failed to load TISS history:", error);
       toast.error("Erro ao carregar histórico TISS", {
-        description: error.message
+        description: error.message || "Não foi possível carregar o histórico TISS"
       });
+      setHistoryEntries([]);
     } finally {
       setLoading(false);
     }
@@ -126,6 +164,13 @@ export default function TissHistoryPage() {
           Sucesso
         </Badge>
       );
+    } else if (status === 'pending') {
+      return (
+        <Badge variant="secondary" className="flex items-center gap-1">
+          <Clock className="h-3 w-3" />
+          Pendente
+        </Badge>
+      );
     } else {
       return (
         <Badge variant="destructive" className="flex items-center gap-1">
@@ -136,100 +181,125 @@ export default function TissHistoryPage() {
     }
   };
 
-  const handleDownload = (entry: TissHistoryEntry) => {
-    if (entry.status === 'error') {
-      toast.error("Não é possível baixar arquivo com erro");
+  const handleDownload = async (entry: TissHistoryEntry) => {
+    if (entry.status === 'error' || entry.status === 'pending') {
+      toast.error("Não é possível baixar arquivo com erro ou pendente");
       return;
     }
 
-    // Simulate download
-    toast.success(`Baixando ${entry.fileName}...`);
-    
-    // Update download count
-    const updatedEntries = historyEntries.map(e => 
-      e.id === entry.id 
-        ? { 
-            ...e, 
-            downloadCount: e.downloadCount + 1,
-            lastDownloaded: new Date().toISOString()
-          }
-        : e
-    );
-    setHistoryEntries(updatedEntries);
-    localStorage.setItem('tiss-history', JSON.stringify(updatedEntries));
+    try {
+      setDownloadingIds(prev => new Set(prev).add(entry.invoiceId));
+      
+      // Download TISS XML from backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/invoices/${entry.invoiceId}/tiss-xml`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('clinicore_access_token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = entry.fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      
+      // Update download history
+      const downloadHistory = JSON.parse(localStorage.getItem('tiss-download-history') || '{}');
+      downloadHistory[entry.invoiceId] = {
+        count: (downloadHistory[entry.invoiceId]?.count || 0) + 1,
+        lastDownloaded: new Date().toISOString()
+      };
+      localStorage.setItem('tiss-download-history', JSON.stringify(downloadHistory));
+      
+      // Update entry in state
+      const updatedEntries = historyEntries.map(e => 
+        e.id === entry.id 
+          ? { 
+              ...e, 
+              downloadCount: e.downloadCount + 1,
+              lastDownloaded: new Date().toISOString()
+            }
+          : e
+      );
+      setHistoryEntries(updatedEntries);
+      
+      toast.success(`Arquivo ${entry.fileName} baixado com sucesso!`);
+    } catch (error: any) {
+      console.error("Failed to download TISS XML:", error);
+      toast.error("Erro ao baixar arquivo TISS", {
+        description: error.message || "Não foi possível baixar o arquivo TISS"
+      });
+    } finally {
+      setDownloadingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(entry.invoiceId);
+        return newSet;
+      });
+    }
   };
 
-  const handleView = (entry: TissHistoryEntry) => {
+  const handleView = async (entry: TissHistoryEntry) => {
     if (entry.status === 'error') {
-      toast.error(`Erro: ${entry.errorMessage}`);
+      toast.error(`Erro: ${entry.errorMessage || 'Não foi possível gerar XML TISS'}`);
       return;
     }
 
-    // Simulate XML preview
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.document.write(`
-        <html>
-          <head>
-            <title>TISS XML - ${entry.fileName}</title>
-            <style>
-              body { font-family: monospace; margin: 20px; }
-              pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
-            </style>
-          </head>
-          <body>
-            <h2>TISS XML - ${entry.fileName}</h2>
-            <p><strong>Paciente:</strong> ${entry.patientName}</p>
-            <p><strong>Fatura:</strong> #${entry.invoiceId}</p>
-            <p><strong>Gerado em:</strong> ${formatDate(entry.generatedAt)}</p>
-            <hr>
-            <pre>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
-&lt;ans:mensagemTISS xmlns:ans="http://www.ans.gov.br/padroes/tiss/schemas"&gt;
-  &lt;ans:cabecalho&gt;
-    &lt;ans:identificacaoTransacao&gt;
-      &lt;ans:tipoTransacao&gt;ENVIO_LOTE_GUIAS&lt;/ans:tipoTransacao&gt;
-      &lt;ans:sequencialTransacao&gt;1&lt;/ans:sequencialTransacao&gt;
-      &lt;ans:dataRegistroTransacao&gt;${format(new Date(), 'yyyy-MM-dd')}&lt;/ans:dataRegistroTransacao&gt;
-      &lt;ans:horaRegistroTransacao&gt;${format(new Date(), 'HH:mm:ss')}&lt;/ans:horaRegistroTransacao&gt;
-    &lt;/ans:identificacaoTransacao&gt;
-    &lt;ans:origem&gt;
-      &lt;ans:identificacaoPrestador&gt;
-        &lt;ans:codigoPrestadorNaOperadora&gt;001&lt;/ans:codigoPrestadorNaOperadora&gt;
-        &lt;ans:cnpjPrestador&gt;12345678000199&lt;/ans:cnpjPrestador&gt;
-        &lt;ans:nomePrestador&gt;Clínica Exemplo&lt;/ans:nomePrestador&gt;
-      &lt;/ans:identificacaoPrestador&gt;
-    &lt;/ans:origem&gt;
-    &lt;ans:destino&gt;
-      &lt;ans:registroANS&gt;000000&lt;/ans:registroANS&gt;
-      &lt;ans:cnpjOperadora&gt;98765432000188&lt;/ans:cnpjOperadora&gt;
-      &lt;ans:nomeOperadora&gt;Operadora Exemplo&lt;/ans:nomeOperadora&gt;
-    &lt;/ans:destino&gt;
-    &lt;ans:versaoPadrao&gt;3.03.00&lt;/ans:versaoPadrao&gt;
-  &lt;/ans:cabecalho&gt;
-  &lt;ans:prestadorParaOperadora&gt;
-    &lt;ans:loteGuias&gt;
-      &lt;ans:numeroLote&gt;${entry.invoiceId}&lt;/ans:numeroLote&gt;
-      &lt;ans:guiasTISS&gt;
-        &lt;!-- Conteúdo da guia TISS para fatura ${entry.invoiceId} --&gt;
-      &lt;/ans:guiasTISS&gt;
-    &lt;/ans:loteGuias&gt;
-  &lt;/ans:prestadorParaOperadora&gt;
-  &lt;ans:operadoraParaPrestador&gt;
-    &lt;ans:protocoloRecebimento&gt;
-      &lt;ans:identificacaoOperadora&gt;
-        &lt;ans:registroANS&gt;000000&lt;/ans:registroANS&gt;
-        &lt;ans:cnpjOperadora&gt;98765432000188&lt;/ans:cnpjOperadora&gt;
-        &lt;ans:nomeOperadora&gt;Operadora Exemplo&lt;/ans:nomeOperadora&gt;
-      &lt;/ans:identificacaoOperadora&gt;
-      &lt;ans:numeroProtocolo&gt;PROT${entry.invoiceId}&lt;/ans:numeroProtocolo&gt;
-      &lt;ans:dataProtocolo&gt;${format(new Date(), 'yyyy-MM-dd')}&lt;/ans:dataProtocolo&gt;
-    &lt;/ans:protocoloRecebimento&gt;
-  &lt;/ans:operadoraParaPrestador&gt;
-&lt;/ans:mensagemTISS&gt;</pre>
-          </body>
-        </html>
-      `);
-      newWindow.document.close();
+    try {
+      // Get preview XML from backend
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/invoices/${entry.invoiceId}/tiss-xml/preview`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('clinicore_access_token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load: ${response.statusText}`);
+      }
+
+      const xmlContent = await response.text();
+      
+      // Open XML in new window
+      const newWindow = window.open('', '_blank');
+      if (newWindow) {
+        newWindow.document.write(`
+          <html>
+            <head>
+              <title>TISS XML - ${entry.fileName}</title>
+              <style>
+                body { font-family: monospace; margin: 20px; background: #fff; }
+                pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #ddd; }
+                h2 { color: #333; }
+                .info { margin: 10px 0; padding: 10px; background: #e8f4f8; border-radius: 5px; }
+              </style>
+            </head>
+            <body>
+              <h2>TISS XML - ${entry.fileName}</h2>
+              <div class="info">
+                <p><strong>Paciente:</strong> ${entry.patientName}</p>
+                <p><strong>Fatura:</strong> #${entry.invoiceId}</p>
+                <p><strong>Gerado em:</strong> ${formatDate(entry.generatedAt)}</p>
+                <p><strong>Tamanho:</strong> ${formatFileSize(entry.fileSize)}</p>
+              </div>
+              <hr>
+              <pre>${xmlContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+            </body>
+          </html>
+        `);
+        newWindow.document.close();
+      }
+    } catch (error: any) {
+      console.error("Failed to view TISS XML:", error);
+      toast.error("Erro ao visualizar XML TISS", {
+        description: error.message || "Não foi possível carregar o XML TISS"
+      });
     }
   };
 
@@ -257,10 +327,13 @@ export default function TissHistoryPage() {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  if (loading) {
+  if (isLoading || (loading && historyEntries.length === 0)) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando histórico TISS...</p>
+        </div>
       </div>
     );
   }
@@ -275,6 +348,14 @@ export default function TissHistoryPage() {
             Acompanhe o histórico de geração e download de arquivos TISS XML
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={loadHistory}
+          disabled={loading}
+        >
+          {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileCode className="h-4 w-4 mr-2" />}
+          Atualizar
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -349,6 +430,7 @@ export default function TissHistoryPage() {
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="success">Sucesso</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
                 <SelectItem value="error">Erro</SelectItem>
               </SelectContent>
             </Select>
@@ -432,6 +514,7 @@ export default function TissHistoryPage() {
                         size="sm"
                         onClick={() => handleView(entry)}
                         title="Visualizar XML"
+                        disabled={entry.status === 'error' || entry.status === 'pending'}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -441,8 +524,23 @@ export default function TissHistoryPage() {
                           size="sm"
                           onClick={() => handleDownload(entry)}
                           title="Baixar arquivo"
+                          disabled={downloadingIds.has(entry.invoiceId)}
                         >
-                          <Download className="h-4 w-4" />
+                          {downloadingIds.has(entry.invoiceId) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
+                      {entry.status === 'error' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/financeiro/tiss-validator?invoice=${entry.invoiceId}`)}
+                          title="Validar e corrigir"
+                        >
+                          <FileCode className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -452,11 +550,22 @@ export default function TissHistoryPage() {
             </TableBody>
           </Table>
           
-          {filteredEntries.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum arquivo TISS XML encontrado.
+          {loading && historyEntries.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando histórico...
             </div>
-          )}
+          ) : filteredEntries.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileCode className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum arquivo TISS XML encontrado</p>
+              {searchTerm || statusFilter !== "all" || dateFilter !== "all" ? (
+                <p className="text-sm mt-2">Tente ajustar os filtros de busca</p>
+              ) : (
+                <p className="text-sm mt-2">As faturas aparecerão aqui quando o TISS XML for gerado</p>
+              )}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

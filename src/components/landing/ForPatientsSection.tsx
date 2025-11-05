@@ -27,28 +27,28 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
   const benefits = [
     {
       icon: Calendar,
-      title: "Easy Appointment Booking",
-      description: "Book, reschedule, or cancel appointments in seconds with real-time availability",
+      title: "Agendamento fácil",
+      description: "Marque, reagende ou cancele consultas em segundos com disponibilidade em tempo real",
     },
     {
       icon: Video,
-      title: "Virtual Consultations",
-      description: "Secure video consultations with your doctor from the comfort of your home",
+      title: "Consultas virtuais",
+      description: "Vídeo-consultas seguras com seu médico no conforto da sua casa",
     },
     {
       icon: FileText,
-      title: "Medical Records Access",
-      description: "Complete access to your medical history, test results, and prescriptions",
+      title: "Acesso ao prontuário",
+      description: "Acesso completo ao seu histórico, exames e prescrições",
     },
     {
       icon: Pill,
-      title: "Prescription Management",
-      description: "Digital prescriptions sent directly to your pharmacy with automatic reminders",
+      title: "Gestão de prescrições",
+      description: "Prescrições digitais enviadas à farmácia com lembretes automáticos",
     },
     {
       icon: Activity,
-      title: "Health Monitoring",
-      description: "Track vital signs, medications, and health metrics over time",
+      title: "Monitoramento de saúde",
+      description: "Acompanhe sinais vitais, medicações e métricas de saúde ao longo do tempo",
     },
   ];
 
@@ -63,11 +63,11 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-[#0F4C75] mb-4">
-            Your Health, Your Control
+            Sua saúde, no seu controle
           </h2>
           <p className="text-xl text-[#5D737E] max-w-2xl mx-auto">
-            Take control of your healthcare with easy access to appointments, records, and direct
-            communication with your healthcare team.
+            Tenha controle do seu cuidado com acesso fácil a agendamentos, prontuário e comunicação direta
+            com sua equipe de saúde.
           </p>
         </div>
 
@@ -109,7 +109,7 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
         {/* Patient Journey Visualization */}
         <div className="mb-16">
           <h3 className="text-2xl font-bold text-[#0F4C75] text-center mb-8">
-            Your Healthcare Journey, Simplified
+            Sua jornada de cuidado, simplificada
           </h3>
           <PatientJourneyIllustration />
         </div>
@@ -135,15 +135,14 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
                     ))}
                   </div>
                   <p className="text-lg text-[#2D3748] mb-4 italic">
-                    "Prontivus has completely transformed how I manage my healthcare. I can book
-                    appointments instantly, access my test results the moment they're available, and
-                    communicate with my doctor directly. It's made taking care of my health so much
-                    easier."
+                    "O Prontivus transformou completamente como eu cuido da minha saúde. Consigo marcar
+                    consultas na hora, acessar meus exames assim que ficam prontos e me comunicar
+                    diretamente com meu médico. Ficou muito mais fácil cuidar da minha saúde."
                   </p>
                   <div className="flex items-center gap-3">
                     <div>
                       <div className="font-semibold text-[#0F4C75]">Ana Oliveira</div>
-                      <div className="text-sm text-[#5D737E]">Prontivus Patient since 2023</div>
+                      <div className="text-sm text-[#5D737E]">Paciente Prontivus desde 2023</div>
                     </div>
                   </div>
                 </div>
@@ -156,7 +155,7 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
         <div className="text-center">
           <div className="inline-block">
             <h3 className="text-2xl font-bold text-[#0F4C75] mb-6">
-              Get Started with Prontivus Today
+              Comece a usar o Prontivus hoje
             </h3>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
               <Button
@@ -169,7 +168,7 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
                 }}
               >
                 <Download className="mr-2 h-5 w-5" />
-                Access Patient Portal
+                Acessar Portal do Paciente
               </Button>
               <Button
                 size="lg"
@@ -181,14 +180,14 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
                   }
                 }}
               >
-                Learn More
+                Saiba mais
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>
 
             {/* App Store Badges */}
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              <div className="text-sm text-[#5D737E] mb-2 sm:mb-0">Download our mobile app:</div>
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+              <div className="text-sm text-[#5D737E] mb-2 sm:mb-0">Baixe nosso app móvel:</div>
               <AppStoreBadge platform="apple" />
               <AppStoreBadge platform="google" />
             </div>
@@ -228,7 +227,7 @@ function PatientAppMockup() {
                 </div>
                 <div>
                   <div className="font-semibold">Ana Oliveira</div>
-                  <div className="text-xs text-white/80">Patient Portal</div>
+                  <div className="text-xs text-white/80">Portal do Paciente</div>
                 </div>
               </div>
             </div>
@@ -236,29 +235,29 @@ function PatientAppMockup() {
             {/* Quick Actions */}
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <ActionCard icon={Calendar} title="Appointments" color="bg-[#1B9AAA]/10" />
-                <ActionCard icon={Video} title="Video Call" color="bg-[#16C79A]/10" />
+                <ActionCard icon={Calendar} title="Consultas" color="bg-[#1B9AAA]/10" />
+                <ActionCard icon={Video} title="Chamada de vídeo" color="bg-[#16C79A]/10" />
               </div>
 
               {/* Recent Activity */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="font-semibold text-[#0F4C75] text-sm">Recent Records</div>
+                  <div className="font-semibold text-[#0F4C75] text-sm">Registros recentes</div>
                   <CheckCircle2 className="h-4 w-4 text-[#16C79A]" />
                 </div>
                 <div className="space-y-2">
-                  <RecordItem title="Blood Test Results" date="2 days ago" status="available" />
-                  <RecordItem title="X-Ray Report" date="1 week ago" status="available" />
-                  <RecordItem title="Prescription" date="1 week ago" status="active" />
+                  <RecordItem title="Resultados de sangue" date="há 2 dias" status="available" />
+                  <RecordItem title="Laudo de raio-X" date="há 1 semana" status="available" />
+                  <RecordItem title="Prescrição" date="há 1 semana" status="active" />
                 </div>
               </div>
 
               {/* Health Metrics */}
               <div className="p-3 bg-[#FAFBFC] rounded-lg border border-gray-200">
-                <div className="font-semibold text-[#0F4C75] text-sm mb-3">Today's Vitals</div>
+                <div className="font-semibold text-[#0F4C75] text-sm mb-3">Sinais vitais de hoje</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <MetricCard label="BP" value="120/80" normal />
-                  <MetricCard label="Pulse" value="72" normal />
+                  <MetricCard label="PA" value="120/80" normal />
+                  <MetricCard label="Pulso" value="72" normal />
                 </div>
               </div>
             </div>
@@ -323,11 +322,11 @@ function MetricCard({ label, value, normal }: { label: string; value: string; no
 // Patient Journey Illustration
 function PatientJourneyIllustration() {
   const steps = [
-    { icon: Calendar, label: "Book", description: "Schedule appointment" },
-    { icon: Video, label: "Consult", description: "Virtual or in-person" },
-    { icon: FileText, label: "Review", description: "Access records" },
-    { icon: Pill, label: "Manage", description: "Prescriptions & meds" },
-    { icon: Activity, label: "Monitor", description: "Track health" },
+    { icon: Calendar, label: "Agendar", description: "Marcar consulta" },
+    { icon: Video, label: "Consultar", description: "Virtual ou presencial" },
+    { icon: FileText, label: "Revisar", description: "Acessar prontuário" },
+    { icon: Pill, label: "Gerir", description: "Prescrições e medicamentos" },
+    { icon: Activity, label: "Monitorar", description: "Acompanhar saúde" },
   ];
 
   return (

@@ -7,7 +7,10 @@ import A11yLiveAnnouncer from "@/components/accessibility/A11yLiveAnnouncer";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
+      <head>
+        <link rel="icon" href="/favicon.png" sizes="any" />
+      </head>
       <body className="min-h-screen bg-background text-foreground antialiased">
         <A11yLiveAnnouncer />
         <ServiceWorkerRegister />

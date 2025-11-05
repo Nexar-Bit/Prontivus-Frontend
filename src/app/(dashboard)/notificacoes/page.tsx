@@ -29,19 +29,9 @@ import {
   Volume2,
   VolumeX
 } from "lucide-react";
+import { notificationsApi, NotificationItem } from "@/lib/notifications-api";
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'appointment' | 'system';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  read: boolean;
-  timestamp: string;
-  source: string;
-  actionUrl?: string;
-  actionText?: string;
-}
+type Notification = NotificationItem;
 
 interface NotificationSettings {
   emailNotifications: boolean;
@@ -113,86 +103,9 @@ export default function NotificationsPage() {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await notificationsApi.getNotifications();
-      // setNotifications(response);
-      
-      // Mock data for now
-      const mockNotifications: Notification[] = [
-        {
-          id: "1",
-          title: "Appointment Reminder",
-          message: "You have an appointment with Dr. Smith at 2:00 PM today",
-          type: "appointment",
-          priority: "high",
-          read: false,
-          timestamp: new Date().toISOString(),
-          source: "Appointment System",
-          actionUrl: "/appointments",
-          actionText: "View Appointment"
-        },
-        {
-          id: "2",
-          title: "System Maintenance",
-          message: "Scheduled maintenance will occur tonight from 11 PM to 1 AM",
-          type: "system",
-          priority: "medium",
-          read: false,
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          source: "System Admin",
-          actionUrl: "/admin/settings",
-          actionText: "View Details"
-        },
-        {
-          id: "3",
-          title: "New Patient Registration",
-          message: "A new patient has been registered in your clinic",
-          type: "info",
-          priority: "low",
-          read: true,
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          source: "Patient Management",
-          actionUrl: "/secretaria/pacientes",
-          actionText: "View Patient"
-        },
-        {
-          id: "4",
-          title: "Security Alert",
-          message: "Unusual login activity detected from a new device",
-          type: "error",
-          priority: "urgent",
-          read: false,
-          timestamp: new Date(Date.now() - 10800000).toISOString(),
-          source: "Security System",
-          actionUrl: "/security",
-          actionText: "Review Activity"
-        },
-        {
-          id: "5",
-          title: "Backup Completed",
-          message: "Daily backup completed successfully",
-          type: "success",
-          priority: "low",
-          read: true,
-          timestamp: new Date(Date.now() - 14400000).toISOString(),
-          source: "System Admin"
-        },
-        {
-          id: "6",
-          title: "Prescription Ready",
-          message: "Prescription for John Doe is ready for pickup",
-          type: "info",
-          priority: "medium",
-          read: false,
-          timestamp: new Date(Date.now() - 18000000).toISOString(),
-          source: "Pharmacy",
-          actionUrl: "/pharmacy",
-          actionText: "View Prescription"
-        }
-      ];
-      
-      setNotifications(mockNotifications);
-      setUnreadCount(mockNotifications.filter(n => !n.read).length);
+      const data = await notificationsApi.getAll();
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.read).length);
     } catch (error) {
       console.error("Failed to load notifications:", error);
       toast.error("Failed to load notifications");
@@ -203,8 +116,10 @@ export default function NotificationsPage() {
 
   const markAsRead = async (notificationId: string) => {
     try {
-      // TODO: Replace with actual API call
-      // await notificationsApi.markAsRead(notificationId);
+      const n = notifications.find(x => x.id === notificationId);
+      if (n?.kind && typeof n.source_id === 'number') {
+        await notificationsApi.markRead(n.kind, n.source_id);
+      }
       
       setNotifications(prev => 
         prev.map(n => 
@@ -220,8 +135,6 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     try {
-      // TODO: Replace with actual API call
-      // await notificationsApi.markAllAsRead();
       
       setNotifications(prev => 
         prev.map(n => ({ ...n, read: true }))
@@ -236,8 +149,10 @@ export default function NotificationsPage() {
 
   const deleteNotification = async (notificationId: string) => {
     try {
-      // TODO: Replace with actual API call
-      // await notificationsApi.deleteNotification(notificationId);
+      const n = notifications.find(x => x.id === notificationId);
+      if (n?.kind && typeof n.source_id === 'number') {
+        await notificationsApi.delete(n.kind, n.source_id);
+      }
       
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
       setUnreadCount(prev => {
@@ -564,10 +479,7 @@ export default function NotificationsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          // TODO: Navigate to action URL
-                          console.log('Navigate to:', notification.actionUrl);
-                        }}
+                        onClick={() => router.push(notification.actionUrl)}
                       >
                         {notification.actionText}
                       </Button>

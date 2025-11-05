@@ -21,6 +21,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PatientSidebar, PatientMobileNav, PatientHeader } from "@/components/patient/Navigation";
+import { api } from "@/lib/api";
 
 interface NavigationItem {
   label: string;
@@ -56,59 +57,57 @@ interface RecentActivity {
 }
 
 export default function PatientDashboard() {
+  const [upcomingAppointment, setUpcomingAppointment] = React.useState<UpcomingAppointment | null>(null);
+  const [recentActivity, setRecentActivity] = React.useState<RecentActivity[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const healthMetrics: HealthMetric[] = [];
 
-  // Mock data - replace with API calls
-  const upcomingAppointment: UpcomingAppointment | null = {
-    id: 1,
-    date: "2024-01-15",
-    time: "14:00",
-    doctor: "Dr. Maria Silva",
-    specialty: "Cardiologia",
-    type: "virtual",
-    location: "Clínica Prontivus",
-  };
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        // Fetch current patient's appointments
+        const appts = await api.get<any[]>(`/api/appointments/patient-appointments`);
+        const now = new Date();
+        const future = appts
+          .filter(a => new Date(a.scheduled_datetime) >= now)
+          .sort((a,b) => new Date(a.scheduled_datetime).getTime() - new Date(b.scheduled_datetime).getTime());
+        const next = future[0];
+        if (next) {
+          setUpcomingAppointment({
+            id: next.id,
+            date: next.scheduled_datetime,
+            time: format(new Date(next.scheduled_datetime), "HH:mm"),
+            doctor: next.doctor_name,
+            specialty: next.appointment_type || "",
+            type: "virtual",
+            location: "",
+          });
+        } else {
+          setUpcomingAppointment(null);
+        }
 
-  const healthMetrics: HealthMetric[] = [
-    { label: "Blood Pressure", value: "120/80", trend: "stable", status: "normal" },
-    { label: "Heart Rate", value: "72 bpm", trend: "down", status: "normal" },
-    { label: "Weight", value: "75 kg", trend: "stable", status: "normal" },
-    { label: "Glucose", value: "95 mg/dL", trend: "up", status: "normal" },
-  ];
-
-  const recentActivity: RecentActivity[] = [
-    {
-      id: 1,
-      type: "test_result",
-      title: "Hemograma Completo",
-      description: "Resultados disponíveis",
-      date: "2 dias atrás",
-      icon: TestTube,
-    },
-    {
-      id: 2,
-      type: "prescription",
-      title: "Nova Prescrição",
-      description: "Paracetamol 500mg",
-      date: "3 dias atrás",
-      icon: Pill,
-    },
-    {
-      id: 3,
-      type: "message",
-      title: "Mensagem do Dr. Silva",
-      description: "Resultados dos exames revisados",
-      date: "5 dias atrás",
-      icon: MessageCircle,
-    },
-    {
-      id: 4,
-      type: "appointment",
-      title: "Consulta Concluída",
-      description: "Consulta de rotina",
-      date: "1 semana atrás",
-      icon: Calendar,
-    },
-  ];
+        // Recent activity from last 10 appointments
+        const recent = appts
+          .sort((a,b) => new Date(b.scheduled_datetime).getTime() - new Date(a.scheduled_datetime).getTime())
+          .slice(0, 10)
+          .map((a, idx) => ({
+            id: a.id,
+            type: "appointment" as const,
+            title: a.status === "completed" ? "Consulta Concluída" : "Consulta",
+            description: a.doctor_name,
+            date: format(new Date(a.scheduled_datetime), "dd/MM/yyyy HH:mm"),
+            icon: Calendar,
+          }));
+        setRecentActivity(recent);
+      } catch {
+        setUpcomingAppointment(null);
+        setRecentActivity([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAFBFC]">

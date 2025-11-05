@@ -26,7 +26,7 @@ export const financialApi = {
     if (filters?.is_active !== undefined) params.append('is_active', filters.is_active.toString());
     if (filters?.search) params.append('search', filters.search);
     
-    const url = `/api/service-items${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `/api/financial/service-items${params.toString() ? `?${params.toString()}` : ''}`;
     return api.get<ServiceItem[]>(url);
   },
 
@@ -34,14 +34,14 @@ export const financialApi = {
    * Create a new service item
    */
   createServiceItem: async (data: ServiceItemCreate): Promise<ServiceItem> => {
-    return api.post<ServiceItem>('/api/service-items', data);
+    return api.post<ServiceItem>('/api/financial/service-items', data);
   },
 
   /**
    * Update a service item
    */
   updateServiceItem: async (id: number, data: ServiceItemCreate): Promise<ServiceItem> => {
-    return api.put<ServiceItem>(`/api/service-items/${id}`, data);
+    return api.put<ServiceItem>(`/api/financial/service-items/${id}`, data);
   },
 
   /**
@@ -59,7 +59,17 @@ export const financialApi = {
     if (filters?.start_date) params.append('start_date', filters.start_date);
     if (filters?.end_date) params.append('end_date', filters.end_date);
     
-    const url = `/api/invoices${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `/api/financial/invoices${params.toString() ? `?${params.toString()}` : ''}`;
+    return api.get<Invoice[]>(url);
+  },
+
+  /**
+   * Get current patient's invoices
+   */
+  getMyInvoices: async (status?: InvoiceStatus): Promise<Invoice[]> => {
+    const url = status 
+      ? `/api/financial/invoices/me?status=${status}`
+      : `/api/financial/invoices/me`;
     return api.get<Invoice[]>(url);
   },
 
@@ -67,35 +77,35 @@ export const financialApi = {
    * Get a specific invoice by ID
    */
   getInvoice: async (id: number): Promise<Invoice> => {
-    return api.get<Invoice>(`/api/invoices/${id}`);
+    return api.get<Invoice>(`/api/financial/invoices/${id}`);
   },
 
   /**
    * Create a new invoice
    */
   createInvoice: async (data: InvoiceCreate): Promise<Invoice> => {
-    return api.post<Invoice>('/api/invoices', data);
+    return api.post<Invoice>('/api/financial/invoices', data);
   },
 
   /**
    * Create an invoice from a completed appointment
    */
   createInvoiceFromAppointment: async (data: InvoiceFromAppointmentCreate): Promise<Invoice> => {
-    return api.post<Invoice>('/api/invoices/from-appointment', data);
+    return api.post<Invoice>('/api/financial/invoices/from-appointment', data);
   },
 
   /**
    * Update an invoice
    */
   updateInvoice: async (id: number, data: InvoiceCreate): Promise<Invoice> => {
-    return api.put<Invoice>(`/api/invoices/${id}`, data);
+    return api.put<Invoice>(`/api/financial/invoices/${id}`, data);
   },
 
   /**
    * Mark an invoice as paid
    */
   markInvoicePaid: async (id: number): Promise<Invoice> => {
-    return api.post<Invoice>(`/api/invoices/${id}/mark-paid`);
+    return api.post<Invoice>(`/api/financial/invoices/${id}/mark-paid`);
   },
 
   /**
@@ -169,7 +179,7 @@ export const financialApi = {
    * Get invoice payments
    */
   getInvoicePayments: async (invoiceId: number): Promise<Payment[]> => {
-    return api.get<Payment[]>(`/api/invoices/${invoiceId}/payments`);
+    return api.get<Payment[]>(`/api/financial/invoices/${invoiceId}/payments`);
   },
 
   /**

@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from 'swr';
-import { analyticsApi, ClinicalAnalytics, FinancialAnalytics, InventoryAnalytics } from './analytics-api';
+import { analyticsApi, ClinicalAnalytics, FinancialAnalytics, OperationalAnalytics, InventoryAnalytics } from './analytics-api';
 
 const swrOptions = { revalidateOnFocus: false, dedupingInterval: 30_000 };
 
@@ -24,9 +24,9 @@ export function useFinancialAnalytics(period: string = 'last_month') {
 }
 
 export function useOperationalAnalytics(period: string = 'last_30_days') {
-  const { data, error, isLoading, mutate } = useSWR<InventoryAnalytics>(
+  const { data, error, isLoading, mutate } = useSWR<OperationalAnalytics>(
     ['operational', period],
-    () => analyticsApi.getInventoryAnalytics(period),
+    () => analyticsApi.getOperationalAnalytics(period),
     swrOptions
   );
   return { data, error, isLoading, refresh: mutate };

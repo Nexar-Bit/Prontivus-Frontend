@@ -22,7 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/contexts";
-import { PlusCircle, Pencil, Eye } from "lucide-react";
+import { PlusCircle, Pencil, Eye, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -101,6 +101,23 @@ export default function PatientsPage() {
     }
   };
 
+  // Handle delete patient
+  const handleDelete = async (patientId: number) => {
+    if (!confirm("Tem certeza que deseja excluir este paciente?")) {
+      return;
+    }
+    
+    try {
+      await patientsApi.delete(patientId);
+      toast.success("Paciente excluído com sucesso!");
+      loadPatients();
+    } catch (error: any) {
+      toast.error("Erro ao excluir paciente", {
+        description: error.message,
+      });
+    }
+  };
+
   // Format gender for display
   const formatGender = (gender: Gender) => {
     const genderMap = {
@@ -160,6 +177,7 @@ export default function PatientsPage() {
                 setSelectedPatient(patient);
                 setIsViewDialogOpen(true);
               }}
+              title="Ver detalhes"
             >
               <Eye className="h-4 w-4" />
             </Button>
@@ -170,8 +188,18 @@ export default function PatientsPage() {
                 setSelectedPatient(patient);
                 setIsEditDialogOpen(true);
               }}
+              title="Editar"
             >
               <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(patient.id)}
+              title="Excluir"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         );
@@ -203,8 +231,14 @@ export default function PatientsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              Carregando...
+            <div className="flex items-center justify-center py-8 gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Carregando pacientes...</span>
+            </div>
+          ) : patients.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <p className="text-base font-medium mb-2">Nenhum paciente cadastrado</p>
+              <p className="text-sm">Clique em "Novo Paciente" para adicionar um paciente.</p>
             </div>
           ) : (
             <DataTable columns={columns} data={patients} />

@@ -593,7 +593,6 @@ export function AppSidebar() {
             height={26}
             priority
             className="h-6 w-auto"
-            style={{ height: 26, width: "auto" }}
           />
         </Link>
         <p className="text-white/70 text-xs mt-2 ml-1">Cuidado Inteligente</p>

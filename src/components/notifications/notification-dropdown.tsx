@@ -12,71 +12,26 @@ import {
 } from "@/components/ui/popover";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { notificationsApi, NotificationItem } from "@/lib/notifications-api";
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'appointment' | 'system' | 'critical';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  read: boolean;
-  timestamp: string;
-  source?: string;
-  actionUrl?: string;
-  actionText?: string;
-}
-
-// Mock notifications - replace with API call
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    title: 'Consulta Agendada',
-    message: 'Paciente João Silva agendado para amanhã às 14:00',
-    type: 'appointment',
-    priority: 'medium',
-    read: false,
-    timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    source: 'Agendamentos',
-    actionUrl: '/secretaria/agendamentos',
-    actionText: 'Ver Detalhes',
-  },
-  {
-    id: '2',
-    title: 'Alerta Crítico',
-    message: 'Paciente em situação de emergência na sala 3',
-    type: 'critical',
-    priority: 'urgent',
-    read: false,
-    timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    source: 'Emergência',
-    actionUrl: '/secretaria/recepcao',
-    actionText: 'Acessar',
-  },
-  {
-    id: '3',
-    title: 'Relatório Pronto',
-    message: 'Relatório de exames do paciente Maria Santos está disponível',
-    type: 'success',
-    priority: 'low',
-    read: true,
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-    source: 'Laboratório',
-  },
-  {
-    id: '4',
-    title: 'Manutenção Programada',
-    message: 'Sistema estará em manutenção no domingo das 2h às 4h',
-    type: 'system',
-    priority: 'low',
-    read: false,
-    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    source: 'Sistema',
-  },
-];
+type Notification = NotificationItem;
 
 export function NotificationDropdown() {
-  const [notifications, setNotifications] = React.useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [open, setOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await notificationsApi.getAll();
+        setNotifications(data);
+      } catch (e) {
+        // fail silently in header
+        console.warn('Failed to load notifications');
+      }
+    };
+    load();
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -108,17 +63,23 @@ export function NotificationDropdown() {
     return 'bg-white border-gray-200 hover:bg-gray-50';
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => (n.id === id ? { ...n, read: true } : n))
-    );
+  const markAsRead = async (id: string) => {
+    const n = notifications.find(x => x.id === id);
+    if (n?.kind && typeof n.source_id === 'number') {
+      try { await notificationsApi.markRead(n.kind, n.source_id); } catch {}
+    }
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, read: true } : n)));
   };
 
   const markAllAsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const deleteNotification = (id: string) => {
+  const deleteNotification = async (id: string) => {
+    const n = notifications.find(x => x.id === id);
+    if (n?.kind && typeof n.source_id === 'number') {
+      try { await notificationsApi.delete(n.kind, n.source_id); } catch {}
+    }
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 

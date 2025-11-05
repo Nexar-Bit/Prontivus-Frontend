@@ -23,14 +23,15 @@ import {
   XCircle,
   Clock
 } from "lucide-react";
+import { adminApi } from "@/lib/admin-api";
 
 interface LogEntry {
-  id: string;
+  id: number;
   timestamp: string;
   level: 'info' | 'warning' | 'error' | 'debug';
   message: string;
   source: string;
-  userId?: string;
+  user_id?: number;
   details?: string;
 }
 
@@ -81,56 +82,8 @@ export default function AdminLogsPage() {
   const loadLogs = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await adminApi.getLogs();
-      // setLogs(response);
-      
-      // Mock data for now
-      const mockLogs: LogEntry[] = [
-        {
-          id: "1",
-          timestamp: new Date().toISOString(),
-          level: "info",
-          message: "User admin logged in successfully",
-          source: "auth",
-          userId: "1",
-          details: "Login from IP: 192.168.1.100"
-        },
-        {
-          id: "2",
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-          level: "warning",
-          message: "High memory usage detected",
-          source: "system",
-          details: "Memory usage: 85%"
-        },
-        {
-          id: "3",
-          timestamp: new Date(Date.now() - 600000).toISOString(),
-          level: "error",
-          message: "Database connection failed",
-          source: "database",
-          details: "Connection timeout after 30 seconds"
-        },
-        {
-          id: "4",
-          timestamp: new Date(Date.now() - 900000).toISOString(),
-          level: "info",
-          message: "Backup completed successfully",
-          source: "system",
-          details: "Backup size: 2.5GB"
-        },
-        {
-          id: "5",
-          timestamp: new Date(Date.now() - 1200000).toISOString(),
-          level: "debug",
-          message: "API request processed",
-          source: "api",
-          details: "GET /api/patients - 200ms"
-        }
-      ];
-      
-      setLogs(mockLogs);
+      const response = await adminApi.getLogs({ level: levelFilter, source: sourceFilter, search: searchTerm });
+      setLogs(response as any);
     } catch (error) {
       console.error("Failed to load logs:", error);
       toast.error("Failed to load logs");
@@ -169,16 +122,7 @@ export default function AdminLogsPage() {
     }
   };
 
-  const filteredLogs = logs.filter(log => {
-    const matchesSearch = !searchTerm || 
-      log.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.source.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesLevel = levelFilter === 'all' || log.level === levelFilter;
-    const matchesSource = sourceFilter === 'all' || log.source === sourceFilter;
-    
-    return matchesSearch && matchesLevel && matchesSource;
-  });
+  const filteredLogs = logs; // server filters applied
 
   const exportLogs = () => {
     const csvContent = [
@@ -313,9 +257,9 @@ export default function AdminLogsPage() {
                         </span>
                       </div>
                       <p className="text-sm font-medium">{log.message}</p>
-                      {log.userId && (
+                      {log.user_id && (
                         <p className="text-xs text-muted-foreground">
-                          User ID: {log.userId}
+                          User ID: {log.user_id}
                         </p>
                       )}
                     </div>

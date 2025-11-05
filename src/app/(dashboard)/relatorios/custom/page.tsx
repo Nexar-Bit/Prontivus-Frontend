@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 type Domain = 'appointments' | 'financial' | 'clinical';
 
@@ -18,6 +20,7 @@ export default function CustomReportsPage() {
   const [groupBy, setGroupBy] = useState<string[]>(['status']);
   const [result, setResult] = useState<{ columns: string[]; rows: any[] } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -32,40 +35,98 @@ export default function CustomReportsPage() {
     return ['cid10'];
   }, [domain]);
 
+  // Reset groupBy when domain changes
+  useEffect(() => {
+    if (domain === 'appointments') {
+      setGroupBy(['status']);
+    } else if (domain === 'financial') {
+      setGroupBy(['doctor']);
+    } else {
+      setGroupBy(['cid10']);
+    }
+    setResult(null);
+    setError(null);
+  }, [domain]);
+
   const toggleGroup = (g: string) => {
     setGroupBy(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
   };
 
   const runReport = async () => {
+    if (groupBy.length === 0) {
+      toast.error('Selecione pelo menos uma opção para agrupar');
+      return;
+    }
+
     setLoading(true);
+    setError(null);
+    setResult(null);
+    
     try {
       const res = await api.post<{ columns: string[]; rows: any[] }>(
         '/api/analytics/custom/run',
-        { domain, period, group_by: groupBy, metrics: ['count'] }
+        { domain, period, group_by: groupBy, metrics: domain === 'financial' ? ['sum_revenue'] : ['count'] }
       );
-      setResult(res);
+      
+      if (res && res.columns && res.rows) {
+        setResult(res);
+        if (res.rows.length === 0) {
+          toast.info('Nenhum dado encontrado para os filtros selecionados');
+        } else {
+          toast.success(`Relatório gerado com ${res.rows.length} registros`);
+        }
+      } else {
+        throw new Error('Resposta inválida do servidor');
+      }
+    } catch (err: any) {
+      console.error('Erro ao gerar relatório:', err);
+      const errorMessage = err?.response?.data?.detail || err?.message || 'Erro ao gerar relatório';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const exportExcel = async () => {
-    if (!result) return;
-    const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/analytics/export/custom/excel`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('clinicore_access_token')}`,
-      },
-      body: JSON.stringify({ title: 'Custom Report', columns: result.columns, rows: result.rows }),
-    });
-    const blob = await resp.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'custom_report.xlsx';
-    a.click();
-    window.URL.revokeObjectURL(url);
+    if (!result || result.rows.length === 0) {
+      toast.error('Não há dados para exportar');
+      return;
+    }
+
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('clinicore_access_token') : null;
+      const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/analytics/export/custom/excel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          title: `Relatório ${domain === 'appointments' ? 'Consultas' : domain === 'financial' ? 'Financeiro' : 'Clínico'}`, 
+          columns: result.columns, 
+          rows: result.rows 
+        }),
+      });
+
+      if (!resp.ok) {
+        throw new Error('Erro ao exportar relatório');
+      }
+
+      const blob = await resp.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio_${domain}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success('Relatório exportado com sucesso');
+    } catch (err: any) {
+      console.error('Erro ao exportar:', err);
+      toast.error('Erro ao exportar relatório');
+    }
   };
 
   return (
@@ -73,8 +134,19 @@ export default function CustomReportsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Construtor de Relatórios</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={runReport} disabled={loading}>Executar</Button>
-          <Button variant="outline" onClick={exportExcel} disabled={!result}>Exportar Excel</Button>
+          <Button variant="default" onClick={runReport} disabled={loading || groupBy.length === 0}>
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Executando...
+              </>
+            ) : (
+              'Executar'
+            )}
+          </Button>
+          <Button variant="outline" onClick={exportExcel} disabled={!result || result.rows.length === 0}>
+            Exportar Excel
+          </Button>
         </div>
       </div>
 
@@ -111,44 +183,93 @@ export default function CustomReportsPage() {
             <div>
               <div className="text-sm mb-2">Agrupar por</div>
               <div className="flex gap-2 flex-wrap">
-                {availableGroups.map(g => (
-                  <Button key={g} variant={groupBy.includes(g) ? 'default' : 'outline'} onClick={() => toggleGroup(g)}>
-                    {g}
-                  </Button>
-                ))}
+                {availableGroups.map(g => {
+                  const labels: Record<string, string> = {
+                    'status': 'Status',
+                    'doctor': 'Médico',
+                    'service': 'Serviço',
+                    'cid10': 'CID-10'
+                  };
+                  return (
+                    <Button 
+                      key={g} 
+                      variant={groupBy.includes(g) ? 'default' : 'outline'} 
+                      onClick={() => toggleGroup(g)}
+                    >
+                      {labels[g] || g}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <p className="text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {loading && (
         <div className="flex items-center justify-center h-40">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Gerando relatório...</p>
+          </div>
         </div>
       )}
 
-      {result && (
+      {result && result.rows.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Resultado</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 text-sm text-muted-foreground">
+              Total de registros: {result.rows.length}
+            </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="border-b">
-                    {result.columns.map(col => (
-                      <th key={col} className="text-left p-2 capitalize">{col}</th>
-                    ))}
+                  <tr className="border-b bg-muted/50">
+                    {result.columns.map(col => {
+                      const columnLabels: Record<string, string> = {
+                        'status': 'Status',
+                        'doctor': 'Médico',
+                        'service': 'Serviço',
+                        'cid10': 'CID-10',
+                        'count': 'Quantidade',
+                        'sum_revenue': 'Receita Total (R$)'
+                      };
+                      return (
+                        <th key={col} className="text-left p-3 font-semibold">
+                          {columnLabels[col] || col}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
                   {result.rows.map((row, idx) => (
-                    <tr key={idx} className="border-b">
-                      {result.columns.map(col => (
-                        <td key={col} className="p-2">{String(row[col] ?? '')}</td>
-                      ))}
+                    <tr key={idx} className="border-b hover:bg-muted/30">
+                      {result.columns.map(col => {
+                        let value = row[col] ?? '';
+                        if (col === 'sum_revenue' && typeof value === 'number') {
+                          value = new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL'
+                          }).format(value);
+                        }
+                        return (
+                          <td key={col} className="p-3">
+                            {String(value)}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>

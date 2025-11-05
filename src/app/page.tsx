@@ -50,43 +50,43 @@ export default function LandingPage() {
 
   const pricingPlans = [
     {
-      name: "Starter",
+      name: "Inicial",
       price: "R$ 299",
-      period: "/month",
-      description: "Perfect for small clinics",
+      period: "/mês",
+      description: "Perfeito para clínicas pequenas",
       features: [
-        "Up to 500 patients",
-        "Basic EHR",
-        "Appointment scheduling",
-        "Email support",
+        "Até 500 pacientes",
+        "Prontuário eletrônico básico",
+        "Agendamento de consultas",
+        "Suporte por e-mail",
       ],
       popular: false,
     },
     {
-      name: "Professional",
+      name: "Profissional",
       price: "R$ 599",
-      period: "/month",
-      description: "For growing practices",
+      period: "/mês",
+      description: "Para clínicas em crescimento",
       features: [
-        "Unlimited patients",
-        "Full EHR system",
-        "Financial management",
-        "Analytics & reports",
-        "Priority support",
+        "Pacientes ilimitados",
+        "Prontuário eletrônico completo",
+        "Gestão financeira",
+        "Análises e relatórios",
+        "Suporte prioritário",
       ],
       popular: true,
     },
     {
       name: "Enterprise",
-      price: "Custom",
+      price: "Sob consulta",
       period: "",
-      description: "For large healthcare networks",
+      description: "Para grandes redes de saúde",
       features: [
-        "Multi-location support",
-        "Advanced integrations",
-        "Custom workflows",
-        "Dedicated support",
-        "Training & onboarding",
+        "Suporte multiunidade",
+        "Integrações avançadas",
+        "Fluxos personalizados",
+        "Suporte dedicado",
+        "Treinamento e onboarding",
       ],
       popular: false,
     },
@@ -117,9 +117,9 @@ export default function LandingPage() {
       <section id="pricing" className="py-20 bg-[#FAFBFC]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-[#0F4C75] mb-4">Simple, Transparent Pricing</h2>
+            <h2 className="text-4xl font-bold text-[#0F4C75] mb-4">Preços simples e transparentes</h2>
             <p className="text-xl text-[#5D737E] max-w-2xl mx-auto">
-              Choose the plan that fits your practice size and needs
+              Escolha o plano que se adapta ao tamanho e às necessidades da sua clínica
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -135,7 +135,7 @@ export default function LandingPage() {
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-[#0F4C75] text-white px-4 py-1">Most Popular</Badge>
+                    <Badge className="bg-[#0F4C75] text-white px-4 py-1">Mais popular</Badge>
                   </div>
                 )}
                 <CardHeader className="text-center pb-8">
@@ -165,8 +165,8 @@ export default function LandingPage() {
                     variant={plan.popular ? "default" : "outline"}
                     onClick={() => router.push("/login")}
                   >
-                    {plan.price === "Custom" ? "Contact Sales" : "Get Started"}
-                    {plan.price !== "Custom" && <ArrowRight className="ml-2 h-4 w-4" />}
+                    {plan.price === "Sob consulta" ? "Falar com vendas" : "Começar agora"}
+                    {plan.price !== "Sob consulta" && <ArrowRight className="ml-2 h-4 w-4" />}
                   </Button>
                 </CardContent>
               </Card>

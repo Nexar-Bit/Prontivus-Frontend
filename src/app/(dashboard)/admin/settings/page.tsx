@@ -8,56 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
+ 
 import { toast } from "sonner";
 import { 
-  Settings, 
-  Save, 
-  RefreshCw, 
-  Database, 
-  Shield, 
-  Mail, 
-  Bell, 
-  Globe,
-  Lock,
-  Users,
-  FileText,
-  AlertTriangle,
-  CheckCircle
+  Settings,
+  Save,
+  RefreshCw,
+  Lock
 } from "lucide-react";
+import { adminApi } from "@/lib/admin-api";
 
 interface SystemSettings {
-  // General Settings
   clinicName: string;
   clinicEmail: string;
   clinicPhone: string;
   clinicAddress: string;
-  timezone: string;
-  language: string;
-  
-  // Security Settings
-  passwordMinLength: number;
-  requireTwoFactor: boolean;
-  sessionTimeout: number;
-  maxLoginAttempts: number;
-  lockoutDuration: number;
-  
-  // Notification Settings
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  pushNotifications: boolean;
-  notificationEmail: string;
-  
-  // System Settings
-  maintenanceMode: boolean;
-  autoBackup: boolean;
-  backupFrequency: string;
-  logRetentionDays: number;
-  
-  // License Settings
   licenseKey: string;
   maxUsers: number;
   activeModules: string[];
@@ -76,61 +41,17 @@ const AVAILABLE_MODULES = [
   { id: "telemed", name: "Telemedicine", description: "Remote consultations" },
 ];
 
-const TIMEZONES = [
-  "America/Sao_Paulo",
-  "America/New_York",
-  "America/Los_Angeles",
-  "Europe/London",
-  "Europe/Paris",
-  "Asia/Tokyo",
-  "UTC"
-];
-
-const LANGUAGES = [
-  { code: "pt-BR", name: "Português (Brasil)" },
-  { code: "en-US", name: "English (US)" },
-  { code: "es-ES", name: "Español" },
-];
-
-const BACKUP_FREQUENCIES = [
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-];
+ 
 
 export default function AdminSettingsPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   
   const [settings, setSettings] = useState<SystemSettings>({
-    // General Settings
     clinicName: "",
     clinicEmail: "",
     clinicPhone: "",
     clinicAddress: "",
-    timezone: "America/Sao_Paulo",
-    language: "pt-BR",
-    
-    // Security Settings
-    passwordMinLength: 8,
-    requireTwoFactor: false,
-    sessionTimeout: 30,
-    maxLoginAttempts: 5,
-    lockoutDuration: 15,
-    
-    // Notification Settings
-    emailNotifications: true,
-    smsNotifications: false,
-    pushNotifications: true,
-    notificationEmail: "",
-    
-    // System Settings
-    maintenanceMode: false,
-    autoBackup: true,
-    backupFrequency: "daily",
-    logRetentionDays: 90,
-    
-    // License Settings
     licenseKey: "",
     maxUsers: 10,
     activeModules: ["patients", "appointments", "clinical", "financial"],
@@ -159,21 +80,22 @@ export default function AdminSettingsPage() {
   const loadSettings = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await adminApi.getSettings();
-      // setSettings(response);
-      
-      // Mock data for now
-      setTimeout(() => {
-        setSettings(prev => ({
-          ...prev,
-          clinicName: "HealthCare Plus",
-          clinicEmail: "contact@healthcareplus.com",
-          clinicPhone: "+1 (555) 123-4567",
-          clinicAddress: "123 Medical St, Suite 100, Health City, HC 12345",
-        }));
-        setLoading(false);
-      }, 1000);
+      // Load current clinic data
+      const clinicId = user?.clinic_id;
+      if (!clinicId) throw new Error("Missing clinic id");
+      const clinic = await adminApi.getClinic(clinicId);
+      setSettings(prev => ({
+        ...prev,
+        clinicName: clinic.name || "",
+        clinicEmail: clinic.email || "",
+        clinicPhone: clinic.phone || "",
+        clinicAddress: clinic.address || "",
+        // License
+        licenseKey: clinic.license_key || "",
+        maxUsers: clinic.max_users || 10,
+        activeModules: clinic.active_modules || [],
+      }));
+      setLoading(false);
     } catch (error) {
       console.error("Failed to load settings:", error);
       toast.error("Failed to load settings");
@@ -184,12 +106,17 @@ export default function AdminSettingsPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      // TODO: Replace with actual API call
-      // await adminApi.updateSettings(settings);
-      
-      // Mock save
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      const clinicId = user?.clinic_id;
+      if (!clinicId) throw new Error("Missing clinic id");
+      await adminApi.updateClinic(clinicId, {
+        name: settings.clinicName,
+        email: settings.clinicEmail,
+        phone: settings.clinicPhone,
+        address: settings.clinicAddress,
+        license_key: settings.licenseKey,
+        max_users: settings.maxUsers,
+        active_modules: settings.activeModules,
+      });
       setHasChanges(false);
       toast.success("Settings saved successfully");
     } catch (error) {
@@ -253,16 +180,11 @@ export default function AdminSettingsPage() {
         </div>
       </div>
 
-      {/* General Settings */}
+      {/* General Settings (DB-backed) */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            General Settings
-          </CardTitle>
-          <CardDescription>
-            Basic clinic information and system preferences
-          </CardDescription>
+          <CardTitle className="flex items-center gap-2">General Settings</CardTitle>
+          <CardDescription>Basic clinic information</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -294,42 +216,7 @@ export default function AdminSettingsPage() {
                 placeholder="Enter clinic phone"
               />
             </div>
-            <div>
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select
-                value={settings.timezone}
-                onValueChange={(value) => handleSettingChange("timezone", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIMEZONES.map((tz) => (
-                    <SelectItem key={tz} value={tz}>
-                      {tz.replace("_", " ")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="language">Language</Label>
-              <Select
-                value={settings.language}
-                onValueChange={(value) => handleSettingChange("language", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select language" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Removed non-DB-backed timezone and language */}
           </div>
           <div>
             <Label htmlFor="clinicAddress">Address</Label>
@@ -344,193 +231,11 @@ export default function AdminSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Security Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Security Settings
-          </CardTitle>
-          <CardDescription>
-            Configure security policies and authentication settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="passwordMinLength">Minimum Password Length</Label>
-              <Input
-                id="passwordMinLength"
-                type="number"
-                value={settings.passwordMinLength}
-                onChange={(e) => handleSettingChange("passwordMinLength", parseInt(e.target.value))}
-                min="6"
-                max="32"
-              />
-            </div>
-            <div>
-              <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-              <Input
-                id="sessionTimeout"
-                type="number"
-                value={settings.sessionTimeout}
-                onChange={(e) => handleSettingChange("sessionTimeout", parseInt(e.target.value))}
-                min="5"
-                max="480"
-              />
-            </div>
-            <div>
-              <Label htmlFor="maxLoginAttempts">Max Login Attempts</Label>
-              <Input
-                id="maxLoginAttempts"
-                type="number"
-                value={settings.maxLoginAttempts}
-                onChange={(e) => handleSettingChange("maxLoginAttempts", parseInt(e.target.value))}
-                min="3"
-                max="10"
-              />
-            </div>
-            <div>
-              <Label htmlFor="lockoutDuration">Lockout Duration (minutes)</Label>
-              <Input
-                id="lockoutDuration"
-                type="number"
-                value={settings.lockoutDuration}
-                onChange={(e) => handleSettingChange("lockoutDuration", parseInt(e.target.value))}
-                min="5"
-                max="60"
-              />
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="requireTwoFactor"
-              checked={settings.requireTwoFactor}
-              onCheckedChange={(checked) => handleSettingChange("requireTwoFactor", checked)}
-            />
-            <Label htmlFor="requireTwoFactor">Require Two-Factor Authentication</Label>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Removed non-DB-backed Security Settings */}
 
-      {/* Notification Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notification Settings
-          </CardTitle>
-          <CardDescription>
-            Configure how users receive notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="emailNotifications"
-                checked={settings.emailNotifications}
-                onCheckedChange={(checked) => handleSettingChange("emailNotifications", checked)}
-              />
-              <Label htmlFor="emailNotifications">Email Notifications</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="smsNotifications"
-                checked={settings.smsNotifications}
-                onCheckedChange={(checked) => handleSettingChange("smsNotifications", checked)}
-              />
-              <Label htmlFor="smsNotifications">SMS Notifications</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="pushNotifications"
-                checked={settings.pushNotifications}
-                onCheckedChange={(checked) => handleSettingChange("pushNotifications", checked)}
-              />
-              <Label htmlFor="pushNotifications">Push Notifications</Label>
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="notificationEmail">Notification Email</Label>
-            <Input
-              id="notificationEmail"
-              type="email"
-              value={settings.notificationEmail}
-              onChange={(e) => handleSettingChange("notificationEmail", e.target.value)}
-              placeholder="Enter notification email address"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Removed non-DB-backed Notification Settings */}
 
-      {/* System Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            System Settings
-          </CardTitle>
-          <CardDescription>
-            Configure system maintenance and backup settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="maintenanceMode"
-                checked={settings.maintenanceMode}
-                onCheckedChange={(checked) => handleSettingChange("maintenanceMode", checked)}
-              />
-              <Label htmlFor="maintenanceMode">Maintenance Mode</Label>
-              {settings.maintenanceMode && (
-                <Badge variant="destructive">System in maintenance</Badge>
-              )}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="autoBackup"
-                checked={settings.autoBackup}
-                onCheckedChange={(checked) => handleSettingChange("autoBackup", checked)}
-              />
-              <Label htmlFor="autoBackup">Automatic Backup</Label>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="backupFrequency">Backup Frequency</Label>
-              <Select
-                value={settings.backupFrequency}
-                onValueChange={(value) => handleSettingChange("backupFrequency", value)}
-                disabled={!settings.autoBackup}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {BACKUP_FREQUENCIES.map((freq) => (
-                    <SelectItem key={freq.value} value={freq.value}>
-                      {freq.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="logRetentionDays">Log Retention (days)</Label>
-              <Input
-                id="logRetentionDays"
-                type="number"
-                value={settings.logRetentionDays}
-                onChange={(e) => handleSettingChange("logRetentionDays", parseInt(e.target.value))}
-                min="7"
-                max="365"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Removed non-DB-backed System Settings */}
 
       {/* License Settings */}
       <Card>
@@ -589,34 +294,7 @@ export default function AdminSettingsPage() {
         </CardContent>
       </Card>
 
-      {/* System Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            System Status
-          </CardTitle>
-          <CardDescription>
-            Current system status and health information
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm">Database: Connected</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm">API: Running</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm">Storage: Available</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Removed non-DB-backed System Status */}
     </div>
   );
 }

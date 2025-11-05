@@ -40,153 +40,153 @@ export function FAQSection({ className }: FAQSectionProps) {
     {
       id: 1,
       category: "general",
-      question: "What is Prontivus?",
+      question: "O que é o Prontivus?",
       answer:
-        "Prontivus is a comprehensive healthcare management platform designed to connect patients, doctors, and clinics in one secure, intelligent system. It provides electronic health records (EHR), appointment scheduling, telemedicine, medical billing, and analytics to streamline healthcare operations and improve patient care.",
+        "O Prontivus é uma plataforma completa de gestão em saúde que conecta pacientes, médicos e clínicas em um sistema seguro e inteligente. Oferece PEP, agendamentos, telemedicina, faturamento e análises para otimizar operações e melhorar o cuidado.",
     },
     {
       id: 2,
       category: "general",
-      question: "How does Prontivus differ from other healthcare platforms?",
+      question: "Como o Prontivus se diferencia de outras plataformas?",
       answer:
-        "Prontivus offers a unified platform that combines patient management, clinical documentation, financial operations, and telemedicine in one system. Unlike traditional solutions, it provides real-time analytics, TISS compliance automation, and a modern user experience designed for both healthcare providers and patients. Our platform focuses on reducing administrative burden so healthcare professionals can focus on patient care.",
+        "O Prontivus unifica gestão de pacientes, documentação clínica, operações financeiras e telemedicina em um só sistema, com análises em tempo real, automação TISS e experiência moderna para profissionais e pacientes, reduzindo a carga administrativa.",
     },
     {
       id: 3,
       category: "general",
-      question: "What types of healthcare facilities can use Prontivus?",
+      question: "Que tipos de instituições podem usar o Prontivus?",
       answer:
-        "Prontivus is suitable for various healthcare facilities including private clinics, medical practices, hospitals, diagnostic centers, and specialty care facilities. Our platform is scalable and can be customized to meet the specific needs of small practices to large healthcare networks.",
+        "Clínicas, consultórios, hospitais, centros de diagnóstico e especialidades. A plataforma é escalável e personalizável para pequenos consultórios até grandes redes.",
     },
     {
       id: 4,
       category: "general",
-      question: "Is there a mobile app available?",
+      question: "Existe aplicativo móvel?",
       answer:
-        "Yes, Prontivus offers mobile applications for both iOS and Android devices. The mobile app allows patients to book appointments, access medical records, receive test results, and communicate with their healthcare providers. Healthcare professionals can also access key features on mobile devices for on-the-go patient management.",
+        "Sim, para iOS e Android. Pacientes podem agendar, acessar prontuário e resultados, e se comunicar com a equipe. Profissionais acessam recursos essenciais no celular.",
     },
     // Security & Compliance
     {
       id: 5,
       category: "security",
-      question: "Is my medical data secure?",
+      question: "Meus dados estão seguros?",
       answer:
-        "Absolutely. Prontivus employs bank-level encryption, secure data centers with 24/7 monitoring, regular security audits, and follows industry best practices for healthcare data protection. All data is encrypted both in transit and at rest, and access is strictly controlled with multi-factor authentication and role-based permissions.",
+        "Sim. Criptografia de nível bancário, datacenters seguros com monitoramento 24/7, auditorias regulares e boas práticas. Dados criptografados em trânsito e em repouso; acesso com MFA e permissões por perfil.",
     },
     {
       id: 6,
       category: "security",
-      question: "Is Prontivus HIPAA compliant?",
+      question: "O Prontivus é compatível com HIPAA?",
       answer:
-        "Yes, Prontivus is fully HIPAA compliant. We maintain comprehensive administrative, physical, and technical safeguards as required by HIPAA regulations. Our platform includes features such as audit logs, access controls, data encryption, and business associate agreements (BAAs) with all partners. We undergo regular compliance audits to ensure ongoing adherence to HIPAA standards.",
+        "Sim. Mantemos salvaguardas administrativas, físicas e técnicas exigidas, com trilhas de auditoria, controles de acesso, criptografia e BAAs com parceiros.",
     },
     {
       id: 7,
       category: "security",
-      question: "What security certifications does Prontivus have?",
+      question: "Quais certificações de segurança o Prontivus possui?",
       answer:
-        "Prontivus maintains several security certifications including ISO 27001 (Information Security Management), SOC 2 Type II (Security, Availability, and Confidentiality), and GDPR compliance for international data protection. We also undergo regular penetration testing and security assessments to ensure the highest level of data protection.",
+        "ISO 27001, SOC 2 Tipo II e conformidade com GDPR. Realizamos testes de intrusão e avaliações periódicas.",
     },
     {
       id: 8,
       category: "security",
-      question: "How is data backed up?",
+      question: "Como são feitos os backups?",
       answer:
-        "We perform automated daily backups with point-in-time recovery capabilities. Data is replicated across multiple geographically distributed data centers to ensure high availability and disaster recovery. Our backup retention policies comply with healthcare regulations and allow for quick recovery in case of any incidents.",
+        "Backups diários automatizados com recuperação point-in-time e replicação geográfica para alta disponibilidade e DR, conforme regulatório.",
     },
     // For Patients
     {
       id: 9,
       category: "patients",
-      question: "How do I book an appointment?",
+      question: "Como agendo uma consulta?",
       answer:
-        "Booking an appointment is easy with Prontivus. Simply log into the patient portal or mobile app, navigate to the appointments section, select your preferred doctor or specialty, choose an available time slot, and confirm your appointment. You'll receive automatic reminders via email or SMS. You can also reschedule or cancel appointments directly through the platform.",
+        "Acesse o portal/app, vá em Consultas, escolha médico/especialidade, selecione um horário e confirme. Enviamos lembretes por e-mail/SMS. Reagende ou cancele pela plataforma.",
     },
     {
       id: 10,
       category: "patients",
-      question: "Can I access my medical records?",
+      question: "Posso acessar meu prontuário?",
       answer:
-        "Yes, patients have complete access to their medical records through the patient portal and mobile app. You can view test results, lab reports, prescriptions, visit summaries, immunization records, and your complete medical history. All records are available 24/7 and can be downloaded or shared securely with other healthcare providers as needed.",
+        "Sim, com acesso a resultados, laudos, prescrições, resumos, vacinas e histórico completo 24/7, com download e compartilhamento seguro.",
     },
     {
       id: 11,
       category: "patients",
-      question: "Can I have virtual consultations with my doctor?",
+      question: "Posso fazer consultas virtuais?",
       answer:
-        "Yes, Prontivus includes a secure telemedicine platform that allows you to have virtual consultations with your healthcare provider. You can schedule video appointments, participate in real-time consultations, and receive prescriptions digitally. The platform includes secure messaging for follow-up questions and is HIPAA-compliant.",
+        "Sim. Agende vídeo-consultas, participe em tempo real e receba prescrições digitais, com mensagens seguras e conformidade HIPAA.",
     },
     {
       id: 12,
       category: "patients",
-      question: "How do I receive test results?",
+      question: "Como recebo os resultados de exames?",
       answer:
-        "Test results are automatically uploaded to your patient portal as soon as they're available. You'll receive a notification (email or push notification on mobile) when new results are ready. Results include detailed information, reference ranges, and can be easily shared with other healthcare providers or downloaded for your records.",
+        "São disponibilizados no portal assim que prontos, com notificação. Incluem detalhes e valores de referência, com compartilhamento/download.",
     },
     {
       id: 13,
       category: "patients",
-      question: "Is there a cost for patients to use Prontivus?",
+      question: "Há custo para pacientes usarem o Prontivus?",
       answer:
-        "Prontivus is typically provided by your healthcare facility at no direct cost to patients. The patient portal and mobile app are free to use. Any fees for consultations, tests, or services are determined by your healthcare provider and are not related to using the Prontivus platform.",
+        "Geralmente disponibilizado pela instituição, sem custo direto ao paciente. Taxas de consultas/exames são do prestador, não da plataforma.",
     },
     // For Providers
     {
       id: 14,
       category: "providers",
-      question: "How does implementation work?",
+      question: "Como funciona a implantação?",
       answer:
-        "Implementation typically takes 2-4 weeks depending on your practice size. Our process includes: initial consultation and requirements gathering, data migration from existing systems, system configuration and customization, staff training sessions, and a phased rollout with ongoing support. Our implementation team works closely with your staff to ensure a smooth transition with minimal disruption to operations.",
+        "Em média 2–4 semanas, com levantamento, migração de dados, configuração, treinamento e rollout por fases com suporte contínuo.",
     },
     {
       id: 15,
       category: "providers",
-      question: "What training is provided?",
+      question: "Que treinamentos são oferecidos?",
       answer:
-        "We provide comprehensive training including: initial onboarding sessions for all staff, role-specific training modules, video tutorials and documentation, live support during the transition period, and ongoing training for new features and staff members. Training is available in-person, via video calls, or through self-paced online courses.",
+        "Onboarding para todos, trilhas por perfil, vídeos e documentação, suporte na transição e atualização contínua. Presencial ou remoto.",
     },
     {
       id: 16,
       category: "providers",
-      question: "Can I migrate data from my current system?",
+      question: "Posso migrar dados do sistema atual?",
       answer:
-        "Yes, our team can help migrate patient data, medical records, appointment history, billing information, and other relevant data from most common healthcare systems. We perform data mapping, validation, and testing to ensure data integrity during migration. The migration process is carefully planned to minimize downtime and ensure all critical data is preserved.",
+        "Sim. Migramos pacientes, prontuários, histórico de consultas, faturamento etc., com mapeamento, validação e testes para integridade.",
     },
     {
       id: 17,
       category: "providers",
-      question: "How does billing and insurance processing work?",
+      question: "Como funciona faturamento e convênios?",
       answer:
-        "Prontivus includes automated billing features with TISS compliance for Brazilian healthcare standards. The system handles insurance claims submission, tracks payment status, manages outstanding balances, and generates financial reports. It supports multiple insurance providers and can automate claim submissions to reduce administrative work and speed up payment processing.",
+        "Faturamento automatizado com conformidade TISS, envio de guias, acompanhamento de pagamentos, saldos e relatórios; suporte a vários convênios.",
     },
     {
       id: 18,
       category: "providers",
-      question: "What kind of support is available?",
+      question: "Que suporte está disponível?",
       answer:
-        "We offer comprehensive support including: 24/7 email support for all users, priority phone support for Professional and Enterprise plans, dedicated account managers for larger practices, regular software updates and feature enhancements, comprehensive documentation and knowledge base, and community forums for sharing best practices.",
+        "Suporte por e-mail 24/7, atendimento prioritário para planos superiores, gerente dedicado, atualizações contínuas e base de conhecimento.",
     },
     {
       id: 19,
       category: "providers",
-      question: "Is there a trial period?",
+      question: "Há período de teste?",
       answer:
-        "Yes, we offer a 30-day free trial with full access to all features. During the trial, you can explore the platform, import sample data, and test all functionality. No credit card is required to start the trial. Our team is available to assist with setup and answer any questions during your trial period.",
+        "Sim, 30 dias gratuitos com acesso completo. Explore a plataforma, importe dados de exemplo e teste recursos sem cartão de crédito.",
     },
     {
       id: 20,
       category: "providers",
-      question: "Can Prontivus integrate with other systems?",
+      question: "O Prontivus integra com outros sistemas?",
       answer:
-        "Yes, Prontivus offers API integration capabilities to connect with laboratory systems, imaging systems, pharmacy systems, accounting software, and other healthcare applications. We also support HL7 and FHIR standards for interoperability. Our integration team can help set up custom integrations based on your specific needs.",
+        "Sim, via API com laboratórios, imagem, farmácia, contabilidade e outros. Suporte a HL7 e FHIR. Fazemos integrações sob demanda.",
     },
   ];
 
   const categories = [
-    { id: "general", label: "General", icon: HelpCircle, color: "text-[#0F4C75]" },
-    { id: "security", label: "Security & Compliance", icon: Shield, color: "text-[#1B9AAA]" },
-    { id: "patients", label: "For Patients", icon: Users, color: "text-[#16C79A]" },
-    { id: "providers", label: "For Providers", icon: Stethoscope, color: "text-[#5D737E]" },
+    { id: "general", label: "Geral", icon: HelpCircle, color: "text-[#0F4C75]" },
+    { id: "security", label: "Segurança & Conformidade", icon: Shield, color: "text-[#1B9AAA]" },
+    { id: "patients", label: "Para Pacientes", icon: Users, color: "text-[#16C79A]" },
+    { id: "providers", label: "Para Profissionais", icon: Stethoscope, color: "text-[#5D737E]" },
   ];
 
   // Filter FAQs based on search and category
@@ -250,11 +250,10 @@ export function FAQSection({ className }: FAQSectionProps) {
         {/* Section Header */}
         <div className="text-center mb-12">
           <h2 className="text-4xl lg:text-5xl font-bold text-[#0F4C75] mb-4">
-            Frequently Asked Questions
+            Perguntas frequentes
           </h2>
           <p className="text-xl text-[#5D737E] max-w-2xl mx-auto">
-            Everything you need to know about Prontivus and how it can benefit your healthcare
-            practice
+            Tudo o que você precisa saber sobre o Prontivus e como ele pode beneficiar sua clínica
           </p>
         </div>
 
@@ -265,7 +264,7 @@ export function FAQSection({ className }: FAQSectionProps) {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-[#5D737E]" />
             <Input
               type="search"
-              placeholder="Search FAQs..."
+              placeholder="Buscar perguntas..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-11 h-12 text-base border-2 border-gray-200 focus:border-[#0F4C75]"
@@ -284,7 +283,7 @@ export function FAQSection({ className }: FAQSectionProps) {
                   : "border-gray-300 text-[#2D3748] hover:bg-[#0F4C75]/5"
               )}
             >
-              All Questions
+              Todas
             </Button>
             {categories.map((category) => {
               const Icon = category.icon;
@@ -311,12 +310,12 @@ export function FAQSection({ className }: FAQSectionProps) {
           {/* Controls */}
           <div className="flex items-center justify-between">
             <div className="text-sm text-[#5D737E]">
-              {filteredFAQs.length} question{filteredFAQs.length !== 1 ? "s" : ""} found
+              {filteredFAQs.length} pergunta{filteredFAQs.length !== 1 ? "s" : ""} encontrada{filteredFAQs.length !== 1 ? "s" : ""}
             </div>
             <div className="flex items-center gap-2">
               {(searchQuery || selectedCategory) && (
                 <Button variant="ghost" size="sm" onClick={clearFilters} className="text-[#5D737E]">
-                  Clear Filters
+                  Limpar filtros
                 </Button>
               )}
               <Button
@@ -328,12 +327,12 @@ export function FAQSection({ className }: FAQSectionProps) {
                 {expandAll ? (
                   <>
                     <ChevronUp className="mr-2 h-4 w-4" />
-                    Collapse All
+                    Recolher todas
                   </>
                 ) : (
                   <>
                     <ChevronDown className="mr-2 h-4 w-4" />
-                    Expand All
+                    Expandir todas
                   </>
                 )}
               </Button>
@@ -427,9 +426,9 @@ export function FAQSection({ className }: FAQSectionProps) {
             <Card className="border-2 border-gray-200">
               <CardContent className="py-12 text-center">
                 <HelpCircle className="h-12 w-12 text-[#5D737E] mx-auto mb-4" />
-                <p className="text-lg font-medium text-[#0F4C75] mb-2">No FAQs found</p>
+                <p className="text-lg font-medium text-[#0F4C75] mb-2">Nenhuma pergunta encontrada</p>
                 <p className="text-[#5D737E]">
-                  Try adjusting your search or filter criteria to find what you're looking for.
+                  Tente ajustar sua busca ou filtros para encontrar o que precisa.
                 </p>
               </CardContent>
             </Card>
@@ -441,10 +440,9 @@ export function FAQSection({ className }: FAQSectionProps) {
           <Card className="bg-gradient-to-br from-[#0F4C75] to-[#1B9AAA] text-white border-0">
             <CardContent className="p-8">
               <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-white/90" />
-              <h3 className="text-2xl font-bold mb-2">Still Have Questions?</h3>
+              <h3 className="text-2xl font-bold mb-2">Ainda tem dúvidas?</h3>
               <p className="text-white/90 mb-6 max-w-2xl mx-auto">
-                Our support team is here to help. Contact us and we'll get back to you as soon as
-                possible.
+                Nosso time de suporte está aqui para ajudar. Fale conosco e retornaremos o quanto antes.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button
@@ -457,7 +455,7 @@ export function FAQSection({ className }: FAQSectionProps) {
                     }
                   }}
                 >
-                  Contact Support
+                  Falar com suporte
                 </Button>
                 <Button
                   size="lg"
@@ -469,7 +467,7 @@ export function FAQSection({ className }: FAQSectionProps) {
                     }
                   }}
                 >
-                  Visit Help Center
+                  Ir para a Central de Ajuda
                 </Button>
               </div>
             </CardContent>

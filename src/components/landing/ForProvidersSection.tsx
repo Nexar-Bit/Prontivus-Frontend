@@ -42,50 +42,50 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
   const benefits = [
     {
       icon: Users,
-      title: "Streamlined Patient Management",
-      description: "Complete EHR interface with intelligent patient organization and quick access to records",
+      title: "Gestão de pacientes simplificada",
+      description: "PEP completo com organização inteligente e acesso rápido ao prontuário",
     },
     {
       icon: Video,
-      title: "Telemedicine Platform",
-      description: "Secure video consultations with integrated scheduling and patient communication",
+      title: "Plataforma de telemedicina",
+      description: "Vídeo-consultas seguras com agenda integrada e comunicação com o paciente",
     },
     {
       icon: DollarSign,
-      title: "Medical Billing & TISS",
-      description: "Automated billing with TISS compliance, insurance processing, and financial dashboard",
+      title: "Faturamento médico & TISS",
+      description: "Faturamento automatizado com TISS, convênios e painel financeiro",
     },
     {
       icon: BarChart3,
-      title: "Clinical Decision Support",
-      description: "Data-driven insights and analytics to improve patient outcomes and practice efficiency",
+      title: "Suporte à decisão clínica",
+      description: "Insights e análises para melhores desfechos e eficiência da clínica",
     },
     {
       icon: MessageSquare,
-      title: "Secure Communication",
-      description: "HIPAA-compliant messaging platform for team coordination and patient communication",
+      title: "Comunicação segura",
+      description: "Mensageria conforme HIPAA para equipe e pacientes",
     },
   ];
 
   const valuePropositions = [
     {
       metric: "40%",
-      label: "Reduction in administrative workload",
+      label: "Redução da carga administrativa",
       icon: TrendingUp,
     },
     {
       metric: "95%",
-      label: "Patient satisfaction rate",
+      label: "Satisfação dos pacientes",
       icon: Award,
     },
     {
       metric: "100%",
-      label: "HIPAA compliant",
+      label: "Conformidade HIPAA",
       icon: Shield,
     },
     {
       metric: "24/7",
-      label: "Platform availability",
+      label: "Disponibilidade da plataforma",
       icon: Clock,
     },
   ];
@@ -103,7 +103,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
       message: "",
     });
     setShowContactForm(false);
-    alert("Thank you for your inquiry! We'll contact you soon.");
+    alert("Obrigado pelo contato! Em breve entraremos em contato.");
   };
 
   return (
@@ -117,11 +117,10 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-[#0F4C75] mb-4">
-            Built for Healthcare Professionals
+            Feito para profissionais de saúde
           </h2>
           <p className="text-xl text-[#5D737E] max-w-2xl mx-auto">
-            Streamline your practice operations and focus on what matters most - delivering exceptional
-            patient care.
+            Otimize a operação da sua clínica e foque no que importa: cuidar dos pacientes.
           </p>
         </div>
 
@@ -188,10 +187,10 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
         {/* Trust Badges */}
         <div className="mb-16">
           <div className="flex flex-wrap items-center justify-center gap-8">
-            <TrustBadge icon={Shield} label="HIPAA Compliant" />
-            <TrustBadge icon={Award} label="ISO 27001 Certified" />
-            <TrustBadge icon={FileText} label="TISS Standard" />
-            <TrustBadge icon={Stethoscope} label="Medical Grade Security" />
+            <TrustBadge icon={Shield} label="Conforme HIPAA" />
+            <TrustBadge icon={Award} label="ISO 27001" />
+            <TrustBadge icon={FileText} label="Padrão TISS" />
+            <TrustBadge icon={Stethoscope} label="Segurança nível médico" />
           </div>
         </div>
 
@@ -200,7 +199,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
           <Card className="border-2 border-[#0F4C75]/20 bg-gradient-to-br from-white to-[#FAFBFC]">
             <CardHeader>
               <CardTitle className="text-2xl text-[#0F4C75] text-center">
-                Measure Your Practice Efficiency
+                Meça a eficiência da sua clínica
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -213,7 +212,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
         <div className="text-center">
           <div className="inline-block">
             <h3 className="text-2xl font-bold text-[#0F4C75] mb-6">
-              Transform Your Practice Today
+              Transforme sua clínica hoje
             </h3>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
               <Button
@@ -226,7 +225,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
                 }}
               >
                 <Calendar className="mr-2 h-5 w-5" />
-                Schedule Demo
+                Agendar demonstração
               </Button>
               <Button
                 size="lg"
@@ -238,7 +237,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
                   }
                 }}
               >
-                View Features
+                Ver recursos
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <Button
@@ -247,7 +246,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
                 className="border-2 border-[#1B9AAA] text-[#1B9AAA] hover:bg-[#1B9AAA]/5 px-8 py-6 h-auto text-lg font-semibold"
                 onClick={() => setShowContactForm(true)}
               >
-                Enterprise Inquiry
+                Contato Enterprise
               </Button>
             </div>
           </div>
@@ -259,7 +258,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
             <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-2xl text-[#0F4C75]">Enterprise Inquiry</CardTitle>
+                  <CardTitle className="text-2xl text-[#0F4C75]">Contato Enterprise</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -274,14 +273,14 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
                 <form onSubmit={handleContactSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-[#0F4C75] mb-2">Name *</label>
+                      <label className="block text-sm font-medium text-[#0F4C75] mb-2">Nome *</label>
                       <Input
                         required
                         value={contactFormData.name}
                         onChange={(e) =>
                           setContactFormData({ ...contactFormData, name: e.target.value })
                         }
-                        placeholder="Your name"
+                        placeholder="Seu nome"
                       />
                     </div>
                     <div>
@@ -293,14 +292,14 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
                         onChange={(e) =>
                           setContactFormData({ ...contactFormData, email: e.target.value })
                         }
-                        placeholder="your.email@example.com"
+                        placeholder="seu.email@exemplo.com"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-[#0F4C75] mb-2">
-                        Clinic/Hospital *
+                        Clínica/Hospital *
                       </label>
                       <Input
                         required
@@ -308,11 +307,11 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
                         onChange={(e) =>
                           setContactFormData({ ...contactFormData, clinic: e.target.value })
                         }
-                        placeholder="Clinic name"
+                        placeholder="Nome da clínica"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-[#0F4C75] mb-2">Phone</label>
+                      <label className="block text-sm font-medium text-[#0F4C75] mb-2">Telefone</label>
                       <Input
                         type="tel"
                         value={contactFormData.phone}
@@ -324,20 +323,20 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#0F4C75] mb-2">Message *</label>
+                    <label className="block text-sm font-medium text-[#0F4C75] mb-2">Mensagem *</label>
                     <Textarea
                       required
                       value={contactFormData.message}
                       onChange={(e) =>
                         setContactFormData({ ...contactFormData, message: e.target.value })
                       }
-                      placeholder="Tell us about your practice needs..."
+                      placeholder="Conte-nos sobre as necessidades da sua clínica..."
                       rows={4}
                     />
                   </div>
                   <div className="flex gap-4">
                     <Button type="submit" className="flex-1 bg-[#0F4C75] hover:bg-[#0F4C75]/90">
-                      Send Inquiry
+                      Enviar contato
                     </Button>
                     <Button
                       type="button"
@@ -345,7 +344,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
                       onClick={() => setShowContactForm(false)}
                       className="flex-1"
                     >
-                      Cancel
+                      Cancelar
                     </Button>
                   </div>
                 </form>
@@ -372,7 +371,7 @@ function ProviderDashboardMockup() {
             <div className="w-3 h-3 rounded-full bg-green-500" />
           </div>
           <div className="flex-1 text-center">
-            <div className="text-xs text-white/80">Prontivus Dashboard</div>
+            <div className="text-xs text-white/80">Painel Prontivus</div>
           </div>
         </div>
 
@@ -386,26 +385,26 @@ function ProviderDashboardMockup() {
               </div>
               <div>
                 <div className="font-semibold text-[#0F4C75] text-sm">Dr. Maria Silva</div>
-                <div className="text-xs text-[#5D737E]">Cardiologist</div>
+                <div className="text-xs text-[#5D737E]">Cardiologista</div>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <div className="px-3 py-1 bg-[#16C79A]/10 text-[#16C79A] rounded text-xs font-medium">
-                12 Today
+                12 hoje
               </div>
             </div>
           </div>
 
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-3">
-            <StatCard label="Patients" value="284" trend="up" />
-            <StatCard label="Today" value="12" />
-            <StatCard label="Pending" value="3" trend="down" />
+            <StatCard label="Pacientes" value="284" trend="up" />
+            <StatCard label="Hoje" value="12" />
+            <StatCard label="Pendentes" value="3" trend="down" />
           </div>
 
           {/* Recent Patients Table */}
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="font-semibold text-[#0F4C75] text-sm mb-3">Today's Appointments</div>
+            <div className="font-semibold text-[#0F4C75] text-sm mb-3">Consultas de hoje</div>
             <div className="space-y-2">
               <PatientRow name="João Silva" time="09:00" status="confirmed" />
               <PatientRow name="Maria Santos" time="10:30" status="confirmed" />
@@ -415,8 +414,8 @@ function ProviderDashboardMockup() {
 
           {/* Charts */}
           <div className="grid grid-cols-2 gap-3">
-            <ChartCard title="Revenue" />
-            <ChartCard title="Patients" />
+            <ChartCard title="Receita" />
+            <ChartCard title="Pacientes" />
           </div>
         </div>
       </div>
@@ -477,7 +476,7 @@ function PatientRow({
             : "bg-yellow-100 text-yellow-700"
         )}
       >
-        {status === "confirmed" ? "Confirmed" : "Waiting"}
+        {status === "confirmed" ? "Confirmado" : "Aguardando"}
       </div>
     </div>
   );

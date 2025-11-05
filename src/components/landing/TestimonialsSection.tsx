@@ -37,45 +37,45 @@ export function TestimonialsSection({ className }: TestimonialsSectionProps) {
     {
       id: 1,
       quote:
-        "Prontivus made managing my family's healthcare so much easier. The telemedicine features saved us multiple clinic visits, and having all our medical records in one place is incredibly convenient.",
+        "O Prontivus tornou o cuidado da minha família muito mais fácil. A telemedicina evitou várias idas à clínica e ter todo o prontuário em um só lugar é extremamente conveniente.",
       name: "Maria Silva",
-      role: "Patient",
+      role: "Paciente",
       rating: 5,
       type: "patient",
     },
     {
       id: 2,
       quote:
-        "The platform streamlined our clinic operations and improved patient communication significantly. The EHR system is intuitive and powerful, allowing us to focus more on patient care rather than paperwork.",
+        "A plataforma otimizou as operações da clínica e melhorou muito a comunicação com os pacientes. O PEP é intuitivo e robusto, permitindo focar mais no cuidado e menos na papelada.",
       name: "Dr. Roberto Santos",
-      role: "Cardiologist",
+      role: "Cardiologista",
       rating: 5,
       type: "doctor",
     },
     {
       id: 3,
       quote:
-        "Implementation was smooth, and our staff adapted quickly. The billing features alone saved us 15 hours per week, and the TISS compliance automation eliminated countless manual processes.",
+        "A implantação foi tranquila e a equipe se adaptou rápido. O faturamento por si só economizou 15 horas por semana, e a automação TISS eliminou inúmeros processos manuais.",
       name: "Ana Costa",
-      role: "Clinic Manager",
+      role: "Gestora de Clínica",
       rating: 5,
       type: "admin",
     },
     {
       id: 4,
       quote:
-        "As a busy professional, I love being able to schedule appointments and view test results on my phone. The patient portal is user-friendly and secure.",
+        "Como profissional com rotina cheia, adoro poder agendar consultas e ver resultados no celular. O portal do paciente é simples e seguro.",
       name: "Carlos Oliveira",
-      role: "Patient",
+      role: "Paciente",
       rating: 5,
       type: "patient",
     },
     {
       id: 5,
       quote:
-        "Prontivus transformed how we manage patient data. The analytics dashboard provides insights we never had before, helping us make data-driven decisions about our practice.",
+        "O Prontivus transformou a gestão de dados dos pacientes. O painel de análises trouxe insights inéditos, ajudando decisões baseadas em dados.",
       name: "Dr. Juliana Ferreira",
-      role: "General Practitioner",
+      role: "Clínica Geral",
       rating: 5,
       type: "doctor",
     },
@@ -161,9 +161,9 @@ export function TestimonialsSection({ className }: TestimonialsSectionProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-4">Trusted by Healthcare Professionals</h2>
+          <h2 className="text-4xl lg:text-5xl font-bold mb-4">Confiado por profissionais de saúde</h2>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            See what doctors, patients, and healthcare administrators say about Prontivus
+            Veja o que médicos, pacientes e gestores dizem sobre o Prontivus
           </p>
         </div>
 
@@ -171,22 +171,22 @@ export function TestimonialsSection({ className }: TestimonialsSectionProps) {
         <div className="flex flex-wrap items-center justify-center gap-8 mb-16">
           <div className="text-center">
             <div className="text-4xl font-bold mb-2">500+</div>
-            <div className="text-sm text-white/80">Healthcare Providers</div>
+            <div className="text-sm text-white/80">Profissionais de saúde</div>
           </div>
           <div className="w-px h-12 bg-white/30" />
           <div className="text-center">
             <div className="text-4xl font-bold mb-2">50K+</div>
-            <div className="text-sm text-white/80">Active Patients</div>
+            <div className="text-sm text-white/80">Pacientes ativos</div>
           </div>
           <div className="w-px h-12 bg-white/30" />
           <div className="text-center">
             <div className="text-4xl font-bold mb-2">1M+</div>
-            <div className="text-sm text-white/80">Consultations</div>
+            <div className="text-sm text-white/80">Consultas</div>
           </div>
           <div className="w-px h-12 bg-white/30" />
           <div className="text-center">
             <div className="text-4xl font-bold mb-2">99.9%</div>
-            <div className="text-sm text-white/80">Uptime</div>
+            <div className="text-sm text-white/80">Disponibilidade</div>
           </div>
         </div>
 

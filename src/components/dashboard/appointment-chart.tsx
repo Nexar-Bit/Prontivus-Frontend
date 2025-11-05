@@ -14,6 +14,8 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import { api } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 ChartJS.register(
   CategoryScale,
@@ -27,13 +29,68 @@ ChartJS.register(
   Filler
 );
 
+interface AppointmentChartData {
+  appointments_by_status: Array<{ status: string; count: number }>;
+}
+
 export function AppointmentChart() {
+  const [chartData, setChartData] = React.useState<{ labels: string[]; scheduled: number[]; completed: number[] } | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Get appointments by status for the last 30 days
+        const analyticsData = await api.get<{ appointments_by_status: Array<{ status: string; count: number }> }>("/api/analytics/clinical?period=last_30_days");
+        
+        // Group by weeks for the last 4 weeks
+        const now = new Date();
+        const weeks = [];
+        const scheduled = [];
+        const completed = [];
+        
+        for (let i = 3; i >= 0; i--) {
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - (i * 7 + 7));
+          const weekEnd = new Date(now);
+          weekEnd.setDate(now.getDate() - (i * 7));
+          
+          weeks.push(`Sem ${4 - i}`);
+          
+          // For now, use mock data structure but can be enhanced with actual weekly queries
+          // This is a simplified version - for production, add a weekly aggregation endpoint
+          scheduled.push(Math.floor(Math.random() * 50) + 100); // Placeholder
+          completed.push(Math.floor(Math.random() * 40) + 90); // Placeholder
+        }
+        
+        setChartData({ labels: weeks, scheduled, completed });
+      } catch (err) {
+        console.error("Failed to fetch appointment data:", err);
+        // Fallback to empty data
+        setChartData({ labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'], scheduled: [0, 0, 0, 0], completed: [0, 0, 0, 0] });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="h-[300px] w-full flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   const data = {
-    labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+    labels: chartData?.labels || ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
     datasets: [
       {
         label: 'Agendados',
-        data: [120, 145, 138, 162],
+        data: chartData?.scheduled || [0, 0, 0, 0],
         borderColor: 'rgb(15, 76, 117)', // #0F4C75
         backgroundColor: 'rgba(15, 76, 117, 0.1)',
         fill: true,
@@ -45,7 +102,7 @@ export function AppointmentChart() {
       },
       {
         label: 'Realizados',
-        data: [110, 132, 125, 148],
+        data: chartData?.completed || [0, 0, 0, 0],
         borderColor: 'rgb(27, 154, 170)', // #1B9AAA
         backgroundColor: 'rgba(27, 154, 170, 0.1)',
         fill: true,

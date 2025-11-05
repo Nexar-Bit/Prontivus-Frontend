@@ -28,43 +28,43 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
   const features: Feature[] = [
     {
       icon: FileText,
-      title: "Electronic Health Records",
-      description: "Secure, accessible patient records with intelligent data organization",
+      title: "Prontuário Eletrônico (PEP)",
+      description: "Registros de pacientes seguros e acessíveis, com organização inteligente",
       iconColor: "text-[#0F4C75]",
       iconBgColor: "bg-[#0F4C75]/10",
     },
     {
       icon: Video,
-      title: "Telemedicine Integration",
-      description: "Seamless virtual consultations with secure video and messaging",
+      title: "Integração com Telemedicina",
+      description: "Consultas virtuais com vídeo e mensagens seguras",
       iconColor: "text-[#1B9AAA]",
       iconBgColor: "bg-[#1B9AAA]/10",
     },
     {
       icon: Calendar,
-      title: "Appointment Management",
-      description: "Smart scheduling with automated reminders and waitlist management",
+      title: "Gestão de Agendamentos",
+      description: "Agenda inteligente com lembretes automáticos e lista de espera",
       iconColor: "text-[#16C79A]",
       iconBgColor: "bg-[#16C79A]/10",
     },
     {
       icon: Pill,
-      title: "Prescription Management",
-      description: "Digital prescriptions with pharmacy integration and renewal tracking",
+      title: "Gestão de Prescrições",
+      description: "Prescrições digitais com integração a farmácias e renovação",
       iconColor: "text-[#5D737E]",
       iconBgColor: "bg-[#5D737E]/10",
     },
     {
       icon: DollarSign,
-      title: "Medical Billing & Insurance",
-      description: "Streamlined billing with TISS compliance and insurance processing",
+      title: "Faturamento & Convênios",
+      description: "Faturamento ágil com conformidade TISS e processamento de convênios",
       iconColor: "text-[#0F4C75]",
       iconBgColor: "bg-[#0F4C75]/10",
     },
     {
       icon: BarChart3,
-      title: "Analytics & Reporting",
-      description: "Clinical and financial analytics for data-driven decisions",
+      title: "Análises & Relatórios",
+      description: "Indicadores clínicos e financeiros para decisões baseadas em dados",
       iconColor: "text-[#1B9AAA]",
       iconBgColor: "bg-[#1B9AAA]/10",
     },
@@ -76,10 +76,10 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
         {/* Section Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-[#0F4C75] mb-4">
-            Everything You Need to Run Your Practice
+            Tudo que você precisa para sua clínica
           </h2>
           <p className="text-xl text-[#5D737E] max-w-2xl mx-auto">
-            Comprehensive healthcare management tools designed for modern medical practices
+            Ferramentas completas de gestão em saúde para clínicas modernas
           </p>
         </div>
 

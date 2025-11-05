@@ -66,9 +66,8 @@ export const appointmentsApi = {
    * Get list of doctors for the clinic
    */
   getDoctors: async (): Promise<Doctor[]> => {
-    // This will use the users endpoint filtered by doctor role
-    // For now, we'll create a simple implementation
-    return api.get<Doctor[]>('/api/users?role=doctor');
+    // Use the dedicated doctors endpoint
+    return api.get<Doctor[]>('/api/users/doctors');
   },
 };
 

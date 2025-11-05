@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { tissConfigApi } from "@/lib/tiss-config-api";
+import { Loader2 } from "lucide-react";
 import { Save, Building2, FileCode, Settings, Info } from "lucide-react";
 
 interface TissConfig {
@@ -68,24 +70,27 @@ export default function TissConfigPage() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
-    // Load existing configuration from localStorage or API
-    const savedConfig = localStorage.getItem('tiss-config');
-    if (savedConfig) {
+    const load = async () => {
       try {
-        setConfig(JSON.parse(savedConfig));
-      } catch (error) {
-        console.error('Error loading TISS config:', error);
+        const data = await tissConfigApi.get();
+        setConfig(data as any);
+      } catch (err: any) {
+        console.error('Erro ao carregar configurações TISS', err);
+        toast.error('Falha ao carregar configurações TISS');
+      } finally {
+        setInitialLoading(false);
       }
-    }
+    };
+    load();
   }, []);
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Save to localStorage (in a real app, this would be saved to the backend)
-      localStorage.setItem('tiss-config', JSON.stringify(config));
+      await tissConfigApi.update(config as any);
       toast.success("Configurações TISS salvas com sucesso!");
     } catch (error: any) {
       toast.error("Erro ao salvar configurações", {
@@ -105,6 +110,17 @@ export default function TissConfigPage() {
       }
     }));
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando configurações TISS...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

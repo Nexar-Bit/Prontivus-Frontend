@@ -25,9 +25,9 @@ export function HeroSection({ className }: HeroSectionProps) {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
 
   const trustIndicators = [
-    { icon: Shield, label: "HIPAA Compliant" },
-    { icon: Lock, label: "Bank-Level Security" },
-    { icon: Award, label: "ISO 27001 Certified" },
+    { icon: Shield, label: "Conforme HIPAA" },
+    { icon: Lock, label: "Segurança nível bancário" },
+    { icon: Award, label: "Certificação ISO 27001" },
   ];
 
   return (
@@ -50,14 +50,14 @@ export function HeroSection({ className }: HeroSectionProps) {
             <div className="space-y-6">
               {/* Headline */}
               <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold text-white leading-tight">
-                Modern Healthcare
-                <span className="block text-[#16C79A]">Management, Simplified</span>
+                Gestão em Saúde
+                <span className="block text-[#16C79A]">Moderna e Simplificada</span>
               </h1>
 
               {/* Subheadline */}
               <p className="text-xl lg:text-2xl text-white/90 leading-relaxed max-w-2xl">
-                Prontivus connects patients, doctors, and clinics in one secure, intelligent platform
-                designed for modern healthcare delivery.
+                O Prontivus conecta pacientes, médicos e clínicas em uma plataforma segura e inteligente,
+                projetada para a saúde moderna.
               </p>
             </div>
 
@@ -73,7 +73,7 @@ export function HeroSection({ className }: HeroSectionProps) {
                   "hover:scale-105 active:scale-95"
                 )}
               >
-                Get Started Free
+                Comece grátis
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
 
@@ -90,16 +90,16 @@ export function HeroSection({ className }: HeroSectionProps) {
                     )}
                   >
                     <Play className="mr-2 h-5 w-5 fill-white" />
-                    Watch Demo
+                    Assistir demo
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl bg-white">
                   <DialogHeader>
                     <DialogTitle className="text-2xl text-[#0F4C75]">
-                      Prontivus Platform Demo
+                      Demonstração da Plataforma Prontivus
                     </DialogTitle>
                     <DialogDescription>
-                      See how Prontivus transforms healthcare management
+                      Veja como o Prontivus transforma a gestão em saúde
                     </DialogDescription>
                   </DialogHeader>
                   <div className="aspect-video bg-[#0F4C75]/5 rounded-lg flex items-center justify-center">
@@ -109,9 +109,9 @@ export function HeroSection({ className }: HeroSectionProps) {
                         <Play className="h-10 w-10 text-[#0F4C75]" />
                       </div>
                       <p className="text-[#5D737E] text-sm">
-                        Video embed placeholder
+                        Espaço reservado para vídeo
                         <br />
-                        Replace with your demo video URL
+                        Substitua pela URL do seu vídeo de demonstração
                       </p>
                     </div>
                   </div>
@@ -137,7 +137,7 @@ export function HeroSection({ className }: HeroSectionProps) {
               })}
               <div className="flex items-center gap-2 text-white/90 text-sm">
                 <CheckCircle2 className="h-5 w-5 text-[#16C79A]" />
-                <span className="font-medium">30-Day Free Trial</span>
+                <span className="font-medium">Avaliação gratuita por 30 dias</span>
               </div>
             </div>
           </div>
@@ -253,13 +253,13 @@ function HealthcarePlatformIllustration() {
               ))}
             </div>
             <div className="flex justify-between mt-2 text-xs text-[#5D737E]">
-              <span>Mon</span>
-              <span>Tue</span>
-              <span>Wed</span>
-              <span>Thu</span>
-              <span>Fri</span>
-              <span>Sat</span>
-              <span>Sun</span>
+              <span>Seg</span>
+              <span>Ter</span>
+              <span>Qua</span>
+              <span>Qui</span>
+              <span>Sex</span>
+              <span>Sáb</span>
+              <span>Dom</span>
             </div>
           </div>
 

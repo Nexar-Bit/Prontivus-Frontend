@@ -41,39 +41,39 @@ function LoginPageContent() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Patient Portal Login */}
+          {/* Login do Portal do Paciente */}
           <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-primary-accent medical-card" onClick={handlePortalLogin}>
             <CardHeader className="text-center">
               <div className="mx-auto w-16 h-16 bg-[#1B9AAA]/10 rounded-full flex items-center justify-center mb-4 transition-colors group-hover:bg-[#1B9AAA]/20">
                 <Users className="h-8 w-8 text-[#1B9AAA]" />
               </div>
-              <CardTitle className="text-2xl text-[#0F4C75]">Patient Portal</CardTitle>
+              <CardTitle className="text-2xl text-[#0F4C75]">Portal do Paciente</CardTitle>
               <CardDescription className="text-[#5D737E]">
-                Access your medical records, book appointments, and manage your healthcare
+                Acesse seu prontuário, agende consultas e gerencie seu cuidado
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <Button className="w-full" onClick={handlePortalLogin}>
-                Login as Patient
+                Entrar como Paciente
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
 
-          {/* Staff Dashboard Login */}
+          {/* Login do Painel da Equipe */}
           <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-primary-accent medical-card" onClick={handleDashboardLogin}>
             <CardHeader className="text-center">
               <div className="mx-auto w-16 h-16 bg-[#0F4C75]/10 rounded-full flex items-center justify-center mb-4 transition-colors group-hover:bg-[#0F4C75]/20">
                 <Stethoscope className="h-8 w-8 text-[#0F4C75]" />
               </div>
-              <CardTitle className="text-2xl text-[#0F4C75]">Staff Dashboard</CardTitle>
+              <CardTitle className="text-2xl text-[#0F4C75]">Painel da Equipe</CardTitle>
               <CardDescription className="text-[#5D737E]">
-                Manage patients, appointments, billing, and clinic operations
+                Gerencie pacientes, agendamentos, faturamento e operações da clínica
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
               <Button className="w-full" onClick={handleDashboardLogin}>
-                Login as Staff
+                Entrar como Equipe
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
@@ -82,8 +82,8 @@ function LoginPageContent() {
 
         <div className="text-center text-sm text-[#5D737E]">
           <p>
-            Both patients and staff use the same login system. 
-            Your role will be determined after authentication.
+            Pacientes e equipe utilizam o mesmo sistema de login. 
+            Seu perfil será definido após a autenticação.
           </p>
         </div>
       </div>
@@ -93,7 +93,7 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>Carregando...</div>}>
       <LoginPageContent />
     </Suspense>
   );

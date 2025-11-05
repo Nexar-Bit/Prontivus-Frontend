@@ -42,7 +42,7 @@ function LoginPageContent() {
     setError("");
 
     if (!formData.email || !formData.password) {
-      setError("Please fill in all fields");
+      setError("Preencha todos os campos");
       return;
     }
 
@@ -53,7 +53,7 @@ function LoginPageContent() {
         username_or_email: formData.email,
         password: formData.password,
       });
-      toast.success("Login successful!");
+      toast.success("Login realizado com sucesso!");
       
       // Get user from localStorage (login updates it via setAuthData)
       // Use a small delay to ensure localStorage is updated
@@ -76,7 +76,7 @@ function LoginPageContent() {
       }, 100);
     } catch (err: any) {
       console.error("Login error:", err);
-      setError(err.response?.data?.detail || "Login failed. Please check your credentials.");
+      setError(err.response?.data?.detail || "Falha no login. Verifique suas credenciais.");
     } finally {
       setLoading(false);
     }
@@ -86,21 +86,21 @@ function LoginPageContent() {
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <Link href="/login" className="inline-flex items-center text-blue-600 hover:text-blue-500 mb-4">
+      <Link href="/login" className="inline-flex items-center text-blue-600 hover:text-blue-500 mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Login Options
+        Voltar para opções de login
           </Link>
-          <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
+      <h2 className="text-3xl font-bold text-gray-900">Bem-vindo de volta</h2>
           <p className="mt-2 text-sm text-gray-600">
-            {role === 'staff' ? 'Sign in to your staff dashboard account' : 'Sign in to your patient portal account'}
+        {role === 'staff' ? 'Acesse sua conta do painel da equipe' : 'Acesse sua conta do portal do paciente'}
           </p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>{role === 'staff' ? 'Staff Login' : 'Patient Login'}</CardTitle>
+        <CardTitle>{role === 'staff' ? 'Login da Equipe' : 'Login do Paciente'}</CardTitle>
             <CardDescription>
-              Enter your credentials to access your account
+          Informe suas credenciais para acessar sua conta
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -112,7 +112,7 @@ function LoginPageContent() {
               )}
 
               <div>
-                <Label htmlFor="email">Email Address</Label>
+        <Label htmlFor="email">Endereço de e-mail</Label>
                 <Input
                   id="email"
                   name="email"
@@ -120,12 +120,12 @@ function LoginPageContent() {
                   required
                   value={formData.email}
                   onChange={handleInputChange}
-                  placeholder="Enter your email"
+          placeholder="Digite seu e-mail"
                 />
               </div>
 
               <div>
-                <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Senha</Label>
                 <Input
                   id="password"
                   name="password"
@@ -133,21 +133,21 @@ function LoginPageContent() {
                   required
                   value={formData.password}
                   onChange={handleInputChange}
-                  placeholder="Enter your password"
+          placeholder="Digite sua senha"
                 />
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+        Entrar
               </Button>
             </form>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Don't have an account?{" "}
+        Não tem uma conta?{" "}
                 <Link href={`/portal/register${role ? `?role=${role}` : ''}`} className="font-medium text-blue-600 hover:text-blue-500">
-                  Create one
+          Crie uma
                 </Link>
               </p>
             </div>
@@ -160,7 +160,7 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+  <Suspense fallback={<div>Carregando...</div>}>
       <LoginPageContent />
     </Suspense>
   );

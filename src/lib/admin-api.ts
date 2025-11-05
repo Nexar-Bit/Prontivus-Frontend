@@ -62,6 +62,48 @@ export interface ClinicStats {
 }
 
 export const adminApi = {
+  // Users management
+  getUsers: async (params?: { role?: string }): Promise<{
+    id: number;
+    username: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: 'admin'|'secretary'|'doctor'|'patient';
+    clinic_name?: string;
+  }[]> => {
+    const searchParams = new URLSearchParams();
+    if (params?.role) searchParams.append('role', params.role);
+    const url = `/api/users${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    return api.get(url);
+  },
+
+  createUser: async (data: {
+    username: string;
+    email: string;
+    password: string;
+    first_name?: string;
+    last_name?: string;
+    role: 'admin'|'secretary'|'doctor'|'patient';
+  }) => {
+    return api.post('/api/users', data);
+  },
+
+  updateUser: async (id: number, data: Partial<{
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: 'admin'|'secretary'|'doctor'|'patient';
+    is_active: boolean;
+    is_verified: boolean;
+  }>) => {
+    return api.patch(`/api/users/${id}`, data);
+  },
+
+  deleteUser: async (id: number) => {
+    return api.delete(`/api/users/${id}`);
+  },
+
   // Clinic management
   getClinics: async (params?: {
     skip?: number;
@@ -107,6 +149,25 @@ export const adminApi = {
 
   getAvailableModules: async (): Promise<string[]> => {
     return api.get<string[]>('/api/admin/modules');
+  },
+
+  // Logs management
+  getLogs: async (params?: { level?: string; source?: string; search?: string; limit?: number }) => {
+    const sp = new URLSearchParams();
+    if (params?.level && params.level !== 'all') sp.append('level', params.level);
+    if (params?.source && params.source !== 'all') sp.append('source', params.source);
+    if (params?.search) sp.append('search', params.search);
+    if (params?.limit) sp.append('limit', String(params.limit));
+    return api.get(`/api/admin/logs${sp.toString() ? `?${sp.toString()}` : ''}`);
+  },
+  createLog: async (data: { level: string; message: string; source: string; details?: string }) => {
+    return api.post('/api/admin/logs', data);
+  },
+  updateLog: async (id: number, data: Partial<{ level: string; message: string; source: string; details: string }>) => {
+    return api.put(`/api/admin/logs/${id}`, data);
+  },
+  deleteLog: async (id: number) => {
+    return api.delete(`/api/admin/logs/${id}`);
   },
 
   testDatabaseConnections: async (): Promise<{

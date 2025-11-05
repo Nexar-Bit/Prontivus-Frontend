@@ -95,11 +95,11 @@ export function LandingHeader({ className }: HeaderProps) {
   };
 
   const navItems = [
-    { label: "Home", href: "#", id: "home", isHome: true },
-    { label: "Features", href: "#features", id: "features" },
-    { label: "For Patients", href: "#patients", id: "patients" },
-    { label: "For Providers", href: "#providers", id: "providers" },
-    { label: "Pricing", href: "#pricing", id: "pricing" },
+    { label: "Início", href: "#", id: "home", isHome: true },
+    { label: "Recursos", href: "#features", id: "features" },
+    { label: "Para Pacientes", href: "#patients", id: "patients" },
+    { label: "Para Profissionais", href: "#providers", id: "providers" },
+    { label: "Planos", href: "#pricing", id: "pricing" },
   ];
 
   const isLandingPage = pathname === "/";
@@ -188,7 +188,7 @@ export function LandingHeader({ className }: HeaderProps) {
                 "transition-all duration-200 font-medium"
               )}
             >
-              Login
+              Entrar
             </Button>
             <Button
               onClick={() => router.push("/login")}
@@ -198,7 +198,7 @@ export function LandingHeader({ className }: HeaderProps) {
                 "font-semibold px-6"
               )}
             >
-              Get Started
+              Começar
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
@@ -272,7 +272,7 @@ export function LandingHeader({ className }: HeaderProps) {
                         setMobileMenuOpen(false);
                       }}
                     >
-                      Login
+                      Entrar
                     </Button>
                   </SheetClose>
                   <SheetClose asChild>
@@ -283,7 +283,7 @@ export function LandingHeader({ className }: HeaderProps) {
                         setMobileMenuOpen(false);
                       }}
                     >
-                      Get Started
+                      Começar
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </SheetClose>

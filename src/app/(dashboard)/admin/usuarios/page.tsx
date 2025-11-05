@@ -78,72 +78,21 @@ export default function AdminUsersPage() {
   const [isTestingDb, setIsTestingDb] = useState(false);
   const [showDbTests, setShowDbTests] = useState(false);
 
-  // Mock data for demonstration
-  const mockUsers: User[] = [
-    {
-      id: 1,
-      username: "admin",
-      email: "admin@clinic.com",
-      first_name: "Admin",
-      last_name: "User",
-      role: "admin",
-      is_active: true,
-      is_verified: true,
-      created_at: "2025-01-01T00:00:00Z"
-    },
-    {
-      id: 2,
-      username: "secretary",
-      email: "secretary@clinic.com",
-      first_name: "Sarah",
-      last_name: "Secretary",
-      role: "secretary",
-      is_active: true,
-      is_verified: true,
-      created_at: "2025-01-01T00:00:00Z"
-    },
-    {
-      id: 3,
-      username: "dr.smith",
-      email: "dr.smith@clinic.com",
-      first_name: "John",
-      last_name: "Smith",
-      role: "doctor",
-      is_active: true,
-      is_verified: true,
-      created_at: "2025-01-01T00:00:00Z"
-    },
-    {
-      id: 4,
-      username: "dr.jones",
-      email: "dr.jones@clinic.com",
-      first_name: "Emily",
-      last_name: "Jones",
-      role: "doctor",
-      is_active: true,
-      is_verified: true,
-      created_at: "2025-01-01T00:00:00Z"
-    },
-    {
-      id: 5,
-      username: "patient1",
-      email: "patient@example.com",
-      first_name: "Michael",
-      last_name: "Patient",
-      role: "patient",
-      is_active: true,
-      is_verified: false,
-      created_at: "2025-01-01T00:00:00Z"
-    }
-  ];
-
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setUsers(mockUsers);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    const load = async () => {
+      try {
+        setLoading(true);
+        const data = await adminApi.getUsers(roleFilter !== 'all' ? { role: roleFilter } : undefined);
+        setUsers(data as any);
+      } catch (e) {
+        console.error(e);
+        toast.error("Falha ao carregar usuários");
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [roleFilter]);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -191,18 +140,27 @@ export default function AdminUsersPage() {
     setIsEditDialogOpen(true);
   };
 
-  const handleDeleteUser = (userId: number) => {
-    if (confirm("Tem certeza que deseja excluir este usuário?")) {
-      setUsers(users.filter(user => user.id !== userId));
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm("Tem certeza que deseja excluir este usuário?")) return;
+    try {
+      await adminApi.deleteUser(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
       toast.success("Usuário excluído com sucesso");
+    } catch (e:any) {
+      toast.error("Erro ao excluir usuário", { description: e?.message });
     }
   };
 
-  const handleToggleActive = (userId: number) => {
-    setUsers(users.map(user => 
-      user.id === userId ? { ...user, is_active: !user.is_active } : user
-    ));
-    toast.success("Status do usuário atualizado");
+  const handleToggleActive = async (userId: number) => {
+    const u = users.find(x => x.id === userId);
+    if (!u) return;
+    try {
+      const updated = await adminApi.updateUser(userId, { is_active: !u.is_active });
+      setUsers(prev => prev.map(x => x.id === userId ? { ...x, is_active: (updated as any).is_active ?? !u.is_active } : x));
+      toast.success("Status do usuário atualizado");
+    } catch (e:any) {
+      toast.error("Erro ao atualizar status", { description: e?.message });
+    }
   };
 
   const testDatabaseConnections = async () => {
@@ -328,9 +286,22 @@ export default function AdminUsersPage() {
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={() => {
-                  setIsCreateDialogOpen(false);
-                  toast.success("Usuário criado com sucesso");
+                <Button onClick={async () => {
+                  try {
+                    const firstName = (document.getElementById('firstName') as HTMLInputElement)?.value || '';
+                    const lastName = (document.getElementById('lastName') as HTMLInputElement)?.value || '';
+                    const email = (document.getElementById('email') as HTMLInputElement)?.value || '';
+                    const username = (document.getElementById('username') as HTMLInputElement)?.value || '';
+                    const role = (document.querySelector('[data-state="open"] [data-radix-select-collection-item][data-highlighted]') as HTMLElement)?.getAttribute('data-value') || 'patient';
+                    // Simple temp password generation; in real flow, admin sets or invite email
+                    const password = Math.random().toString(36).slice(-10) + 'A1!';
+                    const created = await adminApi.createUser({ username, email, password, first_name: firstName, last_name: lastName, role: role as any });
+                    setUsers(prev => [created as any, ...prev]);
+                    setIsCreateDialogOpen(false);
+                    toast.success("Usuário criado com sucesso");
+                  } catch (e:any) {
+                    toast.error("Erro ao criar usuário", { description: e?.message });
+                  }
                 }}>
                   Criar Usuário
                 </Button>

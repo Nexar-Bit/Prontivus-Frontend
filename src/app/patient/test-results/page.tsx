@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable react/forbid-dom-props */
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,7 @@ import { PatientSidebar } from "@/components/patient/Navigation/PatientSidebar";
 import { PatientMobileNav } from "@/components/patient/Navigation/PatientMobileNav";
 import { LineChart } from "@/components/charts";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { api } from "@/lib/api";
 
 // Types
 interface TestResult {
@@ -70,186 +71,7 @@ interface LabReport {
   acknowledgedAt?: string;
 }
 
-// Mock data
-const mockReports: LabReport[] = [
-  {
-    id: '1',
-    reportDate: '2024-01-15',
-    orderedBy: 'Dr. Maria Silva',
-    provider: 'Laboratório Central',
-    summary: 'Hemograma completo e glicemia de jejum',
-    doctorNotes: 'Resultados dentro da normalidade. Manter acompanhamento.',
-    recommendations: 'Repetir hemograma em 6 meses.',
-    acknowledged: true,
-    acknowledgedAt: '2024-01-16',
-    results: [
-      {
-        id: 'r1',
-        testName: 'Hemácias',
-        category: 'Hemograma',
-        value: 4.8,
-        unit: 'milhões/mm³',
-        referenceRange: '4.5 - 5.5',
-        status: 'normal',
-        date: '2024-01-15',
-        provider: 'Laboratório Central',
-        trend: 'stable',
-      },
-      {
-        id: 'r2',
-        testName: 'Leucócitos',
-        category: 'Hemograma',
-        value: 7.2,
-        unit: 'mil/mm³',
-        referenceRange: '4.0 - 11.0',
-        status: 'normal',
-        date: '2024-01-15',
-        provider: 'Laboratório Central',
-        trend: 'stable',
-      },
-      {
-        id: 'r3',
-        testName: 'Plaquetas',
-        category: 'Hemograma',
-        value: 250,
-        unit: 'mil/mm³',
-        referenceRange: '150 - 400',
-        status: 'normal',
-        date: '2024-01-15',
-        provider: 'Laboratório Central',
-        trend: 'stable',
-      },
-      {
-        id: 'r4',
-        testName: 'Hemoglobina',
-        category: 'Hemograma',
-        value: 14.5,
-        unit: 'g/dL',
-        referenceRange: '13.0 - 17.0',
-        status: 'normal',
-        date: '2024-01-15',
-        provider: 'Laboratório Central',
-        trend: 'stable',
-      },
-    ],
-  },
-  {
-    id: '2',
-    reportDate: '2024-01-10',
-    orderedBy: 'Dr. João Santos',
-    provider: 'Laboratório Central',
-    summary: 'Perfil lipídico e glicemia',
-    doctorNotes: 'Atenção para glicemia elevada. Recomendo repetir teste e avaliar hemoglobina glicada.',
-    recommendations: 'Repetir glicemia e realizar hemoglobina glicada. Avaliar com endocrinologista.',
-    acknowledged: false,
-    results: [
-      {
-        id: 'r5',
-        testName: 'Glicemia em Jejum',
-        category: 'Glicemia',
-        value: 110,
-        unit: 'mg/dL',
-        referenceRange: '70 - 100',
-        status: 'abnormal',
-        date: '2024-01-10',
-        provider: 'Laboratório Central',
-        previousValue: 105,
-        previousDate: '2023-12-01',
-        trend: 'declining',
-      },
-      {
-        id: 'r6',
-        testName: 'Colesterol Total',
-        category: 'Lipídios',
-        value: 220,
-        unit: 'mg/dL',
-        referenceRange: '< 200',
-        status: 'borderline',
-        date: '2024-01-10',
-        provider: 'Laboratório Central',
-        previousValue: 215,
-        previousDate: '2023-11-15',
-        trend: 'declining',
-      },
-      {
-        id: 'r7',
-        testName: 'HDL Colesterol',
-        category: 'Lipídios',
-        value: 45,
-        unit: 'mg/dL',
-        referenceRange: '> 40',
-        status: 'normal',
-        date: '2024-01-10',
-        provider: 'Laboratório Central',
-        trend: 'stable',
-      },
-      {
-        id: 'r8',
-        testName: 'LDL Colesterol',
-        category: 'Lipídios',
-        value: 155,
-        unit: 'mg/dL',
-        referenceRange: '< 130',
-        status: 'borderline',
-        date: '2024-01-10',
-        provider: 'Laboratório Central',
-        previousValue: 150,
-        previousDate: '2023-11-15',
-        trend: 'declining',
-      },
-      {
-        id: 'r9',
-        testName: 'Triglicerídeos',
-        category: 'Lipídios',
-        value: 180,
-        unit: 'mg/dL',
-        referenceRange: '< 150',
-        status: 'abnormal',
-        date: '2024-01-10',
-        provider: 'Laboratório Central',
-        previousValue: 175,
-        previousDate: '2023-11-15',
-        trend: 'declining',
-      },
-    ],
-  },
-  {
-    id: '3',
-    reportDate: '2023-12-15',
-    orderedBy: 'Dr. Pedro Costa',
-    provider: 'Laboratório Central',
-    summary: 'Hemograma completo',
-    doctorNotes: 'Resultados normais. Paciente em bom estado de saúde.',
-    acknowledged: true,
-    acknowledgedAt: '2023-12-16',
-    results: [
-      {
-        id: 'r10',
-        testName: 'Hemácias',
-        category: 'Hemograma',
-        value: 4.7,
-        unit: 'milhões/mm³',
-        referenceRange: '4.5 - 5.5',
-        status: 'normal',
-        date: '2023-12-15',
-        provider: 'Laboratório Central',
-        trend: 'stable',
-      },
-      {
-        id: 'r11',
-        testName: 'Leucócitos',
-        category: 'Hemograma',
-        value: 7.0,
-        unit: 'mil/mm³',
-        referenceRange: '4.0 - 11.0',
-        status: 'normal',
-        date: '2023-12-15',
-        provider: 'Laboratório Central',
-        trend: 'stable',
-      },
-    ],
-  },
-];
+const mockReports: LabReport[] = [];
 
 const statusConfig = {
   normal: {
@@ -292,22 +114,63 @@ export default function TestResultsPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'summary' | 'detailed'>('summary');
   const [selectedReport, setSelectedReport] = useState<LabReport | null>(null);
+  const [reports, setReports] = useState<LabReport[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const history = await api.get<any[]>(`/api/clinical/me/history`);
+      const out: LabReport[] = [];
+      history.forEach(item => {
+        const results: TestResult[] = [];
+        item.clinical_record?.exam_requests?.forEach((er: any) => {
+          results.push({
+            id: String(er.id),
+            testName: er.exam_type,
+            category: 'Exames',
+            value: '-',
+            unit: '',
+            referenceRange: '-',
+            status: er.completed ? 'normal' : 'borderline',
+            date: er.requested_date,
+            provider: 'Clínica',
+            notes: er.description || undefined,
+            critical: false,
+          });
+        });
+        if (results.length > 0) {
+          out.push({
+            id: `apt-${item.appointment_id}`,
+            reportDate: item.appointment_date,
+            orderedBy: item.doctor_name,
+            provider: 'Clínica',
+            summary: `${results.length} exame(s) solicitados`,
+            doctorNotes: undefined,
+            recommendations: undefined,
+            acknowledged: true,
+            results,
+          });
+        }
+      });
+      setReports(out);
+    };
+    load();
+  }, []);
 
   // Get all unique categories
   const categories = useMemo(() => {
     const cats = new Set<string>();
-    mockReports.forEach(report => {
+    reports.forEach(report => {
       report.results.forEach(result => {
         cats.add(result.category);
       });
     });
     return Array.from(cats);
-  }, []);
+  }, [reports]);
 
   // Get critical results
   const criticalResults = useMemo(() => {
     const critical: TestResult[] = [];
-    mockReports.forEach(report => {
+    reports.forEach(report => {
       report.results.forEach(result => {
         if (result.status === 'critical' || result.critical) {
           critical.push(result);
@@ -315,12 +178,12 @@ export default function TestResultsPage() {
       });
     });
     return critical;
-  }, []);
+  }, [reports]);
 
   // Get abnormal results for summary
   const abnormalResults = useMemo(() => {
     const abnormal: TestResult[] = [];
-    mockReports.forEach(report => {
+    reports.forEach(report => {
       report.results.forEach(result => {
         if (result.status !== 'normal') {
           abnormal.push(result);
@@ -331,11 +194,11 @@ export default function TestResultsPage() {
       const priority = { critical: 0, abnormal: 1, borderline: 2, normal: 3 };
       return priority[a.status] - priority[b.status];
     });
-  }, []);
+  }, [reports]);
 
   // Filter reports
   const filteredReports = useMemo(() => {
-    let filtered = [...mockReports];
+    let filtered = [...reports];
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -362,7 +225,7 @@ export default function TestResultsPage() {
     }
 
     return filtered.sort((a, b) => parseISO(b.reportDate).getTime() - parseISO(a.reportDate).getTime());
-  }, [searchQuery, selectedCategory, selectedStatus]);
+  }, [reports, searchQuery, selectedCategory, selectedStatus]);
 
   const getTrendIcon = (trend?: string) => {
     switch (trend) {
@@ -636,7 +499,7 @@ export default function TestResultsPage() {
                               size="sm"
                               className="mt-3 w-full"
                               onClick={() => {
-                                const report = mockReports.find(r => r.results.some(res => res.id === result.id));
+                                const report = reports.find(r => r.results.some(res => res.id === result.id));
                                 if (report) setSelectedReport(report);
                               }}
                             >

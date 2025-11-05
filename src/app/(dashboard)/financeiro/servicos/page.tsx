@@ -52,27 +52,38 @@ export default function ServiceItemsPage() {
 
   const loadServiceItems = async () => {
     try {
+      setLoading(true);
       const data = await financialApi.getServiceItems();
-      setServiceItems(data);
+      setServiceItems(data || []);
     } catch (error: any) {
+      console.error("Failed to load service items:", error);
       toast.error("Erro ao carregar itens de serviço", {
-        description: error.message
+        description: error.message || "Não foi possível carregar os itens de serviço"
       });
+      setServiceItems([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCreate = async () => {
+    if (!formData.name || formData.price <= 0) {
+      toast.error("Erro de validação", {
+        description: "Nome e preço são obrigatórios. O preço deve ser maior que zero."
+      });
+      return;
+    }
+
     try {
       await financialApi.createServiceItem(formData);
       toast.success("Item de serviço criado com sucesso!");
       setIsCreateDialogOpen(false);
       resetForm();
-      loadServiceItems();
+      await loadServiceItems();
     } catch (error: any) {
+      console.error("Failed to create service item:", error);
       toast.error("Erro ao criar item de serviço", {
-        description: error.message
+        description: error.message || "Não foi possível criar o item de serviço"
       });
     }
   };
@@ -93,16 +104,24 @@ export default function ServiceItemsPage() {
   const handleUpdate = async () => {
     if (!selectedItem) return;
     
+    if (!formData.name || formData.price <= 0) {
+      toast.error("Erro de validação", {
+        description: "Nome e preço são obrigatórios. O preço deve ser maior que zero."
+      });
+      return;
+    }
+
     try {
       await financialApi.updateServiceItem(selectedItem.id, formData);
       toast.success("Item de serviço atualizado com sucesso!");
       setIsEditDialogOpen(false);
       setSelectedItem(null);
       resetForm();
-      loadServiceItems();
+      await loadServiceItems();
     } catch (error: any) {
+      console.error("Failed to update service item:", error);
       toast.error("Erro ao atualizar item de serviço", {
-        description: error.message
+        description: error.message || "Não foi possível atualizar o item de serviço"
       });
     }
   };
@@ -161,18 +180,13 @@ export default function ServiceItemsPage() {
     return matchesSearch && matchesCategory;
   });
 
-  if (isLoading) {
+  if (isLoading || (loading && serviceItems.length === 0)) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Carregando itens de serviço...</p>
+        </div>
       </div>
     );
   }
@@ -319,6 +333,24 @@ export default function ServiceItemsPage() {
               ))}
             </TableBody>
           </Table>
+          {filteredItems.length === 0 && !loading && (
+            <div className="text-center py-8 text-muted-foreground">
+              <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum item de serviço encontrado</p>
+              {searchTerm || categoryFilter !== "all" ? (
+                <p className="text-sm mt-2">Tente ajustar os filtros de busca</p>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Primeiro Item
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -399,6 +431,8 @@ export default function ServiceItemsPage() {
                 id="is_active"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                aria-label="Item ativo"
+                title="Item ativo"
               />
               <Label htmlFor="is_active">Item ativo</Label>
             </div>
@@ -492,6 +526,8 @@ export default function ServiceItemsPage() {
                 id="edit-is_active"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                aria-label="Item ativo"
+                title="Item ativo"
               />
               <Label htmlFor="edit-is_active">Item ativo</Label>
             </div>

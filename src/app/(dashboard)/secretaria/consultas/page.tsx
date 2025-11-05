@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, Clock, RefreshCw, Search, User } from "lucide-react";
+import { Calendar, Clock, RefreshCw, Search, User, Loader2, CheckCircle, XCircle, Play } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SecretariaConsultasPage() {
@@ -60,7 +60,7 @@ export default function SecretariaConsultasPage() {
           <p className="text-sm text-muted-foreground">Agenda da clínica por dia, com filtros e busca</p>
         </div>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
           Atualizar
         </Button>
       </div>
@@ -113,7 +113,10 @@ export default function SecretariaConsultasPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+            <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando...
+            </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">Nenhuma consulta encontrada.</div>
           ) : (
@@ -142,12 +145,85 @@ export default function SecretariaConsultasPage() {
                           <td className="py-2 pr-4 whitespace-nowrap capitalize">{String(a.status).replaceAll('_', ' ')}</td>
                           <td className="py-2 pr-4 whitespace-nowrap">
                             <div className="flex items-center gap-2">
-                              <Link href={`/secretaria/agendamentos?edit=${a.id}`}>
+                              <Link href={`/secretaria/agendamentos/new?id=${a.id}`}>
                                 <Button size="sm" variant="outline">Editar</Button>
                               </Link>
                               <Link href={`/medico/atendimento/${a.id}`}>
                                 <Button size="sm">Abrir</Button>
                               </Link>
+                              {/* Inline status actions */}
+                              {a.status === 'scheduled' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      await appointmentsApi.updateStatus(a.id, 'checked_in');
+                                      toast.success('Check-in realizado');
+                                      load();
+                                    } catch (e: any) {
+                                      toast.error('Falha ao atualizar', { description: e?.message });
+                                    }
+                                  }}
+                                  className="text-orange-600"
+                                >
+                                  <Play className="h-3 w-3 mr-1" /> Check-in
+                                </Button>
+                              )}
+                              {a.status === 'checked_in' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      await appointmentsApi.updateStatus(a.id, 'in_consultation');
+                                      toast.success('Atendimento iniciado');
+                                      load();
+                                    } catch (e: any) {
+                                      toast.error('Falha ao atualizar', { description: e?.message });
+                                    }
+                                  }}
+                                  className="text-yellow-700"
+                                >
+                                  <Play className="h-3 w-3 mr-1" /> Iniciar
+                                </Button>
+                              )}
+                              {(a.status === 'in_consultation' || a.status === 'checked_in') && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      await appointmentsApi.updateStatus(a.id, 'completed');
+                                      toast.success('Consulta concluída');
+                                      load();
+                                    } catch (e: any) {
+                                      toast.error('Falha ao atualizar', { description: e?.message });
+                                    }
+                                  }}
+                                  className="text-green-700"
+                                >
+                                  <CheckCircle className="h-3 w-3 mr-1" /> Concluir
+                                </Button>
+                              )}
+                              {a.status !== 'cancelled' && a.status !== 'completed' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      await appointmentsApi.updateStatus(a.id, 'cancelled');
+                                      toast.success('Consulta cancelada');
+                                      load();
+                                    } catch (e: any) {
+                                      toast.error('Falha ao cancelar', { description: e?.message });
+                                    }
+                                  }}
+                                  className="text-red-700"
+                                >
+                                  <XCircle className="h-3 w-3 mr-1" /> Cancelar
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>

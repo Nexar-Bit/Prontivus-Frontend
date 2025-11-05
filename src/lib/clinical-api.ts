@@ -41,9 +41,14 @@ export const clinicalRecordsApi = {
 		return api.get(`/api/appointments/${appointmentId}/clinical-record`);
 	},
 
-	// Get patient's clinical history
-	getPatientHistory: async (patientId: number): Promise<ClinicalRecord[]> => {
+	// Get patient's clinical history (staff access)
+	getPatientHistoryById: async (patientId: number): Promise<ClinicalRecord[]> => {
 		return api.get(`/api/patients/${patientId}/clinical-records`);
+	},
+
+	// Get current patient's own clinical history
+	getPatientHistory: async (): Promise<any[]> => {
+		return api.get(`/api/clinical/me/history`);
 	},
 
 	// Get version history for a record

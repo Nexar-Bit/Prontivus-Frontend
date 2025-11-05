@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 import { 
   Plus, 
   Search, 
@@ -24,15 +28,16 @@ import {
 } from "lucide-react";
 
 interface TissTemplate {
-  id: string;
+  id: number;
   name: string;
-  description: string;
+  description?: string;
   category: 'consultation' | 'procedure' | 'exam' | 'emergency' | 'custom';
-  isDefault: boolean;
-  xmlTemplate: string;
+  is_default: boolean;
+  xml_template: string;
   variables: string[];
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at?: string;
+  is_active?: boolean;
 }
 
 const TEMPLATE_CATEGORIES = {
@@ -44,6 +49,8 @@ const TEMPLATE_CATEGORIES = {
 };
 
 export default function TissTemplatesPage() {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
   const [templates, setTemplates] = useState<TissTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -53,166 +60,53 @@ export default function TissTemplatesPage() {
     name: "",
     description: "",
     category: "consultation",
-    isDefault: false,
-    xmlTemplate: "",
+    is_default: false,
+    xml_template: "",
     variables: []
   });
 
   useEffect(() => {
-    loadTemplates();
-  }, []);
+    // Wait for auth context to finish loading (same pattern as pagamentos page)
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    
+    // Check role permissions
+    if (isAuthenticated && !['admin', 'secretary'].includes(user?.role || '')) {
+      router.push("/unauthorized");
+      return;
+    }
+    
+    // Load templates when authenticated
+    if (isAuthenticated) {
+      loadTemplates();
+    }
+  }, [isAuthenticated, isLoading, user, router]);
 
   const loadTemplates = async () => {
+    // Don't load if not authenticated
+    if (!isAuthenticated || !user) {
+      return;
+    }
+    
     setLoading(true);
     try {
-      // Load from localStorage (in a real app, this would be from the backend)
-      const savedTemplates = localStorage.getItem('tiss-templates');
-      if (savedTemplates) {
-        setTemplates(JSON.parse(savedTemplates));
-      } else {
-        // Load default templates
-        const defaultTemplates: TissTemplate[] = [
-          {
-            id: "1",
-            name: "Consulta Médica Padrão",
-            description: "Template padrão para consultas médicas",
-            category: "consultation",
-            isDefault: true,
-            xmlTemplate: `<?xml version="1.0" encoding="UTF-8"?>
-<ans:mensagemTISS xmlns:ans="http://www.ans.gov.br/padroes/tiss/schemas">
-  <ans:cabecalho>
-    <ans:identificacaoTransacao>
-      <ans:tipoTransacao>ENVIO_LOTE_GUIAS</ans:tipoTransacao>
-      <ans:sequencialTransacao>{{SEQUENTIAL}}</ans:sequencialTransacao>
-      <ans:dataRegistroTransacao>{{DATE}}</ans:dataRegistroTransacao>
-      <ans:horaRegistroTransacao>{{TIME}}</ans:horaRegistroTransacao>
-    </ans:identificacaoTransacao>
-    <ans:origem>
-      <ans:identificacaoPrestador>
-        <ans:codigoPrestadorNaOperadora>{{PRESTADOR_CODE}}</ans:codigoPrestadorNaOperadora>
-        <ans:cnpjPrestador>{{PRESTADOR_CNPJ}}</ans:cnpjPrestador>
-        <ans:nomePrestador>{{PRESTADOR_NAME}}</ans:nomePrestador>
-      </ans:identificacaoPrestador>
-    </ans:origem>
-    <ans:destino>
-      <ans:registroANS>{{OPERADORA_ANS}}</ans:registroANS>
-      <ans:cnpjOperadora>{{OPERADORA_CNPJ}}</ans:cnpjOperadora>
-      <ans:nomeOperadora>{{OPERADORA_NAME}}</ans:nomeOperadora>
-    </ans:destino>
-    <ans:versaoPadrao>3.03.00</ans:versaoPadrao>
-  </ans:cabecalho>
-  <ans:prestadorParaOperadora>
-    <ans:loteGuias>
-      <ans:numeroLote>{{LOTE_NUMBER}}</ans:numeroLote>
-      <ans:guiasTISS>
-        <ans:guiaConsulta>
-          <ans:cabecalhoGuia>
-            <ans:numeroGuiaPrestador>{{GUIA_NUMBER}}</ans:numeroGuiaPrestador>
-            <ans:numeroGuiaOperadora>{{GUIA_OPERADORA}}</ans:numeroGuiaOperadora>
-            <ans:dataAutorizacao>{{AUTH_DATE}}</ans:dataAutorizacao>
-            <ans:senha>{{PASSWORD}}</ans:senha>
-            <ans:dataValidadeSenha>{{PASSWORD_VALIDITY}}</ans:dataValidadeSenha>
-          </ans:cabecalhoGuia>
-          <ans:beneficiario>
-            <ans:numeroCarteira>{{BENEFICIARIO_CARTEIRA}}</ans:numeroCarteira>
-            <ans:nomeBeneficiario>{{BENEFICIARIO_NAME}}</ans:nomeBeneficiario>
-            <ans:numeroCNS>{{BENEFICIARIO_CNS}}</ans:numeroCNS>
-            <ans:identificacaoBeneficiario>
-              <ans:cpf>{{BENEFICIARIO_CPF}}</ans:cpf>
-            </ans:identificacaoBeneficiario>
-          </ans:beneficiario>
-          <ans:contratadoExecutante>
-            <ans:identificacaoExecutante>
-              <ans:codigoPrestadorNaOperadora>{{PRESTADOR_CODE}}</ans:codigoPrestadorNaOperadora>
-              <ans:cnpjContratado>{{PRESTADOR_CNPJ}}</ans:cnpjContratado>
-              <ans:nomeContratado>{{PRESTADOR_NAME}}</ans:nomeContratado>
-            </ans:identificacaoExecutante>
-            <ans:profissionalExecutante>
-              <ans:nomeProfissional>{{DOCTOR_NAME}}</ans:nomeProfissional>
-              <ans:conselhoProfissional>{{DOCTOR_COUNCIL}}</ans:conselhoProfissional>
-              <ans:numeroConselhoProfissional>{{DOCTOR_COUNCIL_NUMBER}}</ans:numeroConselhoProfissional>
-              <ans:UFConselho>{{DOCTOR_COUNCIL_UF}}</ans:UFConselho>
-              <ans:CBOS>{{DOCTOR_CBOS}}</ans:CBOS>
-            </ans:profissionalExecutante>
-          </ans:contratadoExecutante>
-          <ans:procedimentosExecutados>
-            <ans:procedimentoExecutado>
-              <ans:procedimento>
-                <ans:codigoTabela>22</ans:codigoTabela>
-                <ans:codigoProcedimento>{{PROCEDURE_CODE}}</ans:codigoProcedimento>
-                <ans:descricaoProcedimento>{{PROCEDURE_DESCRIPTION}}</ans:descricaoProcedimento>
-              </ans:procedimento>
-              <ans:quantidadeExecutada>{{PROCEDURE_QUANTITY}}</ans:quantidadeExecutada>
-              <ans:reducaoAcrescimo>{{PROCEDURE_REDUCTION}}</ans:reducaoAcrescimo>
-              <ans:valorUnitario>{{PROCEDURE_VALUE}}</ans:valorUnitario>
-              <ans:valorTotal>{{PROCEDURE_TOTAL}}</ans:valorTotal>
-            </ans:procedimentoExecutado>
-          </ans:procedimentosExecutados>
-          <ans:observacao>{{OBSERVATIONS}}</ans:observacao>
-          <ans:valorTotal>{{TOTAL_VALUE}}</ans:valorTotal>
-        </ans:guiaConsulta>
-      </ans:guiasTISS>
-    </ans:loteGuias>
-  </ans:prestadorParaOperadora>
-  <ans:operadoraParaPrestador>
-    <ans:protocoloRecebimento>
-      <ans:identificacaoOperadora>
-        <ans:registroANS>{{OPERADORA_ANS}}</ans:registroANS>
-        <ans:cnpjOperadora>{{OPERADORA_CNPJ}}</ans:cnpjOperadora>
-        <ans:nomeOperadora>{{OPERADORA_NAME}}</ans:nomeOperadora>
-      </ans:identificacaoOperadora>
-      <ans:numeroProtocolo>{{PROTOCOL_NUMBER}}</ans:numeroProtocolo>
-      <ans:dataProtocolo>{{PROTOCOL_DATE}}</ans:dataProtocolo>
-    </ans:protocoloRecebimento>
-  </ans:operadoraParaPrestador>
-</ans:mensagemTISS>`,
-            variables: [
-              "SEQUENTIAL", "DATE", "TIME", "PRESTADOR_CODE", "PRESTADOR_CNPJ", "PRESTADOR_NAME",
-              "OPERADORA_ANS", "OPERADORA_CNPJ", "OPERADORA_NAME", "LOTE_NUMBER", "GUIA_NUMBER",
-              "GUIA_OPERADORA", "AUTH_DATE", "PASSWORD", "PASSWORD_VALIDITY", "BENEFICIARIO_CARTEIRA",
-              "BENEFICIARIO_NAME", "BENEFICIARIO_CNS", "BENEFICIARIO_CPF", "DOCTOR_NAME", "DOCTOR_COUNCIL",
-              "DOCTOR_COUNCIL_NUMBER", "DOCTOR_COUNCIL_UF", "DOCTOR_CBOS", "PROCEDURE_CODE",
-              "PROCEDURE_DESCRIPTION", "PROCEDURE_QUANTITY", "PROCEDURE_REDUCTION", "PROCEDURE_VALUE",
-              "PROCEDURE_TOTAL", "OBSERVATIONS", "TOTAL_VALUE", "PROTOCOL_NUMBER", "PROTOCOL_DATE"
-            ],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          },
-          {
-            id: "2",
-            name: "Procedimento Cirúrgico",
-            description: "Template para procedimentos cirúrgicos",
-            category: "procedure",
-            isDefault: true,
-            xmlTemplate: `<?xml version="1.0" encoding="UTF-8"?>
-<ans:mensagemTISS xmlns:ans="http://www.ans.gov.br/padroes/tiss/schemas">
-  <!-- Template para procedimentos cirúrgicos -->
-  <ans:cabecalho>
-    <!-- Cabeçalho padrão -->
-  </ans:cabecalho>
-  <ans:prestadorParaOperadora>
-    <ans:loteGuias>
-      <ans:numeroLote>{{LOTE_NUMBER}}</ans:numeroLote>
-      <ans:guiasTISS>
-        <ans:guiaSP-SADT>
-          <!-- Estrutura para procedimentos -->
-        </ans:guiaSP-SADT>
-      </ans:guiasTISS>
-    </ans:loteGuias>
-  </ans:prestadorParaOperadora>
-</ans:mensagemTISS>`,
-            variables: ["LOTE_NUMBER", "PROCEDURE_CODE", "PROCEDURE_DESCRIPTION"],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ];
-        setTemplates(defaultTemplates);
-        localStorage.setItem('tiss-templates', JSON.stringify(defaultTemplates));
-      }
+      // Load templates from backend API
+      const data = await api.get<TissTemplate[]>('/api/financial/templates');
+      setTemplates(data || []);
     } catch (error: any) {
+      console.error("Failed to load TISS templates:", error);
+      
+      // Don't show error toast if it's an auth error (will redirect)
+      if ((error as any).status === 401 || error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        return;
+      }
+      
       toast.error("Erro ao carregar templates TISS", {
-        description: error.message
+        description: error.message || "Não foi possível carregar os templates TISS"
       });
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
@@ -220,91 +114,124 @@ export default function TissTemplatesPage() {
 
   const handleSave = async () => {
     try {
-      let updatedTemplates;
-      
+      if (!formData.name || !formData.xml_template) {
+        toast.error("Campos obrigatórios não preenchidos", {
+          description: "Nome e Template XML são obrigatórios"
+        });
+        return;
+      }
+
       if (editingTemplate) {
         // Update existing template
-        updatedTemplates = templates.map(template => 
-          template.id === editingTemplate.id 
-            ? { 
-                ...template, 
-                ...formData,
-                updatedAt: new Date().toISOString()
-              } 
-            : template
-        );
-      } else {
-        // Add new template
-        const { id, ...formDataWithoutId } = formData as TissTemplate;
-        const newTemplate: TissTemplate = {
-          id: Date.now().toString(),
-          ...formDataWithoutId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+        const updateData = {
+          name: formData.name,
+          description: formData.description || "",
+          category: formData.category || "consultation",
+          xml_template: formData.xml_template,
+          is_default: formData.is_default || false,
+          is_active: formData.is_active !== undefined ? formData.is_active : true
         };
-        updatedTemplates = [...templates, newTemplate];
+        
+        await api.put<TissTemplate>(`/api/financial/templates/${editingTemplate.id}`, updateData);
+        toast.success("Template TISS atualizado!");
+      } else {
+        // Create new template
+        const createData = {
+          name: formData.name,
+          description: formData.description || "",
+          category: formData.category || "consultation",
+          xml_template: formData.xml_template,
+          is_default: formData.is_default || false,
+          is_active: true
+        };
+        
+        await api.post<TissTemplate>('/api/financial/templates', createData);
+        toast.success("Template TISS criado!");
       }
       
-      setTemplates(updatedTemplates);
-      localStorage.setItem('tiss-templates', JSON.stringify(updatedTemplates));
+      // Reload templates
+      await loadTemplates();
       
-      toast.success(editingTemplate ? "Template TISS atualizado!" : "Template TISS adicionado!");
       setIsDialogOpen(false);
       setEditingTemplate(null);
       setFormData({
         name: "",
         description: "",
         category: "consultation",
-        isDefault: false,
-        xmlTemplate: "",
+        is_default: false,
+        xml_template: "",
         variables: []
       });
     } catch (error: any) {
+      console.error("Failed to save TISS template:", error);
       toast.error("Erro ao salvar template TISS", {
-        description: error.message
+        description: error.message || "Não foi possível salvar o template TISS"
       });
     }
   };
 
   const handleEdit = (template: TissTemplate) => {
     setEditingTemplate(template);
-    setFormData(template);
+    setFormData({
+      name: template.name,
+      description: template.description || "",
+      category: template.category,
+      is_default: template.is_default,
+      xml_template: template.xml_template,
+      variables: template.variables || []
+    });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm("Tem certeza que deseja excluir este template TISS?")) {
       try {
-        const updatedTemplates = templates.filter(template => template.id !== id);
-        setTemplates(updatedTemplates);
-        localStorage.setItem('tiss-templates', JSON.stringify(updatedTemplates));
+        await api.delete(`/api/financial/templates/${id}`);
         toast.success("Template TISS excluído!");
+        // Reload templates
+        await loadTemplates();
       } catch (error: any) {
+        console.error("Failed to delete TISS template:", error);
         toast.error("Erro ao excluir template TISS", {
-          description: error.message
+          description: error.message || "Não foi possível excluir o template TISS"
         });
       }
     }
   };
 
-  const handleDuplicate = (template: TissTemplate) => {
-    const duplicatedTemplate: TissTemplate = {
-      ...template,
-      id: Date.now().toString(),
-      name: `${template.name} (Cópia)`,
-      isDefault: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    const updatedTemplates = [...templates, duplicatedTemplate];
-    setTemplates(updatedTemplates);
-    localStorage.setItem('tiss-templates', JSON.stringify(updatedTemplates));
-    toast.success("Template TISS duplicado!");
+  const handleDuplicate = async (template: TissTemplate) => {
+    try {
+      const createData = {
+        name: `${template.name} (Cópia)`,
+        description: template.description || "",
+        category: template.category,
+        xml_template: template.xml_template,
+        is_default: false,
+        is_active: true
+      };
+      
+      await api.post<TissTemplate>('/api/financial/templates', createData);
+      toast.success("Template TISS duplicado!");
+      // Reload templates
+      await loadTemplates();
+    } catch (error: any) {
+      console.error("Failed to duplicate TISS template:", error);
+      toast.error("Erro ao duplicar template TISS", {
+        description: error.message || "Não foi possível duplicar o template TISS"
+      });
+    }
   };
 
   const handleExport = (template: TissTemplate) => {
-    const dataStr = JSON.stringify(template, null, 2);
+    // Export template in a format compatible with import
+    const exportData = {
+      name: template.name,
+      description: template.description,
+      category: template.category,
+      xml_template: template.xml_template,
+      variables: template.variables || []
+    };
+    const dataStr = JSON.stringify(exportData, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = window.URL.createObjectURL(dataBlob);
     const a = document.createElement('a');
@@ -317,28 +244,39 @@ export default function TissTemplatesPage() {
     toast.success("Template TISS exportado!");
   };
 
-  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
-          const importedTemplate = JSON.parse(e.target?.result as string);
-          const newTemplate: TissTemplate = {
-            ...importedTemplate,
-            id: Date.now().toString(),
-            isDefault: false,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+          const importedData = JSON.parse(e.target?.result as string);
+          
+          // Map old format to new format if needed
+          const createData = {
+            name: importedData.name || "Template Importado",
+            description: importedData.description || "",
+            category: importedData.category || "custom",
+            xml_template: importedData.xmlTemplate || importedData.xml_template || "",
+            is_default: false,
+            is_active: true
           };
           
-          const updatedTemplates = [...templates, newTemplate];
-          setTemplates(updatedTemplates);
-          localStorage.setItem('tiss-templates', JSON.stringify(updatedTemplates));
+          if (!createData.xml_template) {
+            throw new Error("Template XML não encontrado no arquivo");
+          }
+          
+          await api.post<TissTemplate>('/api/financial/templates', createData);
           toast.success("Template TISS importado!");
-        } catch (error) {
+          // Reload templates
+          await loadTemplates();
+          
+          // Reset file input
+          event.target.value = '';
+        } catch (error: any) {
+          console.error("Failed to import TISS template:", error);
           toast.error("Erro ao importar template TISS", {
-            description: "Arquivo inválido"
+            description: error.message || "Arquivo inválido"
           });
         }
       };
@@ -348,14 +286,31 @@ export default function TissTemplatesPage() {
 
   const filteredTemplates = templates.filter(template =>
     template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    template.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (template.description && template.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
     template.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) {
+  // Show loading while auth is initializing or while we wait for AuthContext
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+
+  // Show loading while fetching templates
+  if (loading && templates.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Carregando templates TISS...</p>
+        </div>
       </div>
     );
   }
@@ -394,8 +349,8 @@ export default function TissTemplatesPage() {
                   name: "",
                   description: "",
                   category: "consultation",
-                  isDefault: false,
-                  xmlTemplate: "",
+                  is_default: false,
+                  xml_template: "",
                   variables: []
                 });
               }}>
@@ -422,6 +377,7 @@ export default function TissTemplatesPage() {
                       value={formData.name || ""}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       placeholder="Ex: Consulta Médica Padrão"
+                      required
                     />
                   </div>
                   <div>
@@ -459,11 +415,12 @@ export default function TissTemplatesPage() {
                   <Label htmlFor="xmlTemplate">Template XML</Label>
                   <Textarea
                     id="xmlTemplate"
-                    value={formData.xmlTemplate || ""}
-                    onChange={(e) => setFormData({...formData, xmlTemplate: e.target.value})}
+                    value={formData.xml_template || ""}
+                    onChange={(e) => setFormData({...formData, xml_template: e.target.value})}
                     placeholder="Cole o template XML aqui..."
                     rows={15}
                     className="font-mono text-sm"
+                    required
                   />
                   <p className="text-sm text-muted-foreground mt-1">
                     Use variáveis como {`{{VARIABLE_NAME}}`} para substituição dinâmica
@@ -530,20 +487,22 @@ export default function TissTemplatesPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="max-w-xs truncate">
-                    {template.description}
+                    {template.description || "-"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={template.isDefault ? "default" : "secondary"}>
-                      {template.isDefault ? "Padrão" : "Personalizado"}
+                    <Badge variant={template.is_default ? "default" : "secondary"}>
+                      {template.is_default ? "Padrão" : "Personalizado"}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
-                      {template.variables.length} variáveis
+                      {(template.variables || []).length} variáveis
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(template.updatedAt).toLocaleDateString('pt-BR')}
+                    {template.updated_at 
+                      ? new Date(template.updated_at).toLocaleDateString('pt-BR')
+                      : new Date(template.created_at).toLocaleDateString('pt-BR')}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -571,7 +530,7 @@ export default function TissTemplatesPage() {
                       >
                         <Download className="h-4 w-4" />
                       </Button>
-                      {!template.isDefault && (
+                      {!template.is_default && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -588,11 +547,22 @@ export default function TissTemplatesPage() {
             </TableBody>
           </Table>
           
-          {filteredTemplates.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhum template TISS encontrado.
+          {loading && templates.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando templates...
             </div>
-          )}
+          ) : filteredTemplates.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileCode className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Nenhum template TISS encontrado</p>
+              {searchTerm ? (
+                <p className="text-sm mt-2">Tente ajustar o termo de busca</p>
+              ) : (
+                <p className="text-sm mt-2">Crie um novo template para começar</p>
+              )}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

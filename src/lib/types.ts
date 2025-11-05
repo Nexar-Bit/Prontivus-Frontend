@@ -111,6 +111,7 @@ export interface Appointment {
   patient_id: number;
   doctor_id: number;
   clinic_id: number;
+  duration_minutes?: number;
   created_at: string;
   updated_at?: string;
   patient_name?: string;

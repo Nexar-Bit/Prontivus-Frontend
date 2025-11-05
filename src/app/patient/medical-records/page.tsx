@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable react/forbid-dom-props */
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +38,7 @@ import { PatientHeader } from "@/components/patient/Navigation/PatientHeader";
 import { PatientSidebar } from "@/components/patient/Navigation/PatientSidebar";
 import { PatientMobileNav } from "@/components/patient/Navigation/PatientMobileNav";
 import { LineChart } from "@/components/charts";
+import { api } from "@/lib/api";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { BodyChart } from "@/components/patient/BodyChart";
 
@@ -85,129 +86,10 @@ interface MedicationAdherence {
   status: 'good' | 'fair' | 'poor';
 }
 
-// Mock data
-const mockRecords: MedicalRecord[] = [
-  {
-    id: '1',
-    type: 'consultation',
-    category: 'consultations',
-    title: 'Consulta de Rotina - Cardiologia',
-    date: '2024-01-15',
-    doctor: 'Dr. Maria Silva',
-    provider: 'Clínica Prontivus',
-    content: 'Paciente em bom estado geral. Pressão arterial: 120/80 mmHg. Frequência cardíaca: 72 bpm. Peso: 75kg. Exame físico normal. Recomendações: manter atividade física regular.',
-    status: 'normal',
-    vitalSigns: {
-      systolic: 120,
-      diastolic: 80,
-      heartRate: 72,
-      temperature: 36.5,
-      weight: 75,
-    },
-  },
-  {
-    id: '2',
-    type: 'allergy',
-    category: 'allergies',
-    title: 'Alergia a Penicilina',
-    date: '2023-12-10',
-    doctor: 'Dr. João Santos',
-    provider: 'Clínica Prontivus',
-    content: 'Alergia confirmada à penicilina. Reação observada: urticária e inchaço. Gravidade: Moderada. Status: Ativa.',
-    status: 'active',
-    details: {
-      severity: 'Moderada',
-      reaction: 'Urticária e inchaço',
-      firstObserved: '2020-05-15',
-    },
-  },
-  {
-    id: '3',
-    type: 'condition',
-    category: 'conditions',
-    title: 'Hipertensão Arterial',
-    date: '2023-11-20',
-    doctor: 'Dr. Pedro Costa',
-    provider: 'Clínica Prontivus',
-    content: 'Diagnóstico de hipertensão arterial. Pressão arterial média: 140/90 mmHg. Plano de tratamento: medicação diária e mudanças no estilo de vida.',
-    status: 'active',
-    details: {
-      diagnosisDate: '2023-11-20',
-      severity: 'Moderada',
-      treatment: 'Medicação diária',
-    },
-  },
-  {
-    id: '4',
-    type: 'procedure',
-    category: 'procedures',
-    title: 'Exame de Ecocardiograma',
-    date: '2024-01-10',
-    doctor: 'Dr. Maria Silva',
-    provider: 'Clínica Prontivus',
-    content: 'Ecocardiograma transtorácico realizado. Função cardíaca normal. Fração de ejeção: 65%. Sem alterações estruturais.',
-    status: 'normal',
-    attachments: 1,
-  },
-  {
-    id: '5',
-    type: 'immunization',
-    category: 'immunizations',
-    title: 'Vacina contra Influenza (2024)',
-    date: '2024-01-05',
-    doctor: 'Dr. Ana Paula',
-    provider: 'Clínica Prontivus',
-    content: 'Vacinação contra influenza administrada. Lote: INF-2024-001. Próxima dose recomendada: Janeiro 2025.',
-    status: 'normal',
-    details: {
-      lotNumber: 'INF-2024-001',
-      nextDose: '2025-01',
-    },
-  },
-  {
-    id: '6',
-    type: 'test',
-    category: 'consultations',
-    title: 'Hemograma Completo',
-    date: '2024-01-10',
-    doctor: 'Dr. João Santos',
-    provider: 'Laboratório Central',
-    content: 'Hemácias: 4.8 milhões/mm³ (Normal)\nLeucócitos: 7.200/mm³ (Normal)\nPlaquetas: 250.000/mm³ (Normal)\nHemoglobina: 14.5 g/dL (Normal)',
-    status: 'normal',
-    attachments: 1,
-  },
-  {
-    id: '7',
-    type: 'prescription',
-    category: 'consultations',
-    title: 'Prescrição - Losartana 50mg',
-    date: '2024-01-15',
-    doctor: 'Dr. Maria Silva',
-    provider: 'Clínica Prontivus',
-    content: 'Losartana 50mg - 1 comprimido ao dia pela manhã\nÁcido Acetilsalicílico 100mg - 1 comprimido ao dia\nUso contínuo. Retornar em 3 meses para acompanhamento.',
-    status: 'active',
-  },
-  {
-    id: '8',
-    type: 'test',
-    category: 'consultations',
-    title: 'Glicemia em Jejum',
-    date: '2024-01-10',
-    doctor: 'Dr. João Santos',
-    provider: 'Laboratório Central',
-    content: 'Glicemia: 110 mg/dL (Valor elevado - acima do normal)\nRecomendação: repetir exame e avaliar glicemia pós-prandial.',
-    status: 'abnormal',
-    attachments: 1,
-  },
-];
+// Data state (replaces mocks)
+const mockRecords: MedicalRecord[] = [];
 
-const mockVitalSigns: VitalSignData[] = [
-  { date: '2023-10-01', systolic: 145, diastolic: 92, heartRate: 78, temperature: 36.8, weight: 76 },
-  { date: '2023-11-01', systolic: 140, diastolic: 88, heartRate: 75, temperature: 36.6, weight: 75.5 },
-  { date: '2023-12-01', systolic: 138, diastolic: 85, heartRate: 74, temperature: 36.7, weight: 75.2 },
-  { date: '2024-01-01', systolic: 135, diastolic: 82, heartRate: 73, temperature: 36.5, weight: 75 },
-  { date: '2024-01-15', systolic: 120, diastolic: 80, heartRate: 72, temperature: 36.5, weight: 75 },
-];
+const mockVitalSigns: VitalSignData[] = [];
 
 const mockMedications: MedicationAdherence[] = [
   { medication: 'Losartana 50mg', prescribed: 30, taken: 28, adherence: 93, status: 'good' },
@@ -284,20 +166,75 @@ export default function MedicalRecordsPage() {
   });
   const [expandedRecords, setExpandedRecords] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(false);
+  const [records, setRecords] = useState<MedicalRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const history = await api.get<any[]>(`/api/clinical/me/history`);
+        const out: MedicalRecord[] = [];
+        history.forEach(item => {
+          out.push({
+            id: `apt-${item.appointment_id}`,
+            type: 'consultation',
+            category: 'consultations',
+            title: `Consulta com ${item.doctor_name}`,
+            date: item.appointment_date,
+            doctor: item.doctor_name,
+            provider: undefined,
+            content: item.clinical_record?.notes || 'Consulta realizada',
+            status: 'normal',
+          });
+          item.clinical_record?.prescriptions?.forEach((p: any) => {
+            out.push({
+              id: `rx-${p.id}`,
+              type: 'prescription',
+              category: 'consultations',
+              title: `Prescrição - ${p.medication_name}`,
+              date: p.issued_date,
+              doctor: item.doctor_name,
+              provider: undefined,
+              content: [p.dosage, p.frequency, p.duration, p.instructions].filter(Boolean).join(' | '),
+              status: p.is_active ? 'active' : 'resolved',
+            });
+          });
+          item.clinical_record?.exam_requests?.forEach((er: any) => {
+            out.push({
+              id: `ex-${er.id}`,
+              type: 'test',
+              category: 'consultations',
+              title: er.exam_type,
+              date: er.requested_date,
+              doctor: item.doctor_name,
+              provider: undefined,
+              content: er.description || '',
+              status: er.completed ? 'resolved' : 'pending',
+              attachments: er.completed ? 1 : 0,
+            });
+          });
+        });
+        setRecords(out);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   // Get unique providers
   const providers = useMemo<string[]>(() => {
     const uniqueProviders = new Set<string>(
-      mockRecords
+      records
         .map(r => r.provider)
         .filter((p): p is string => typeof p === 'string' && p.length > 0)
     );
     return Array.from(uniqueProviders);
-  }, []);
+  }, [records]);
 
   // Filter records
   const filteredRecords = useMemo(() => {
-    let filtered = [...mockRecords];
+    let filtered = [...records];
 
     // Filter by category/tab
     if (activeTab !== 'all') {
@@ -329,7 +266,7 @@ export default function MedicalRecordsPage() {
     }
 
     return filtered.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
-  }, [activeTab, searchQuery, selectedProvider, selectedDateRange]);
+  }, [records, activeTab, searchQuery, selectedProvider, selectedDateRange]);
 
   const toggleExpand = (id: string) => {
     const newExpanded = new Set(expandedRecords);
@@ -549,6 +486,7 @@ export default function MedicalRecordsPage() {
                 <BodyChart interactive />
               </div>
               {/* Vital Signs Trends */}
+              {mockVitalSigns.length > 0 && (
               <Card className="medical-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-[#0F4C75]">
@@ -575,8 +513,10 @@ export default function MedicalRecordsPage() {
                   </div>
                 </CardContent>
               </Card>
+              )}
 
-              {/* Medication Adherence */}
+              {/* Medication Adherence (hidden until backed by DB) */}
+              {false && (
               <Card className="medical-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-[#0F4C75]">
@@ -623,6 +563,7 @@ export default function MedicalRecordsPage() {
                   </div>
                 </CardContent>
               </Card>
+              )}
             </div>
 
             {/* Timeline View */}
