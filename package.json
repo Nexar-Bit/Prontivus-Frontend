@@ -3,15 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "NEXT_SKIP_TURBOPACK=1 next build",
+    "dev": "cross-env NEXT_SKIP_TURBOPACK=1 next dev",
+    "build": "cross-env NEXT_SKIP_TURBOPACK=1 next build",
     "start": "next start",
     "lint": "eslint",
     "design:lint": "node scripts/design-lint.js",
     "component:audit": "node scripts/component-audit.js",
     "quality:check": "npm run design:lint && npm run component:audit",
     "a11y:check": "echo 'Run accessibility audit with browser tools'",
-    "perf:analyze": "ANALYZE=true next build"
+    "perf:analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -51,6 +51,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "@axe-core/playwright": "^4.11.0",
     "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",

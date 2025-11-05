@@ -109,7 +109,7 @@ export default function PatientBillingPage() {
         });
       }
       
-      setInvoices(filtered);
+      setInvoices(filtered as unknown as Invoice[]);
     } catch (error: any) {
       // Normalize error for logging
       const errorMessage = error?.message || normalizeError(error) || "Unknown error";

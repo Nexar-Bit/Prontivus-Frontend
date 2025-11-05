@@ -304,10 +304,10 @@ export default function AdminLogsPage() {
                 <Label>Source</Label>
                 <p className="text-sm">{selectedLog.source}</p>
               </div>
-              {selectedLog.userId && (
+              {selectedLog.user_id && (
                 <div>
                   <Label>User ID</Label>
-                  <p className="text-sm">{selectedLog.userId}</p>
+                  <p className="text-sm">{selectedLog.user_id}</p>
                 </div>
               )}
             </div>

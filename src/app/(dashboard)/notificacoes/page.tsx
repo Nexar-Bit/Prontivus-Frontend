@@ -479,7 +479,7 @@ export default function NotificationsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => router.push(notification.actionUrl)}
+                        onClick={() => router.push(notification.actionUrl!)}
                       >
                         {notification.actionText}
                       </Button>

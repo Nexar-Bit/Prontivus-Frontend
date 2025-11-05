@@ -81,8 +81,8 @@ export default function PatientNotesPage() {
     if (!profile) return;
     setSaving(true);
     try {
-      const updated = await api.put(`/api/patients/me`, { notes: JSON.stringify(nextNotes) });
-      setProfile(updated);
+      const updated = await api.put<PatientProfile>(`/api/patients/me`, { notes: JSON.stringify(nextNotes) });
+      setProfile(updated as PatientProfile);
       setNotes(nextNotes);
     } finally {
       setSaving(false);
