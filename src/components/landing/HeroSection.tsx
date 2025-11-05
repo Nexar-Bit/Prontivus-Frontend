@@ -35,6 +35,7 @@ export function HeroSection({ className }: HeroSectionProps) {
       className={cn(
         "relative min-h-[600px] lg:min-h-[700px] flex items-center overflow-hidden",
         "bg-gradient-to-br from-[#0F4C75] via-[#1B9AAA] to-[#0F4C75]",
+        "pt-20",
         className
       )}
     >
@@ -83,10 +84,12 @@ export function HeroSection({ className }: HeroSectionProps) {
                     size="lg"
                     variant="outline"
                     className={cn(
-                      "border-2 border-white/30 text-white hover:bg-white/10",
+                      "border-2 border-white/80 text-white hover:bg-white/20",
+                      "bg-white/10 backdrop-blur-md",
                       "text-lg px-8 py-6 h-auto font-semibold",
-                      "backdrop-blur-sm transition-all duration-300",
-                      "hover:scale-105 active:scale-95 hover:border-white/50"
+                      "transition-all duration-300",
+                      "hover:scale-105 active:scale-95 hover:border-white hover:bg-white/25",
+                      "shadow-lg hover:shadow-xl"
                     )}
                   >
                     <Play className="mr-2 h-5 w-5 fill-white" />
