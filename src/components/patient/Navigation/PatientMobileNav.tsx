@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { usePatientBadges } from "@/hooks/usePatientBadges";
 import {
   Home,
   Calendar,
@@ -29,32 +30,54 @@ interface PatientMobileNavProps {
   items?: NavigationItem[];
 }
 
-const mobileNavItems = [
+const baseMobileNavItems: NavigationItem[] = [
   { label: "Dashboard", icon: Home, href: "/patient/dashboard" },
-  { label: "Appointments", icon: Calendar, href: "/patient/appointments", badge: 2 },
+  { label: "Appointments", icon: Calendar, href: "/patient/appointments" },
   { label: "Records", icon: Folder, href: "/patient/medical-records" },
-  { label: "Messages", icon: MessageCircle, href: "/patient/messages", badge: 3 },
+  { label: "Messages", icon: MessageCircle, href: "/patient/messages" },
+];
+
+const baseNavigationItems: NavigationItem[] = [
+  { label: "Dashboard", icon: Home, href: "/patient/dashboard", section: "main" },
+  { label: "Appointments", icon: Calendar, href: "/patient/appointments", section: "main" },
+  { label: "Medical Records", icon: Folder, href: "/patient/medical-records", section: "main" },
+  { label: "Prescriptions", icon: Pill, href: "/patient/prescriptions", section: "health" },
+  { label: "Test Results", icon: TestTube, href: "/patient/test-results", section: "health" },
+  { label: "Health Summary", icon: Heart, href: "/patient/health", section: "health" },
+  { label: "Messages", icon: MessageCircle, href: "/patient/messages", section: "communication" },
+  { label: "Clinical Notes", icon: FileText, href: "/patient/notes", section: "health" },
+  { label: "Billing & Payments", icon: CreditCard, href: "/patient/billing", section: "services" },
+  { label: "My Doctors", icon: Stethoscope, href: "/patient/doctors", section: "services" },
+  { label: "Profile", icon: User, href: "/portal/profile", section: "settings" },
+  { label: "Settings", icon: Settings, href: "/patient/settings", section: "settings" },
 ];
 
 export function PatientMobileNav({ items }: PatientMobileNavProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { badges } = usePatientBadges();
 
-  // Default items if not provided
-  const allItems = items || [
-    { label: "Dashboard", icon: Home, href: "/patient/dashboard", section: "main" },
-    { label: "Appointments", icon: Calendar, href: "/patient/appointments", badge: 2, section: "main" },
-    { label: "Medical Records", icon: Folder, href: "/patient/medical-records", section: "main" },
-    { label: "Prescriptions", icon: Pill, href: "/patient/prescriptions", section: "health" },
-    { label: "Test Results", icon: TestTube, href: "/patient/test-results", section: "health" },
-    { label: "Health Summary", icon: Heart, href: "/patient/health", section: "health" },
-    { label: "Messages", icon: MessageCircle, href: "/patient/messages", badge: 3, section: "communication" },
-    { label: "Clinical Notes", icon: FileText, href: "/patient/notes", section: "health" },
-    { label: "Billing & Payments", icon: CreditCard, href: "/patient/billing", section: "services" },
-    { label: "My Doctors", icon: Stethoscope, href: "/patient/doctors", section: "services" },
-    { label: "Profile", icon: User, href: "/portal/profile", section: "settings" },
-    { label: "Settings", icon: Settings, href: "/patient/settings", section: "settings" },
-  ];
+  // Merge items with dynamic badges
+  const mobileNavItems = baseMobileNavItems.map(item => {
+    if (item.href === "/patient/appointments") {
+      return { ...item, badge: badges.appointments > 0 ? badges.appointments : undefined };
+    }
+    if (item.href === "/patient/messages") {
+      return { ...item, badge: badges.messages > 0 ? badges.messages : undefined };
+    }
+    return item;
+  });
+
+  // Default items if not provided - merge with dynamic badges
+  const allItems = items || baseNavigationItems.map(item => {
+    if (item.href === "/patient/appointments") {
+      return { ...item, badge: badges.appointments > 0 ? badges.appointments : undefined };
+    }
+    if (item.href === "/patient/messages") {
+      return { ...item, badge: badges.messages > 0 ? badges.messages : undefined };
+    }
+    return item;
+  });
 
   const sectionLabels: Record<string, string> = {
     main: "Principal",

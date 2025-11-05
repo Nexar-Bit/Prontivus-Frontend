@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { notificationsApi, NotificationItem } from "@/lib/notifications-api";
 import {
   Bell,
   Search,
@@ -24,11 +25,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface PatientHeaderProps {
   className?: string;
   showSearch?: boolean;
-  notificationCount?: number;
+  notificationCount?: number; // Deprecated - will be fetched from API
 }
 
 interface SearchResult {
@@ -42,13 +45,42 @@ interface SearchResult {
 export function PatientHeader({
   className,
   showSearch = true,
-  notificationCount = 3,
+  notificationCount: propNotificationCount,
 }: PatientHeaderProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(true);
+
+  // Fetch notifications from database
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        setLoadingNotifications(true);
+        const data = await notificationsApi.getAll();
+        setNotifications(data || []);
+      } catch (error) {
+        console.error("Failed to load notifications:", error);
+        setNotifications([]);
+      } finally {
+        setLoadingNotifications(false);
+      }
+    };
+
+    loadNotifications();
+    
+    // Refresh notifications every 30 seconds
+    const interval = setInterval(loadNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Calculate unread notification count
+  const unreadCount = notifications.filter(n => !n.read).length;
+  const notificationCount = propNotificationCount !== undefined ? propNotificationCount : unreadCount;
 
   const getUserInitials = () => {
     if (user?.first_name && user?.last_name) {
@@ -245,41 +277,102 @@ export function PatientHeader({
                   <h3 className="font-semibold text-[#0F4C75]">Notificações</h3>
                 </div>
                 <div className="max-h-96 overflow-y-auto">
-                  {/* Mock notifications */}
-                  <div className="p-4 space-y-3">
-                    <div className="flex gap-3">
-                      <div className="h-10 w-10 rounded-full bg-[#1B9AAA]/10 flex items-center justify-center flex-shrink-0">
-                        <MessageCircle className="h-5 w-5 text-[#1B9AAA]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          Nova mensagem do Dr. Silva
-                        </p>
-                        <p className="text-xs text-gray-600">Há 5 minutos</p>
-                      </div>
+                  {loadingNotifications ? (
+                    <div className="p-4 text-center text-gray-500">
+                      Carregando...
                     </div>
-                    <div className="flex gap-3">
-                      <div className="h-10 w-10 rounded-full bg-[#16C79A]/10 flex items-center justify-center flex-shrink-0">
-                        <TestTube className="h-5 w-5 text-[#16C79A]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          Resultados de exames disponíveis
-                        </p>
-                        <p className="text-xs text-gray-600">Há 1 hora</p>
-                      </div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                      <p className="text-sm">Nenhuma notificação</p>
                     </div>
+                  ) : (
+                    <div className="p-4 space-y-3">
+                      {notifications.slice(0, 10).map((notification) => {
+                        const getIcon = () => {
+                          switch (notification.kind) {
+                            case "appointment":
+                              return Calendar;
+                            case "message":
+                              return MessageCircle;
+                            case "exam":
+                            case "test":
+                              return TestTube;
+                            default:
+                              return FileText;
+                          }
+                        };
+                        const Icon = getIcon();
+                        const getIconColor = () => {
+                          switch (notification.kind) {
+                            case "appointment":
+                              return "text-[#0F4C75] bg-[#0F4C75]/10";
+                            case "message":
+                              return "text-[#1B9AAA] bg-[#1B9AAA]/10";
+                            case "exam":
+                            case "test":
+                              return "text-[#16C79A] bg-[#16C79A]/10";
+                            default:
+                              return "text-gray-600 bg-gray-100";
+                          }
+                        };
+
+                        return (
+                          <button
+                            key={notification.id}
+                            onClick={async () => {
+                              if (!notification.read) {
+                                try {
+                                  await notificationsApi.markRead(notification.kind, notification.source_id);
+                                  setNotifications(prev =>
+                                    prev.map(n =>
+                                      n.id === notification.id ? { ...n, read: true } : n
+                                    )
+                                  );
+                                } catch (error) {
+                                  console.error("Failed to mark notification as read:", error);
+                                }
+                              }
+                              if (notification.actionUrl) {
+                                router.push(notification.actionUrl);
+                              }
+                            }}
+                            className={cn(
+                              "w-full flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left",
+                              !notification.read && "bg-blue-50/50"
+                            )}
+                          >
+                            <div className={cn("h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0", getIconColor())}>
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={cn("text-sm font-medium", !notification.read && "font-semibold text-gray-900")}>
+                                {notification.title}
+                              </p>
+                              <p className="text-xs text-gray-600 line-clamp-2">{notification.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true, locale: ptBR })}
+                              </p>
+                            </div>
+                            {!notification.read && (
+                              <div className="h-2 w-2 rounded-full bg-[#1B9AAA] flex-shrink-0 mt-1" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                {notifications.length > 0 && (
+                  <div className="p-4 border-t border-gray-200">
+                    <Button
+                      variant="outline"
+                      className="w-full border-[#1B9AAA] text-[#1B9AAA]"
+                      onClick={() => router.push("/patient/notifications")}
+                    >
+                      Ver Todas as Notificações
+                    </Button>
                   </div>
-                </div>
-                <div className="p-4 border-t border-gray-200">
-                  <Button
-                    variant="outline"
-                    className="w-full border-[#1B9AAA] text-[#1B9AAA]"
-                    onClick={() => router.push("/patient/notifications")}
-                  >
-                    Ver Todas as Notificações
-                  </Button>
-                </div>
+                )}
               </PopoverContent>
             </Popover>
 

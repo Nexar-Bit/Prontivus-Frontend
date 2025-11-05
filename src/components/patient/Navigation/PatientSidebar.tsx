@@ -2,9 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts";
+import { logout } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { usePatientBadges } from "@/hooks/usePatientBadges";
 import {
   Home,
   Calendar,
@@ -18,6 +22,7 @@ import {
   FileText,
   Heart,
   Stethoscope,
+  LogOut,
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -33,14 +38,15 @@ interface PatientSidebarProps {
   items?: NavigationItem[];
 }
 
-const defaultNavigationItems: NavigationItem[] = [
+// Base navigation items without badges (badges will be added dynamically)
+const baseNavigationItems: NavigationItem[] = [
   { label: "Dashboard", icon: Home, href: "/patient/dashboard", section: "main" },
-  { label: "Appointments", icon: Calendar, href: "/patient/appointments", badge: 2, section: "main" },
+  { label: "Appointments", icon: Calendar, href: "/patient/appointments", section: "main" },
   { label: "Medical Records", icon: Folder, href: "/patient/medical-records", section: "main" },
   { label: "Prescriptions", icon: Pill, href: "/patient/prescriptions", section: "health" },
   { label: "Test Results", icon: TestTube, href: "/patient/test-results", section: "health" },
   { label: "Health Summary", icon: Heart, href: "/patient/health", section: "health" },
-  { label: "Messages", icon: MessageCircle, href: "/patient/messages", badge: 3, section: "communication" },
+  { label: "Messages", icon: MessageCircle, href: "/patient/messages", section: "communication" },
   { label: "Clinical Notes", icon: FileText, href: "/patient/notes", section: "health" },
   { label: "Billing & Payments", icon: CreditCard, href: "/patient/billing", section: "services" },
   { label: "My Doctors", icon: Stethoscope, href: "/patient/doctors", section: "services" },
@@ -56,11 +62,38 @@ const sectionColors = {
   settings: "hover:bg-gray-50 hover:text-gray-700",
 };
 
-export function PatientSidebar({ className, items = defaultNavigationItems }: PatientSidebarProps) {
+export function PatientSidebar({ className, items }: PatientSidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout: authLogout } = useAuth();
+  const { badges } = usePatientBadges();
+
+  // Merge base items with dynamic badges
+  const navigationItems: NavigationItem[] = items || baseNavigationItems.map(item => {
+    if (item.href === "/patient/appointments") {
+      return { ...item, badge: badges.appointments > 0 ? badges.appointments : undefined };
+    }
+    if (item.href === "/patient/messages") {
+      return { ...item, badge: badges.messages > 0 ? badges.messages : undefined };
+    }
+    return item;
+  });
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      authLogout();
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Force logout even if API call fails
+      authLogout();
+      router.push("/login");
+    }
+  };
 
   // Group items by section
-  const groupedItems = items.reduce(
+  const groupedItems = navigationItems.reduce(
     (acc, item) => {
       const section = item.section || "main";
       if (!acc[section]) acc[section] = [];
@@ -152,8 +185,8 @@ export function PatientSidebar({ className, items = defaultNavigationItems }: Pa
         </div>
       </nav>
 
-      {/* Footer Help Section */}
-      <div className="border-t border-gray-200 p-4">
+      {/* Footer Section */}
+      <div className="border-t border-gray-200 p-4 space-y-2">
         <Link
           href="/patient/help"
           className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-[#0F4C75] transition-all duration-200 group"
@@ -161,6 +194,14 @@ export function PatientSidebar({ className, items = defaultNavigationItems }: Pa
           <MessageCircle className="h-6 w-6 text-gray-400 group-hover:text-[#0F4C75] transition-colors" />
           <span>Precisa de Ajuda?</span>
         </Link>
+        <Button
+          variant="ghost"
+          onClick={handleLogout}
+          className="w-full justify-start gap-3 px-4 py-3 h-auto text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+        >
+          <LogOut className="h-6 w-6" />
+          <span>Sair</span>
+        </Button>
       </div>
     </aside>
   );
