@@ -589,10 +589,10 @@ export function AppSidebar() {
           <Image
             src={"/Logo/Prontivus Horizontal Transparents.png"}
             alt="Prontivus"
-            width={200}
-            height={37}
+            width={240}
+            height={44}
             priority
-            className="h-9 w-auto"
+            className="h-14 w-auto"
           />
         </Link>
         <p className="text-white/70 text-xs mt-2 ml-1">Cuidado Inteligente</p>
@@ -743,10 +743,10 @@ export function AppSidebar() {
               <Image
                 src={"/Logo/Prontivus Horizontal Transparents.png"}
                 alt="Prontivus"
-                width={160}
-                height={30}
-                className="h-7 w-auto"
-                style={{ height: 30, width: "auto" }}
+                width={200}
+                height={37}
+                className="h-10 w-auto"
+                style={{ height: 40, width: "auto" }}
               />
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
