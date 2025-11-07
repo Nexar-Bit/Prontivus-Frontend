@@ -2,23 +2,11 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { appointmentsApi } from "@/lib/appointments-api";
+import { Loader2 } from "lucide-react";
 
 const days = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
 const hours = ['08h', '09h', '10h', '11h', '12h', '13h', '14h', '15h', '16h', '17h', '18h'];
-
-// Mock heatmap data - replace with API
-const heatmapData: Record<string, number> = {
-  'Seg-08h': 2, 'Seg-09h': 4, 'Seg-10h': 5, 'Seg-11h': 3, 'Seg-12h': 1,
-  'Seg-13h': 2, 'Seg-14h': 5, 'Seg-15h': 6, 'Seg-16h': 4, 'Seg-17h': 3, 'Seg-18h': 2,
-  'Ter-08h': 3, 'Ter-09h': 5, 'Ter-10h': 6, 'Ter-11h': 4, 'Ter-12h': 2,
-  'Ter-13h': 3, 'Ter-14h': 6, 'Ter-15h': 7, 'Ter-16h': 5, 'Ter-17h': 4, 'Ter-18h': 2,
-  'Qua-08h': 2, 'Qua-09h': 4, 'Qua-10h': 5, 'Qua-11h': 3, 'Qua-12h': 1,
-  'Qua-13h': 2, 'Qua-14h': 5, 'Qua-15h': 6, 'Qua-16h': 4, 'Qua-17h': 3, 'Qua-18h': 1,
-  'Qui-08h': 3, 'Qui-09h': 6, 'Qui-10h': 7, 'Qui-11h': 5, 'Qui-12h': 3,
-  'Qui-13h': 4, 'Qui-14h': 7, 'Qui-15h': 8, 'Qui-16h': 6, 'Qui-17h': 5, 'Qui-18h': 3,
-  'Sex-08h': 2, 'Sex-09h': 4, 'Sex-10h': 5, 'Sex-11h': 3, 'Sex-12h': 1,
-  'Sex-13h': 2, 'Sex-14h': 4, 'Sex-15h': 5, 'Sex-16h': 3, 'Sex-17h': 2, 'Sex-18h': 1,
-};
 
 const getIntensity = (value: number) => {
   if (value === 0) return 'bg-gray-100';
@@ -36,12 +24,88 @@ const getIntensityText = (value: number) => {
 };
 
 export function AppointmentHeatmap() {
-  const maxValue = Math.max(...Object.values(heatmapData));
+  const [heatmapData, setHeatmapData] = React.useState<Record<string, number>>({});
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Get appointments for the last 30 days
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        
+        const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+        const endDate = now.toISOString().split('T')[0];
+        
+        const appointments = await appointmentsApi.getAll({
+          start_date: startDate,
+          end_date: endDate,
+        });
+        
+        // Initialize heatmap data
+        const data: Record<string, number> = {};
+        days.forEach(day => {
+          hours.forEach(hour => {
+            data[`${day}-${hour}`] = 0;
+          });
+        });
+        
+        // Count appointments by day and hour
+        appointments.forEach((apt: any) => {
+          if (apt.scheduled_datetime) {
+            const aptDate = new Date(apt.scheduled_datetime);
+            const dayOfWeek = aptDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            const hour = aptDate.getHours();
+            
+            // Map day of week to our days array (Monday = 1, Tuesday = 2, etc.)
+            const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday=0 to Sunday=6, then shift
+            if (dayIndex >= 0 && dayIndex < 5) { // Only weekdays (Mon-Fri)
+              const dayName = days[dayIndex];
+              const hourStr = `${hour.toString().padStart(2, '0')}h`;
+              
+              if (hours.includes(hourStr)) {
+                const key = `${dayName}-${hourStr}`;
+                data[key] = (data[key] || 0) + 1;
+              }
+            }
+          }
+        });
+        
+        setHeatmapData(data);
+      } catch (err) {
+        console.error("Failed to fetch heatmap data:", err);
+        // Fallback to empty data
+        const emptyData: Record<string, number> = {};
+        days.forEach(day => {
+          hours.forEach(hour => {
+            emptyData[`${day}-${hour}`] = 0;
+          });
+        });
+        setHeatmapData(emptyData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(...Object.values(heatmapData), 1);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between text-sm text-gray-600">
-        <span>Horários mais utilizados</span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-sm text-gray-600">
+        <span className="text-xs sm:text-sm">Horários mais utilizados</span>
         <div className="flex items-center gap-2">
           <span className="text-xs">Menos</span>
           <div className="flex gap-1">
@@ -55,8 +119,8 @@ export function AppointmentHeatmap() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="inline-block min-w-full">
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <div className="inline-block min-w-full px-4 sm:px-0">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -84,7 +148,7 @@ export function AppointmentHeatmap() {
                       <td key={hour} className="py-1 px-0.5">
                         <div
                           className={cn(
-                            "w-10 h-8 rounded flex items-center justify-center text-xs font-semibold transition-all hover:scale-110 cursor-pointer",
+                            "w-8 h-7 sm:w-10 sm:h-8 rounded flex items-center justify-center text-[10px] sm:text-xs font-semibold transition-all hover:scale-110 cursor-pointer",
                             getIntensity(value),
                             getIntensityText(value)
                           )}

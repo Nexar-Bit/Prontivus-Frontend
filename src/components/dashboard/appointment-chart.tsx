@@ -14,7 +14,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import { api } from "@/lib/api";
+import { appointmentsApi } from "@/lib/appointments-api";
 import { Loader2 } from "lucide-react";
 
 ChartJS.register(
@@ -41,11 +41,20 @@ export function AppointmentChart() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Get appointments by status for the last 30 days
-        const analyticsData = await api.get<{ appointments_by_status: Array<{ status: string; count: number }> }>("/api/analytics/clinical?period=last_30_days");
+        // Get appointments for the last 30 days
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        
+        const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+        const endDate = now.toISOString().split('T')[0];
+        
+        const appointments = await appointmentsApi.getAll({
+          start_date: startDate,
+          end_date: endDate,
+        });
         
         // Group by weeks for the last 4 weeks
-        const now = new Date();
         const weeks = [];
         const scheduled = [];
         const completed = [];
@@ -53,15 +62,26 @@ export function AppointmentChart() {
         for (let i = 3; i >= 0; i--) {
           const weekStart = new Date(now);
           weekStart.setDate(now.getDate() - (i * 7 + 7));
+          weekStart.setHours(0, 0, 0, 0);
           const weekEnd = new Date(now);
           weekEnd.setDate(now.getDate() - (i * 7));
+          weekEnd.setHours(23, 59, 59, 999);
           
           weeks.push(`Sem ${4 - i}`);
           
-          // For now, use mock data structure but can be enhanced with actual weekly queries
-          // This is a simplified version - for production, add a weekly aggregation endpoint
-          scheduled.push(Math.floor(Math.random() * 50) + 100); // Placeholder
-          completed.push(Math.floor(Math.random() * 40) + 90); // Placeholder
+          // Count appointments in this week
+          const weekScheduled = appointments.filter((apt: any) => {
+            const aptDate = new Date(apt.scheduled_datetime || apt.created_at);
+            return aptDate >= weekStart && aptDate <= weekEnd;
+          }).length;
+          
+          const weekCompleted = appointments.filter((apt: any) => {
+            const aptDate = new Date(apt.scheduled_datetime || apt.created_at);
+            return aptDate >= weekStart && aptDate <= weekEnd && apt.status === 'completed';
+          }).length;
+          
+          scheduled.push(weekScheduled);
+          completed.push(weekCompleted);
         }
         
         setChartData({ labels: weeks, scheduled, completed });

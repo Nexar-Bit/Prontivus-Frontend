@@ -155,49 +155,66 @@ export default function Dashboard() {
   };
 
   const legacy = (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
             {getWelcomeMessage()}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" disabled>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              // Refresh dashboard data for last 30 days
+              window.location.reload();
+            }}
+            className="flex-1 sm:flex-initial"
+          >
             Últimos 30 dias
           </Button>
-          <Button variant="outline" size="sm" onClick={() => {
-            // Open export endpoint in new window to trigger file download
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const token = localStorage.getItem('access_token');
-            const url = `${apiUrl}/api/analytics/export/financial/excel?period=last_month`;
-            // Create a temporary link to trigger download with auth header
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`;
-            // For authenticated downloads, we need to use fetch with the token
-            fetch(url, {
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            })
-              .then(response => response.blob())
-              .then(blob => {
-                const downloadUrl = window.URL.createObjectURL(blob);
-                link.href = downloadUrl;
-                link.click();
-                window.URL.revokeObjectURL(downloadUrl);
-              })
-              .catch(err => {
-                console.error("Failed to export:", err);
-                // Fallback: open in new tab
-                window.open(url, '_blank');
-              });
-          }}>
-            Exportar
-          </Button>
+          {canAccessFinancial() && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={async () => {
+                try {
+                  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                  const token = localStorage.getItem('clinicore_access_token');
+                  const url = `${apiUrl}/api/analytics/export/financial/excel?period=last_month`;
+                  
+                  const response = await fetch(url, {
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                    },
+                  });
+                  
+                  if (!response.ok) {
+                    throw new Error('Failed to export');
+                  }
+                  
+                  const blob = await response.blob();
+                  const downloadUrl = window.URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = downloadUrl;
+                  link.download = `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(downloadUrl);
+                } catch (err) {
+                  console.error("Failed to export:", err);
+                  alert('Erro ao exportar relatório. Tente novamente.');
+                }
+              }}
+              className="flex-1 sm:flex-initial"
+            >
+              Exportar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -218,7 +235,7 @@ export default function Dashboard() {
       )}
 
       {/* Key Metrics - Top Section */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           icon={metrics.patients.icon}
           value={metrics.patients.value}
@@ -263,7 +280,7 @@ export default function Dashboard() {
 
       {/* Secondary Metrics */}
       {(isSecretary() || isAdmin()) && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             icon={metrics.todayAppointments.icon}
             value={metrics.todayAppointments.value}
@@ -286,7 +303,7 @@ export default function Dashboard() {
       )}
 
       {/* Charts Section - Middle */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <Card className="medical-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -321,7 +338,7 @@ export default function Dashboard() {
       </div>
 
       {/* Medical Data Visualization */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         {isDoctor() && (
           <Card className="medical-card">
             <CardHeader>
@@ -358,7 +375,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Section - Recent Activity & Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
         <Card className="lg:col-span-2 medical-card">
           <CardHeader>
             <CardTitle>Atividade Recente</CardTitle>
