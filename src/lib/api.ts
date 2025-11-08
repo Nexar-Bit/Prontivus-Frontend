@@ -142,6 +142,60 @@ export const api = {
 
   delete: <T>(endpoint: string, options?: RequestOptions) =>
     apiRequest<T>(endpoint, { ...options, method: 'DELETE' }),
+
+  /**
+   * Download a file (returns Blob instead of JSON)
+   */
+  download: async (endpoint: string, options?: RequestOptions): Promise<Blob> => {
+    const { token, skipAuth, ...fetchOptions } = options || {};
+
+    const headers: HeadersInit = {
+      ...fetchOptions.headers,
+    };
+
+    // Automatically include JWT token from localStorage if not skipped
+    if (!skipAuth) {
+      const authToken = token || getAccessToken();
+      if (authToken) {
+        (headers as any)['Authorization'] = `Bearer ${authToken}`;
+      }
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...fetchOptions,
+      headers,
+    });
+
+    if (!response.ok) {
+      // Handle 401 Unauthorized - redirect to login
+      if (response.status === 401) {
+        clearAuthData();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+      }
+      
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorMessage = typeof errorData.detail === 'string' 
+            ? errorData.detail 
+            : JSON.stringify(errorData.detail);
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      throw error;
+    }
+
+    return response.blob();
+  },
 };
 
 /**

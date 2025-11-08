@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,35 +9,66 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Plus, Search, Filter, Eye, DollarSign, FileText, Clock, CheckCircle, XCircle, Download, FileCode, Archive, AlertTriangle, Shield, Zap } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  CalendarIcon, 
+  Plus, 
+  Search, 
+  Filter, 
+  Eye, 
+  DollarSign, 
+  FileText, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  Download, 
+  FileCode, 
+  Archive, 
+  AlertTriangle, 
+  Shield, 
+  Zap,
+  Loader2,
+  RefreshCw,
+  MoreVertical,
+  Edit,
+  Receipt,
+  TrendingUp,
+  User,
+  Calendar,
+  CreditCard
+} from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { financialApi } from "@/lib/financial-api";
-import { Invoice, InvoiceStatus, ServiceItem, ServiceCategory } from "@/lib/types";
+import { Invoice, InvoiceStatus } from "@/lib/types";
 
 export default function BillingPage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | "all">("all");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<number[]>([]);
   const [validationResults, setValidationResults] = useState<{[key: number]: any}>({});
   const [validatingInvoices, setValidatingInvoices] = useState<number[]>([]);
 
-  // Load data
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/login");
@@ -45,12 +76,12 @@ export default function BillingPage() {
     }
     if (isAuthenticated) {
       loadInvoices();
-      loadServiceItems();
     }
   }, [isAuthenticated, isLoading, router]);
 
   const loadInvoices = async () => {
     try {
+      setLoading(true);
       const data = await financialApi.getInvoices();
       setInvoices(data);
     } catch (error: any) {
@@ -59,15 +90,6 @@ export default function BillingPage() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadServiceItems = async () => {
-    try {
-      const data = await financialApi.getServiceItems({ is_active: true });
-      setServiceItems(data);
-    } catch (error: any) {
-      console.error("Error loading service items:", error);
     }
   };
 
@@ -90,7 +112,6 @@ export default function BillingPage() {
 
   const handleDownloadTissXml = async (invoiceId: number) => {
     try {
-      // Use skip_validation=true for testing purposes
       const blob = await financialApi.downloadTissXml(invoiceId, true);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -111,7 +132,6 @@ export default function BillingPage() {
   const handlePreviewTissXml = async (invoiceId: number) => {
     try {
       const xmlContent = await financialApi.previewTissXml(invoiceId);
-      // Open in new window for preview
       const newWindow = window.open('', '_blank');
       if (newWindow) {
         newWindow.document.write(`
@@ -119,8 +139,8 @@ export default function BillingPage() {
             <head>
               <title>TISS XML - Fatura ${invoiceId}</title>
               <style>
-                body { font-family: monospace; margin: 20px; }
-                pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
+                body { font-family: monospace; margin: 20px; background: #f5f5f5; }
+                pre { background: white; padding: 15px; border-radius: 5px; overflow-x: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
               </style>
             </head>
             <body>
@@ -234,7 +254,6 @@ export default function BillingPage() {
       }
 
       setValidationResults(prev => ({ ...prev, ...results }));
-      
       toast.success(`Validação concluída: ${validCount} válido(s), ${invalidCount} inválido(s)`);
     } catch (error: any) {
       toast.error("Erro ao validar TISS XMLs em lote", {
@@ -245,36 +264,38 @@ export default function BillingPage() {
     }
   };
 
-  const getStatusBadge = (status: InvoiceStatus) => {
-    const variants = {
-      [InvoiceStatus.DRAFT]: "secondary",
-      [InvoiceStatus.ISSUED]: "default",
-      [InvoiceStatus.PAID]: "default",
-      [InvoiceStatus.CANCELLED]: "destructive"
-    } as const;
-
-    const icons = {
-      [InvoiceStatus.DRAFT]: FileText,
-      [InvoiceStatus.ISSUED]: Clock,
-      [InvoiceStatus.PAID]: CheckCircle,
-      [InvoiceStatus.CANCELLED]: XCircle
+  const getStatusConfig = (status: InvoiceStatus) => {
+    const configs = {
+      [InvoiceStatus.DRAFT]: {
+        label: "Rascunho",
+        color: "text-slate-700",
+        bgColor: "bg-slate-100 hover:bg-slate-200",
+        icon: FileText,
+        borderColor: "border-slate-300"
+      },
+      [InvoiceStatus.ISSUED]: {
+        label: "Emitida",
+        color: "text-blue-700",
+        bgColor: "bg-blue-100 hover:bg-blue-200",
+        icon: Clock,
+        borderColor: "border-blue-300"
+      },
+      [InvoiceStatus.PAID]: {
+        label: "Paga",
+        color: "text-green-700",
+        bgColor: "bg-green-100 hover:bg-green-200",
+        icon: CheckCircle,
+        borderColor: "border-green-300"
+      },
+      [InvoiceStatus.CANCELLED]: {
+        label: "Cancelada",
+        color: "text-red-700",
+        bgColor: "bg-red-100 hover:bg-red-200",
+        icon: XCircle,
+        borderColor: "border-red-300"
+      }
     };
-
-    const labels = {
-      [InvoiceStatus.DRAFT]: "Rascunho",
-      [InvoiceStatus.ISSUED]: "Emitida",
-      [InvoiceStatus.PAID]: "Paga",
-      [InvoiceStatus.CANCELLED]: "Cancelada"
-    };
-
-    const Icon = icons[status];
-
-    return (
-      <Badge variant={variants[status]} className="flex items-center gap-1">
-        <Icon className="h-3 w-3" />
-        {labels[status]}
-      </Badge>
-    );
+    return configs[status];
   };
 
   const formatCurrency = (amount: number) => {
@@ -288,41 +309,54 @@ export default function BillingPage() {
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
   };
 
-  // Filter invoices
-  const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch = !searchTerm || 
-      invoice.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.id.toString().includes(searchTerm);
+  const filteredInvoices = useMemo(() => {
+    return invoices.filter(invoice => {
+      const matchesSearch = !searchTerm || 
+        invoice.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoice.id.toString().includes(searchTerm);
+      
+      const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+  }, [invoices, searchTerm, statusFilter]);
+
+  const stats = useMemo(() => {
+    const total = invoices.length;
+    const issued = invoices.filter(i => i.status === InvoiceStatus.ISSUED).length;
+    const paid = invoices.filter(i => i.status === InvoiceStatus.PAID).length;
+    const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.total_amount, 0);
+    const paidAmount = invoices
+      .filter(i => i.status === InvoiceStatus.PAID)
+      .reduce((sum, invoice) => sum + invoice.total_amount, 0);
     
-    const matchesStatus = statusFilter === "all" || invoice.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+    return { total, issued, paid, totalAmount, paidAmount };
+  }, [invoices]);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <p className="text-muted-foreground font-medium">Carregando faturas...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-blue-50/30 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Faturamento</h1>
-          <p className="text-muted-foreground">
-            Gerencie faturas e cobranças dos pacientes
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-lg text-white shadow-lg">
+              <Receipt className="h-6 w-6" />
+            </div>
+            Faturamento
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1.5">
+            Gerencie faturas, cobranças e integração TISS
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -332,85 +366,128 @@ export default function BillingPage() {
                 variant="outline" 
                 onClick={handleBatchValidateTissXml}
                 disabled={validatingInvoices.length > 0}
-                title={`Validar TISS XML para ${selectedInvoices.length} faturas`}
+                className="bg-white"
               >
                 {validatingInvoices.length > 0 ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <Shield className="h-4 w-4 mr-2" />
                 )}
-                Validar TISS ({selectedInvoices.length})
+                Validar ({selectedInvoices.length})
               </Button>
               <Button 
                 variant="outline" 
                 onClick={handleBatchDownloadTissXml}
-                title={`Baixar TISS XML para ${selectedInvoices.length} faturas`}
+                className="bg-white"
               >
                 <Archive className="h-4 w-4 mr-2" />
                 Baixar TISS ({selectedInvoices.length})
               </Button>
             </>
           )}
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Button 
+            onClick={() => router.push('/financeiro/faturamento/new')}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nova Fatura
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={loadInvoices} 
+            disabled={loading}
+            className="bg-white"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Atualizar
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Faturas</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{invoices.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Emitidas</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {invoices.filter(i => i.status === InvoiceStatus.ISSUED).length}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card className="border-l-4 border-l-blue-500 shadow-sm bg-gradient-to-br from-blue-50 to-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Total Faturas</p>
+                <p className="text-2xl font-bold text-blue-700">{stats.total}</p>
+              </div>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FileText className="h-5 w-5 text-blue-700" />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pagas</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {invoices.filter(i => i.status === InvoiceStatus.PAID).length}
+        <Card className="border-l-4 border-l-yellow-500 shadow-sm bg-gradient-to-br from-yellow-50 to-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Emitidas</p>
+                <p className="text-2xl font-bold text-yellow-700">{stats.issued}</p>
+              </div>
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Clock className="h-5 w-5 text-yellow-700" />
+              </div>
             </div>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Valor Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(invoices.reduce((sum, invoice) => sum + invoice.total_amount, 0))}
+        <Card className="border-l-4 border-l-green-500 shadow-sm bg-gradient-to-br from-green-50 to-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Pagas</p>
+                <p className="text-2xl font-bold text-green-700">{stats.paid}</p>
+              </div>
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-700" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="border-l-4 border-l-purple-500 shadow-sm bg-gradient-to-br from-purple-50 to-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Valor Total</p>
+                <p className="text-2xl font-bold text-purple-700">{formatCurrency(stats.totalAmount)}</p>
+              </div>
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <DollarSign className="h-5 w-5 text-purple-700" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-emerald-500 shadow-sm bg-gradient-to-br from-emerald-50 to-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Recebido</p>
+                <p className="text-2xl font-bold text-emerald-700">{formatCurrency(stats.paidAmount)}</p>
+              </div>
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <CreditCard className="h-5 w-5 text-emerald-700" />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filtros
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
@@ -421,12 +498,12 @@ export default function BillingPage() {
                   placeholder="Buscar por paciente ou ID da fatura..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white"
                 />
               </div>
             </div>
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as InvoiceStatus | "all")}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full sm:w-48 bg-white">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -442,126 +519,195 @@ export default function BillingPage() {
       </Card>
 
       {/* Invoices Table */}
-      <Card>
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle>Faturas</CardTitle>
-          <CardDescription>
-            Lista de todas as faturas emitidas
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Faturas</CardTitle>
+              <CardDescription>
+                {filteredInvoices.length} {filteredInvoices.length === 1 ? 'fatura encontrada' : 'faturas encontradas'}
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <input
-                    type="checkbox"
-                    checked={selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0}
-                    onChange={handleSelectAll}
-                    className="rounded"
-                  />
-                </TableHead>
-                <TableHead>ID</TableHead>
-                <TableHead>Paciente</TableHead>
-                <TableHead>Data Emissão</TableHead>
-                <TableHead>Vencimento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Valor</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredInvoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      checked={selectedInvoices.includes(invoice.id)}
-                      onChange={() => handleSelectInvoice(invoice.id)}
-                      className="rounded"
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">#{invoice.id}</TableCell>
-                  <TableCell>{invoice.patient_name}</TableCell>
-                  <TableCell>{formatDate(invoice.issue_date)}</TableCell>
-                  <TableCell>
-                    {invoice.due_date ? formatDate(invoice.due_date) : '-'}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                  <TableCell className="font-medium">
-                    {formatCurrency(invoice.total_amount)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewInvoice(invoice)}
-                        title="Visualizar fatura"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleValidateTissXml(invoice.id)}
-                        disabled={validatingInvoices.includes(invoice.id)}
-                        title="Validar TISS XML"
-                      >
-                        {validatingInvoices.includes(invoice.id) ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-                        ) : validationResults[invoice.id] ? (
-                          validationResults[invoice.id].is_valid ? (
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <XCircle className="h-4 w-4 text-red-600" />
-                          )
-                        ) : (
-                          <Shield className="h-4 w-4" />
+          {filteredInvoices.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground flex flex-col items-center justify-center gap-3">
+              <Receipt className="h-12 w-12 opacity-50" />
+              <p className="font-medium text-lg">Nenhuma fatura encontrada</p>
+              <p className="text-sm">Tente ajustar os filtros de busca</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectedInvoices.length === filteredInvoices.length && filteredInvoices.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Paciente</TableHead>
+                    <TableHead>Data Emissão</TableHead>
+                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredInvoices.map((invoice) => {
+                    const statusConfig = getStatusConfig(invoice.status);
+                    const StatusIcon = statusConfig.icon;
+                    const isOverdue = invoice.due_date && 
+                      new Date(invoice.due_date) < new Date() && 
+                      invoice.status !== InvoiceStatus.PAID && 
+                      invoice.status !== InvoiceStatus.CANCELLED;
+                    
+                    return (
+                      <TableRow 
+                        key={invoice.id}
+                        className={cn(
+                          "hover:bg-slate-50 transition-colors",
+                          isOverdue && "bg-orange-50/50"
                         )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePreviewTissXml(invoice.id)}
-                        title="Visualizar TISS XML"
                       >
-                        <FileCode className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDownloadTissXml(invoice.id)}
-                        title="Baixar TISS XML"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      {invoice.status === InvoiceStatus.ISSUED && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleMarkPaid(invoice.id)}
-                          title="Marcar como paga"
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedInvoices.includes(invoice.id)}
+                            onCheckedChange={() => handleSelectInvoice(invoice.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">#{invoice.id}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            {invoice.patient_name || `Paciente #${invoice.patient_id}`}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            {formatDate(invoice.issue_date)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {invoice.due_date ? (
+                            <div className={cn(
+                              "flex items-center gap-2",
+                              isOverdue && "text-orange-600 font-medium"
+                            )}>
+                              <Calendar className="h-4 w-4" />
+                              {formatDate(invoice.due_date)}
+                              {isOverdue && (
+                                <Badge variant="outline" className="text-orange-700 bg-orange-50 border-orange-200 text-xs">
+                                  Vencida
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "flex items-center gap-1.5 w-fit",
+                              statusConfig.color,
+                              statusConfig.bgColor,
+                              "border-0"
+                            )}
+                          >
+                            <StatusIcon className="h-3 w-3" />
+                            {statusConfig.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatCurrency(invoice.total_amount)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewInvoice(invoice)}
+                              title="Visualizar fatura"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handlePreviewTissXml(invoice.id)}>
+                                  <FileCode className="h-4 w-4 mr-2" />
+                                  Visualizar TISS XML
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDownloadTissXml(invoice.id)}>
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Baixar TISS XML
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleValidateTissXml(invoice.id)}
+                                  disabled={validatingInvoices.includes(invoice.id)}
+                                >
+                                  {validatingInvoices.includes(invoice.id) ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  ) : validationResults[invoice.id] ? (
+                                    validationResults[invoice.id].is_valid ? (
+                                      <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                                    ) : (
+                                      <XCircle className="h-4 w-4 mr-2 text-red-600" />
+                                    )
+                                  ) : (
+                                    <Shield className="h-4 w-4 mr-2" />
+                                  )}
+                                  Validar TISS XML
+                                </DropdownMenuItem>
+                                {invoice.status === InvoiceStatus.ISSUED && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      onClick={() => handleMarkPaid(invoice.id)}
+                                      className="text-green-600"
+                                    >
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Marcar como Paga
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Invoice Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhes da Fatura #{selectedInvoice?.id}</DialogTitle>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-emerald-600" />
+              Fatura #{selectedInvoice?.id}
+            </DialogTitle>
             <DialogDescription>
-              Informações completas da fatura
+              Detalhes completos da fatura
             </DialogDescription>
           </DialogHeader>
           
@@ -569,72 +715,105 @@ export default function BillingPage() {
             <div className="space-y-6">
               {/* Invoice Info */}
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">Paciente</Label>
-                  <p className="text-sm text-muted-foreground">{selectedInvoice.patient_name}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Data de Emissão</Label>
-                  <p className="text-sm text-muted-foreground">{formatDate(selectedInvoice.issue_date)}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Vencimento</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedInvoice.due_date ? formatDate(selectedInvoice.due_date) : 'Não definido'}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Status</Label>
-                  <div className="mt-1">{getStatusBadge(selectedInvoice.status)}</div>
-                </div>
+                <Card className="border-slate-200">
+                  <CardContent className="p-4">
+                    <Label className="text-sm font-medium text-muted-foreground">Paciente</Label>
+                    <p className="text-base font-semibold mt-1">{selectedInvoice.patient_name}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200">
+                  <CardContent className="p-4">
+                    <Label className="text-sm font-medium text-muted-foreground">Data de Emissão</Label>
+                    <p className="text-base font-semibold mt-1">{formatDate(selectedInvoice.issue_date)}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200">
+                  <CardContent className="p-4">
+                    <Label className="text-sm font-medium text-muted-foreground">Vencimento</Label>
+                    <p className="text-base font-semibold mt-1">
+                      {selectedInvoice.due_date ? formatDate(selectedInvoice.due_date) : 'Não definido'}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="border-slate-200">
+                  <CardContent className="p-4">
+                    <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                    <div className="mt-1">
+                      {(() => {
+                        const config = getStatusConfig(selectedInvoice.status);
+                        const Icon = config.icon;
+                        return (
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "flex items-center gap-1.5 w-fit",
+                              config.color,
+                              config.bgColor,
+                              "border-0"
+                            )}
+                          >
+                            <Icon className="h-3 w-3" />
+                            {config.label}
+                          </Badge>
+                        );
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
+
+              <Separator />
 
               {/* Invoice Lines */}
               <div>
-                <Label className="text-sm font-medium">Itens da Fatura</Label>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Item</TableHead>
-                      <TableHead>Quantidade</TableHead>
-                      <TableHead>Preço Unit.</TableHead>
-                      <TableHead>Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {selectedInvoice.invoice_lines.map((line) => (
-                      <TableRow key={line.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{line.service_item.name}</p>
-                            {line.description && (
-                              <p className="text-sm text-muted-foreground">{line.description}</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{line.quantity}</TableCell>
-                        <TableCell>{formatCurrency(line.unit_price)}</TableCell>
-                        <TableCell className="font-medium">{formatCurrency(line.line_total)}</TableCell>
+                <Label className="text-base font-semibold mb-3 block">Itens da Fatura</Label>
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead className="text-center">Quantidade</TableHead>
+                        <TableHead className="text-right">Preço Unit.</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedInvoice.invoice_lines.map((line) => (
+                        <TableRow key={line.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{line.service_item?.name || 'Item'}</p>
+                              {line.description && (
+                                <p className="text-sm text-muted-foreground mt-1">{line.description}</p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">{line.quantity}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(line.unit_price)}</TableCell>
+                          <TableCell className="text-right font-semibold">{formatCurrency(line.line_total)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
 
               {/* Total */}
-              <div className="border-t pt-4">
+              <div className="border-t-2 pt-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-medium">Total:</span>
-                  <span className="text-2xl font-bold">{formatCurrency(selectedInvoice.total_amount)}</span>
+                  <span className="text-lg font-semibold">Total:</span>
+                  <span className="text-3xl font-bold text-emerald-600">{formatCurrency(selectedInvoice.total_amount)}</span>
                 </div>
               </div>
 
               {/* Notes */}
               {selectedInvoice.notes && (
-                <div>
-                  <Label className="text-sm font-medium">Observações:</Label>
-                  <p className="text-sm text-muted-foreground mt-1">{selectedInvoice.notes}</p>
-                </div>
+                <Card className="border-slate-200 bg-slate-50">
+                  <CardContent className="p-4">
+                    <Label className="text-sm font-semibold mb-2 block">Observações:</Label>
+                    <p className="text-sm text-muted-foreground">{selectedInvoice.notes}</p>
+                  </CardContent>
+                </Card>
               )}
             </div>
           )}

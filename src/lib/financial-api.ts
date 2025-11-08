@@ -45,6 +45,13 @@ export const financialApi = {
   },
 
   /**
+   * Delete a service item
+   */
+  deleteServiceItem: async (id: number): Promise<void> => {
+    return api.delete<void>(`/api/financial/service-items/${id}`);
+  },
+
+  /**
    * Get all invoices
    */
   getInvoices: async (filters?: {

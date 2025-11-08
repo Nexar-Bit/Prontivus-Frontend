@@ -19,6 +19,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Loader2,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  ChevronDown,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
@@ -31,6 +35,15 @@ import { AppointmentHeatmap } from "@/components/dashboard/appointment-heatmap";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { api } from "@/lib/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface DashboardStats {
   patients: { value: number; change: number };
@@ -55,33 +68,113 @@ export default function Dashboard() {
   const [stats, setStats] = React.useState<DashboardStats | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [exporting, setExporting] = React.useState(false);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const fetchStats = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get<DashboardStats>("/api/analytics/dashboard/stats");
+      setStats(data);
+    } catch (err) {
+      console.error("Failed to fetch dashboard stats:", err);
+      setError(err instanceof Error ? err.message : "Failed to load dashboard data");
+      // Set default values on error
+      setStats({
+        patients: { value: 0, change: 0 },
+        appointments: { value: 0, change: 0 },
+        revenue: { value: 0, change: 0 },
+        satisfaction: { value: 0, change: 0 },
+        today_appointments: { value: 0, change: 0 },
+        pending_results: { value: 0, change: 0 },
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   React.useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const data = await api.get<DashboardStats>("/api/analytics/dashboard/stats");
-        setStats(data);
-        setError(null);
-      } catch (err) {
-        console.error("Failed to fetch dashboard stats:", err);
-        setError(err instanceof Error ? err.message : "Failed to load dashboard data");
-        // Set default values on error
-        setStats({
-          patients: { value: 0, change: 0 },
-          appointments: { value: 0, change: 0 },
-          revenue: { value: 0, change: 0 },
-          satisfaction: { value: 0, change: 0 },
-          today_appointments: { value: 0, change: 0 },
-          pending_results: { value: 0, change: 0 },
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchStats();
-  }, []);
+  }, [fetchStats]);
+
+  const handleRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await fetchStats();
+    toast.success('Dados atualizados', {
+      description: 'Dashboard atualizado com sucesso.',
+    });
+  }, [fetchStats]);
+
+  const handleExport = async (type: 'dashboard' | 'financial' | 'clinical' | 'operational', period: string, format: 'Excel' | 'PDF') => {
+    try {
+      setExporting(true);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('clinicore_access_token');
+      
+      let endpoint = '';
+      let filename = '';
+      let mimeType = '';
+      
+      switch (type) {
+        case 'dashboard':
+          endpoint = `/api/analytics/export/dashboard/excel?period=${period}`;
+          filename = `dashboard_${period}_${new Date().toISOString().split('T')[0]}.xlsx`;
+          mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          break;
+        case 'financial':
+          endpoint = `/api/analytics/export/financial/excel?period=${period}`;
+          filename = `relatorio_financeiro_${period}_${new Date().toISOString().split('T')[0]}.xlsx`;
+          mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          break;
+        case 'clinical':
+          endpoint = `/api/analytics/export/clinical/pdf?period=${period}`;
+          filename = `relatorio_clinico_${period}_${new Date().toISOString().split('T')[0]}.pdf`;
+          mimeType = 'application/pdf';
+          break;
+        case 'operational':
+          endpoint = `/api/analytics/export/operational/excel?period=${period}`;
+          filename = `relatorio_operacional_${period}_${new Date().toISOString().split('T')[0]}.xlsx`;
+          mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          break;
+      }
+      
+      const url = `${apiUrl}${endpoint}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to export: ${response.status} ${errorText}`);
+      }
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast.success('Relatório exportado com sucesso!', {
+        description: `O arquivo ${filename} foi baixado.`,
+      });
+    } catch (err: any) {
+      console.error("Failed to export:", err);
+      toast.error('Erro ao exportar relatório', {
+        description: err?.message || 'Tente novamente mais tarde.',
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const getWelcomeMessage = () => {
     if (isPatient()) {
@@ -168,53 +261,93 @@ export default function Dashboard() {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => {
-              // Refresh dashboard data for last 30 days
-              window.location.reload();
-            }}
+            onClick={handleRefresh}
+            disabled={refreshing || loading}
             className="flex-1 sm:flex-initial"
           >
-            Últimos 30 dias
+            {refreshing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Atualizando...
+              </>
+            ) : (
+              <>
+                <Activity className="h-4 w-4 mr-2" />
+                Últimos 30 dias
+              </>
+            )}
           </Button>
-          {canAccessFinancial() && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={async () => {
-                try {
-                  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                  const token = localStorage.getItem('clinicore_access_token');
-                  const url = `${apiUrl}/api/analytics/export/financial/excel?period=last_month`;
-                  
-                  const response = await fetch(url, {
-                    headers: {
-                      'Authorization': `Bearer ${token}`,
-                    },
-                  });
-                  
-                  if (!response.ok) {
-                    throw new Error('Failed to export');
-                  }
-                  
-                  const blob = await response.blob();
-                  const downloadUrl = window.URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = downloadUrl;
-                  link.download = `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`;
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                  window.URL.revokeObjectURL(downloadUrl);
-                } catch (err) {
-                  console.error("Failed to export:", err);
-                  alert('Erro ao exportar relatório. Tente novamente.');
-                }
-              }}
-              className="flex-1 sm:flex-initial"
-            >
-              Exportar
-            </Button>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                disabled={exporting || loading}
+                className="flex-1 sm:flex-initial"
+              >
+                {exporting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Exportando...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Exportar
+                    <ChevronDown className="h-4 w-4 ml-2" />
+                  </>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Exportar Relatórios</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={async (e) => {
+                  e.preventDefault();
+                  await handleExport('dashboard', 'last_30_days', 'Excel');
+                }}
+                disabled={exporting}
+              >
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Dashboard Completo (Excel)
+              </DropdownMenuItem>
+              {canAccessFinancial() && (
+                <DropdownMenuItem
+                  onSelect={async (e) => {
+                    e.preventDefault();
+                    await handleExport('financial', 'last_month', 'Excel');
+                  }}
+                  disabled={exporting}
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Relatório Financeiro (Excel)
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                onSelect={async (e) => {
+                  e.preventDefault();
+                  await handleExport('clinical', 'last_30_days', 'PDF');
+                }}
+                disabled={exporting}
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Relatório Clínico (PDF)
+              </DropdownMenuItem>
+              {(isSecretary() || isAdmin()) && (
+                <DropdownMenuItem
+                  onSelect={async (e) => {
+                    e.preventDefault();
+                    await handleExport('operational', 'last_30_days', 'Excel');
+                  }}
+                  disabled={exporting}
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Relatório Operacional (Excel)
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

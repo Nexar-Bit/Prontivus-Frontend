@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { appointmentsApi } from "@/lib/appointments-api";
 import { patientsApi } from "@/lib/patients-api";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { 
   DollarSign, 
   TrendingUp, 
@@ -25,8 +25,20 @@ import {
   Settings,
   BarChart3,
   PieChart,
-  LineChart
+  LineChart,
+  ArrowUpRight,
+  ArrowDownRight,
+  Wallet,
+  CreditCard,
+  Receipt,
+  Target,
+  Activity,
+  Sparkles,
+  Download,
+  Eye,
+  Filter
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface FinancialSummary {
   totalRevenue: number;
@@ -94,23 +106,18 @@ export default function FinancialBasicPage() {
       }>(`/api/analytics/financial?period=${apiPeriod}`);
       
       // Calculate previous period for comparison
-      // Use monthly_revenue_trend to get previous month's revenue
       let prevRevenue = 0;
       if (financialData.monthly_revenue_trend && financialData.monthly_revenue_trend.length >= 2) {
-        // Get the second-to-last month (previous period)
         const sortedTrend = [...financialData.monthly_revenue_trend].sort((a, b) => 
           a.month.localeCompare(b.month)
         );
         prevRevenue = sortedTrend[sortedTrend.length - 2]?.total_revenue || 0;
       } else if (financialData.monthly_revenue_trend && financialData.monthly_revenue_trend.length === 1) {
-        // Only one month available, use it as previous (will show 0% change)
         prevRevenue = financialData.monthly_revenue_trend[0].total_revenue;
       }
       
-      // If no trend data, try to get previous period directly
       if (prevRevenue === 0) {
         try {
-          // Calculate previous period dates
           const today = new Date();
           const daysAgo = parseInt(selectedPeriod);
           const prevEndDate = new Date(today);
@@ -118,24 +125,19 @@ export default function FinancialBasicPage() {
           const prevStartDate = new Date(prevEndDate);
           prevStartDate.setDate(prevStartDate.getDate() - daysAgo);
           
-          // Query invoices for previous period
           const prevInvoices = await api.get<Array<{ total_amount: number }>>(
             `/api/financial/invoices?start_date=${prevStartDate.toISOString().split('T')[0]}&end_date=${prevEndDate.toISOString().split('T')[0]}`
           );
           prevRevenue = prevInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
         } catch (error) {
-          // If that fails, use current revenue (will show 0% change)
           prevRevenue = financialData.total_revenue;
         }
       }
       
-      // Calculate revenue change
       const revenueChange = prevRevenue > 0
         ? ((financialData.total_revenue - prevRevenue) / prevRevenue) * 100
         : financialData.total_revenue > 0 ? 100 : 0;
       
-      // For expenses, we'll use a placeholder (would need an expenses endpoint)
-      // For now, estimate expenses as 70% of revenue
       const totalExpenses = financialData.total_revenue * 0.7;
       const prevExpenses = prevRevenue * 0.7;
       const expenseChange = prevExpenses > 0
@@ -148,10 +150,8 @@ export default function FinancialBasicPage() {
         ? ((netProfit - prevNetProfit) / prevNetProfit) * 100
         : netProfit > 0 ? 100 : 0;
       
-      // Get patients count
       const patients = await patientsApi.getAll();
       
-      // Get appointments for the period
       const today = new Date();
       const daysAgo = parseInt(selectedPeriod);
       const startDate = new Date(today);
@@ -162,12 +162,10 @@ export default function FinancialBasicPage() {
         end_date: today.toISOString().split('T')[0],
       });
       
-      // Calculate average ticket
       const averageTicket = financialData.total_invoices > 0
         ? financialData.total_revenue / financialData.total_invoices
         : 0;
       
-      // Calculate conversion rate (appointments with invoices / total appointments)
       const conversionRate = appointments.length > 0
         ? (financialData.total_invoices / appointments.length) * 100
         : 0;
@@ -200,7 +198,6 @@ export default function FinancialBasicPage() {
       toast.error("Erro ao carregar dados financeiros", {
         description: error.message || "Não foi possível carregar os dados financeiros"
       });
-      // Set defaults on error
       setSummary({
         totalRevenue: 0,
         totalExpenses: 0,
@@ -236,39 +233,45 @@ export default function FinancialBasicPage() {
     return value >= 0 ? "text-green-600" : "text-red-600";
   };
 
-  const getChangeIcon = (value: number) => {
-    return value >= 0 ? 
-      <TrendingUp className="h-4 w-4" /> : 
-      <TrendingDown className="h-4 w-4" />;
+  const getChangeBgColor = (value: number) => {
+    return value >= 0 ? "bg-green-50" : "bg-red-50";
+  };
+
+  const getProfitMargin = () => {
+    if (!summary || summary.totalRevenue === 0) return 0;
+    return (summary.netProfit / summary.totalRevenue) * 100;
   };
 
   if (isLoading && !summary) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Carregando dados financeiros...</p>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <p className="text-muted-foreground font-medium">Carregando dados financeiros...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6 bg-gradient-to-br from-slate-50 to-blue-50/30 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <DollarSign className="h-8 w-8" />
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg text-white shadow-lg">
+              <DollarSign className="h-6 w-6" />
+            </div>
             Visão Geral Financeira
           </h1>
-          <p className="text-muted-foreground mt-2">
-            Métricas financeiras básicas e indicadores de desempenho
+          <p className="text-sm text-muted-foreground mt-1.5">
+            Métricas financeiras e indicadores de desempenho da clínica
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-44 bg-white">
+              <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
@@ -278,149 +281,234 @@ export default function FinancialBasicPage() {
               <SelectItem value="365">Último ano</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => loadFinancialData()} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Settings className="h-4 w-4 mr-2" />}
+          <Button 
+            variant="outline" 
+            onClick={() => loadFinancialData()} 
+            disabled={loading}
+            className="bg-white"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
             Atualizar
           </Button>
         </div>
       </div>
 
-      {/* Financial Summary Cards */}
+      {/* Main Financial Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        {/* Revenue Card */}
+        <Card className="border-l-4 border-l-green-500 shadow-lg bg-gradient-to-br from-green-50 to-white">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-slate-700">Receita Total</CardTitle>
+              <div className="p-2 bg-green-100 rounded-lg">
+                <TrendingUp className="h-5 w-5 text-green-700" />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary?.totalRevenue || 0)}</div>
-            <div className={`flex items-center text-xs ${getChangeColor(summary?.revenueChange || 0)}`}>
-              {getChangeIcon(summary?.revenueChange || 0)}
-              <span className="ml-1">{formatPercentage(summary?.revenueChange || 0)}</span>
-              <span className="ml-1 text-muted-foreground">vs período anterior</span>
+            <div className="text-3xl font-bold text-green-700 mb-2">
+              {formatCurrency(summary?.totalRevenue || 0)}
             </div>
+            <div className={cn(
+              "flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full w-fit",
+              getChangeBgColor(summary?.revenueChange || 0),
+              getChangeColor(summary?.revenueChange || 0)
+            )}>
+              {summary && summary.revenueChange >= 0 ? (
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowDownRight className="h-3.5 w-3.5" />
+              )}
+              <span>{formatPercentage(summary?.revenueChange || 0)}</span>
+              <span className="text-slate-500">vs período anterior</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">{summary?.period}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Despesas Totais</CardTitle>
-            <TrendingDown className="h-4 w-4 text-muted-foreground" />
+        {/* Expenses Card */}
+        <Card className="border-l-4 border-l-orange-500 shadow-lg bg-gradient-to-br from-orange-50 to-white">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-slate-700">Despesas Totais</CardTitle>
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <TrendingDown className="h-5 w-5 text-orange-700" />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary?.totalExpenses || 0)}</div>
-            <div className={`flex items-center text-xs ${getChangeColor(summary?.expenseChange || 0)}`}>
-              {getChangeIcon(summary?.expenseChange || 0)}
-              <span className="ml-1">{formatPercentage(summary?.expenseChange || 0)}</span>
-              <span className="ml-1 text-muted-foreground">vs período anterior</span>
+            <div className="text-3xl font-bold text-orange-700 mb-2">
+              {formatCurrency(summary?.totalExpenses || 0)}
             </div>
+            <div className={cn(
+              "flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full w-fit",
+              getChangeBgColor(summary?.expenseChange || 0),
+              getChangeColor(summary?.expenseChange || 0)
+            )}>
+              {summary && summary.expenseChange >= 0 ? (
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowDownRight className="h-3.5 w-3.5" />
+              )}
+              <span>{formatPercentage(summary?.expenseChange || 0)}</span>
+              <span className="text-slate-500">vs período anterior</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">{summary?.period}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+        {/* Profit Card */}
+        <Card className="border-l-4 border-l-blue-500 shadow-lg bg-gradient-to-br from-blue-50 to-white">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-slate-700">Lucro Líquido</CardTitle>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Wallet className="h-5 w-5 text-blue-700" />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(summary?.netProfit || 0)}</div>
-            <div className={`flex items-center text-xs ${getChangeColor(summary?.profitChange || 0)}`}>
-              {getChangeIcon(summary?.profitChange || 0)}
-              <span className="ml-1">{formatPercentage(summary?.profitChange || 0)}</span>
-              <span className="ml-1 text-muted-foreground">vs período anterior</span>
+            <div className="text-3xl font-bold text-blue-700 mb-2">
+              {formatCurrency(summary?.netProfit || 0)}
+            </div>
+            <div className={cn(
+              "flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full w-fit",
+              getChangeBgColor(summary?.profitChange || 0),
+              getChangeColor(summary?.profitChange || 0)
+            )}>
+              {summary && summary.profitChange >= 0 ? (
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowDownRight className="h-3.5 w-3.5" />
+              )}
+              <span>{formatPercentage(summary?.profitChange || 0)}</span>
+              <span className="text-slate-500">vs período anterior</span>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                Margem: {getProfitMargin().toFixed(1)}%
+              </Badge>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Pacientes</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{quickStats?.totalPatients || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Pacientes ativos
-            </p>
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Total de Pacientes</p>
+                <p className="text-2xl font-bold text-slate-900">{quickStats?.totalPatients || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">Pacientes ativos</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Users className="h-6 w-6 text-blue-700" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Agendamentos</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{quickStats?.totalAppointments || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              No período selecionado
-            </p>
+        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Agendamentos</p>
+                <p className="text-2xl font-bold text-slate-900">{quickStats?.totalAppointments || 0}</p>
+                <p className="text-xs text-muted-foreground mt-1">No período selecionado</p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Calendar className="h-6 w-6 text-purple-700" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ticket Médio</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(quickStats?.averageTicket || 0)}</div>
-            <p className="text-xs text-muted-foreground">
-              Por consulta
-            </p>
+        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Ticket Médio</p>
+                <p className="text-2xl font-bold text-slate-900">{formatCurrency(quickStats?.averageTicket || 0)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Por consulta</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-lg">
+                <Receipt className="h-6 w-6 text-green-700" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{quickStats?.conversionRate ? quickStats.conversionRate.toFixed(1) : 0}%</div>
-            <p className="text-xs text-muted-foreground">
-              Conversão de pacientes
-            </p>
+        <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Taxa de Conversão</p>
+                <p className="text-2xl font-bold text-slate-900">
+                  {quickStats?.conversionRate ? quickStats.conversionRate.toFixed(1) : 0}%
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">Conversão de pacientes</p>
+              </div>
+              <div className="p-3 bg-yellow-100 rounded-lg">
+                <Target className="h-6 w-6 text-yellow-700" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Receita vs Despesas</CardTitle>
-            <CardDescription>
-              Comparação mensal de receita e despesas
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-blue-600" />
+                  Receita vs Despesas
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Comparação mensal de receita e despesas
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center text-muted-foreground">
+            <div className="h-64 flex items-center justify-center text-muted-foreground bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
               <div className="text-center">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Chart will be implemented here</p>
-                <p className="text-sm">Revenue vs Expenses visualization</p>
+                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p className="font-medium">Gráfico em desenvolvimento</p>
+                <p className="text-sm mt-1">Visualização de receita vs despesas</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Margem de Lucro</CardTitle>
-            <CardDescription>
-              Tendência da margem de lucro ao longo do tempo
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <LineChart className="h-5 w-5 text-green-600" />
+                  Margem de Lucro
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Tendência da margem de lucro ao longo do tempo
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="h-64 flex items-center justify-center text-muted-foreground">
+            <div className="h-64 flex items-center justify-center text-muted-foreground bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
               <div className="text-center">
-                <LineChart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Chart will be implemented here</p>
-                <p className="text-sm">Profit margin visualization</p>
+                <LineChart className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p className="font-medium">Gráfico em desenvolvimento</p>
+                <p className="text-sm mt-1">Visualização da margem de lucro</p>
               </div>
             </div>
           </CardContent>
@@ -428,9 +516,12 @@ export default function FinancialBasicPage() {
       </div>
 
       {/* Quick Actions */}
-      <Card>
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle>Ações Rápidas</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-blue-600" />
+            Ações Rápidas
+          </CardTitle>
           <CardDescription>
             Tarefas financeiras comuns e relatórios
           </CardDescription>
@@ -439,11 +530,9 @@ export default function FinancialBasicPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-24 flex flex-col items-center justify-center space-y-2 hover:bg-green-50 hover:border-green-300 transition-colors group"
               onClick={async () => {
                 try {
-                  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-                  const token = localStorage.getItem('access_token');
                   const periodMap: Record<string, string> = {
                     "7": "last_7_days",
                     "30": "last_30_days",
@@ -451,55 +540,62 @@ export default function FinancialBasicPage() {
                     "365": "last_year"
                   };
                   const apiPeriod = periodMap[selectedPeriod] || "last_30_days";
-                  const url = `${apiUrl}/api/analytics/export/financial/excel?period=${apiPeriod}`;
+                  const endpoint = `/api/analytics/export/financial/excel?period=${apiPeriod}`;
                   
-                  const response = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                  });
-                  
-                  if (response.ok) {
-                    const blob = await response.blob();
-                    const downloadUrl = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = downloadUrl;
-                    link.download = `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`;
-                    link.click();
-                    window.URL.revokeObjectURL(downloadUrl);
-                    toast.success("Relatório gerado com sucesso!");
-                  } else {
-                    toast.error("Erro ao gerar relatório");
-                  }
+                  const blob = await api.download(endpoint);
+                  const downloadUrl = window.URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = downloadUrl;
+                  link.download = `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.xlsx`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(downloadUrl);
+                  toast.success("Relatório gerado com sucesso!");
                 } catch (error: any) {
-                  toast.error("Erro ao gerar relatório", { description: error.message });
+                  toast.error("Erro ao gerar relatório", { 
+                    description: error.message || "Não foi possível gerar o relatório" 
+                  });
                 }
               }}
             >
-              <FileText className="h-6 w-6" />
-              <span className="text-sm">Gerar Relatório</span>
+              <div className="p-2 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
+                <Download className="h-5 w-5 text-green-700" />
+              </div>
+              <span className="text-sm font-medium">Gerar Relatório</span>
             </Button>
+            
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-24 flex flex-col items-center justify-center space-y-2 hover:bg-blue-50 hover:border-blue-300 transition-colors group"
               onClick={() => router.push('/financeiro/analytics')}
             >
-              <BarChart3 className="h-6 w-6" />
-              <span className="text-sm">Ver Análises</span>
+              <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                <BarChart3 className="h-5 w-5 text-blue-700" />
+              </div>
+              <span className="text-sm font-medium">Ver Análises</span>
             </Button>
+            
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-24 flex flex-col items-center justify-center space-y-2 hover:bg-purple-50 hover:border-purple-300 transition-colors group"
               onClick={() => router.push('/financeiro/relatorios')}
             >
-              <PieChart className="h-6 w-6" />
-              <span className="text-sm">Despesas</span>
+              <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                <PieChart className="h-5 w-5 text-purple-700" />
+              </div>
+              <span className="text-sm font-medium">Relatórios</span>
             </Button>
+            
             <Button 
               variant="outline" 
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-24 flex flex-col items-center justify-center space-y-2 hover:bg-slate-50 hover:border-slate-300 transition-colors group"
               onClick={() => router.push('/financeiro/configuracoes')}
             >
-              <Settings className="h-6 w-6" />
-              <span className="text-sm">Configurações</span>
+              <div className="p-2 bg-slate-100 rounded-lg group-hover:bg-slate-200 transition-colors">
+                <Settings className="h-5 w-5 text-slate-700" />
+              </div>
+              <span className="text-sm font-medium">Configurações</span>
             </Button>
           </div>
         </CardContent>

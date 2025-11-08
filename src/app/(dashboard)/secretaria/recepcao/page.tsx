@@ -34,8 +34,16 @@ import {
   Bell,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  RefreshCw,
+  Activity,
+  Stethoscope,
+  UserCheck,
+  Timer,
+  ArrowRight
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 
 interface ReceptionPatient {
   id: number;
@@ -63,19 +71,19 @@ interface ReceptionStats {
 }
 
 const PRIORITY_LEVELS = [
-  { value: 'all', label: 'All Priorities' },
-  { value: 'urgent', label: 'Urgent' },
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'low', label: 'Low' },
+  { value: 'all', label: 'Todas as Prioridades' },
+  { value: 'urgent', label: 'Urgente' },
+  { value: 'high', label: 'Alta' },
+  { value: 'medium', label: 'Média' },
+  { value: 'low', label: 'Baixa' },
 ];
 
 const STATUS_OPTIONS = [
-  { value: 'all', label: 'All Status' },
-  { value: 'waiting', label: 'Waiting' },
-  { value: 'in_consultation', label: 'In Consultation' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'all', label: 'Todos os Status' },
+  { value: 'waiting', label: 'Aguardando' },
+  { value: 'in_consultation', label: 'Em Atendimento' },
+  { value: 'completed', label: 'Concluído' },
+  { value: 'cancelled', label: 'Cancelado' },
 ];
 
 export default function ReceptionPage() {
@@ -248,15 +256,15 @@ export default function ReceptionPage() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return 'destructive';
+        return 'bg-red-100 text-red-700 border-red-300 hover:bg-red-200';
       case 'high':
-        return 'secondary';
+        return 'bg-orange-100 text-orange-700 border-orange-300 hover:bg-orange-200';
       case 'medium':
-        return 'default';
+        return 'bg-yellow-100 text-yellow-700 border-yellow-300 hover:bg-yellow-200';
       case 'low':
-        return 'outline';
+        return 'bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200';
       default:
-        return 'outline';
+        return 'bg-gray-100 text-gray-700 border-gray-300';
     }
   };
 
@@ -278,15 +286,15 @@ export default function ReceptionPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'waiting':
-        return 'secondary';
+        return 'bg-yellow-100 text-yellow-700 border-yellow-300';
       case 'in_consultation':
-        return 'default';
+        return 'bg-blue-100 text-blue-700 border-blue-300';
       case 'completed':
-        return 'outline';
+        return 'bg-green-100 text-green-700 border-green-300';
       case 'cancelled':
-        return 'destructive';
+        return 'bg-red-100 text-red-700 border-red-300';
       default:
-        return 'outline';
+        return 'bg-gray-100 text-gray-700 border-gray-300';
     }
   };
 
@@ -318,9 +326,9 @@ export default function ReceptionPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-muted-foreground">Carregando dados da recepção...</p>
         </div>
       </div>
@@ -328,83 +336,127 @@ export default function ReceptionPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Section */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-teal-500/10 to-blue-600/10 rounded-2xl blur-3xl" />
+          <div className="relative bg-white/80 backdrop-blur-sm border border-blue-100 rounded-2xl p-6 sm:p-8 shadow-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-gradient-to-br from-blue-600 to-teal-600 rounded-xl shadow-lg">
+                    <Activity className="h-6 w-6 text-white" />
+                  </div>
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Users className="h-8 w-8" />
+                    <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
             Recepção
           </h1>
-          <p className="text-muted-foreground mt-2">
+                    <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Gerencie chegadas de pacientes e o fluxo da recepção
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => router.push('/notificacoes')}>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  onClick={loadReceptionData}
+                  disabled={loading}
+                  className="border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all"
+                >
+                  <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+                  Atualizar
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.push('/notificacoes')}
+                  className="border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all"
+                >
             <Bell className="h-4 w-4 mr-2" />
             Notificações
           </Button>
-          <Button onClick={() => router.push('/secretaria/pacientes')}>
+                <Button 
+                  onClick={() => router.push('/secretaria/pacientes')}
+                  className="bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white shadow-md"
+                >
             <Plus className="h-4 w-4 mr-2" />
             Novo Paciente
           </Button>
-          <Button variant="outline" onClick={() => router.push('/secretaria/agendamentos')}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.push('/secretaria/agendamentos')}
+                  className="border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all"
+                >
             <Calendar className="h-4 w-4 mr-2" />
             Agendamentos
           </Button>
+              </div>
+            </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-yellow-100 shadow-md hover:shadow-lg transition-shadow relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-600 to-orange-600" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Aguardando</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-700">Aguardando</CardTitle>
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Clock className="h-4 w-4 text-yellow-600" />
+              </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalWaiting || 0}</div>
-            <p className="text-xs text-muted-foreground">
+              <div className="text-3xl font-bold text-gray-900">{stats?.totalWaiting || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
               pacientes aguardando
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+          <Card className="border-blue-100 shadow-md hover:shadow-lg transition-shadow relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-teal-600" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Em Atendimento</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-700">Em Atendimento</CardTitle>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Stethoscope className="h-4 w-4 text-blue-600" />
+              </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.inConsultation || 0}</div>
-            <p className="text-xs text-muted-foreground">
+              <div className="text-3xl font-bold text-gray-900">{stats?.inConsultation || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
               em atendimento
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+          <Card className="border-green-100 shadow-md hover:shadow-lg transition-shadow relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-green-600 to-teal-600" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídos Hoje</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-700">Concluídos Hoje</CardTitle>
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.completedToday || 0}</div>
-            <p className="text-xs text-muted-foreground">
+              <div className="text-3xl font-bold text-gray-900">{stats?.completedToday || 0}</div>
+              <p className="text-xs text-muted-foreground mt-1">
               consultas concluídas
             </p>
           </CardContent>
         </Card>
 
-        <Card>
+          <Card className="border-orange-100 shadow-md hover:shadow-lg transition-shadow relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-600 to-red-600" />
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tempo Médio de Espera</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-gray-700">Tempo Médio de Espera</CardTitle>
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <Timer className="h-4 w-4 text-orange-600" />
+              </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.averageWaitTime || 0}min</div>
-            <p className="text-xs text-muted-foreground">
+              <div className="text-3xl font-bold text-gray-900">{stats?.averageWaitTime || 0}min</div>
+              <p className="text-xs text-muted-foreground mt-1">
               tempo médio de espera
             </p>
           </CardContent>
@@ -412,23 +464,37 @@ export default function ReceptionPage() {
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
+        <Card className="border-blue-100 shadow-md hover:shadow-lg transition-shadow">
+          <CardHeader className="pb-4 bg-gradient-to-r from-blue-50/50 to-teal-50/50 border-b border-blue-100">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Search className="h-4 w-4 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold text-gray-900">Filtros de Busca</CardTitle>
+                <CardDescription className="mt-1">Filtre pacientes por prioridade e status</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
+              <div className="flex-1 min-w-0">
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">Buscar</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Buscar pacientes..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                    className="pl-10 h-11 border-blue-200 focus:border-blue-400 focus:ring-blue-400"
                 />
               </div>
             </div>
+              <div className="w-full md:w-56">
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">Prioridade</Label>
             <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Priority" />
+                  <SelectTrigger className="h-11 border-blue-200 focus:border-blue-400 focus:ring-blue-400">
+                    <SelectValue placeholder="Selecione a prioridade" />
               </SelectTrigger>
               <SelectContent>
                 {PRIORITY_LEVELS.map((priority) => (
@@ -438,9 +504,12 @@ export default function ReceptionPage() {
                 ))}
               </SelectContent>
             </Select>
+              </div>
+              <div className="w-full md:w-56">
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">Status</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Status" />
+                  <SelectTrigger className="h-11 border-blue-200 focus:border-blue-400 focus:ring-blue-400">
+                    <SelectValue placeholder="Selecione o status" />
               </SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map((status) => (
@@ -450,78 +519,125 @@ export default function ReceptionPage() {
                 ))}
               </SelectContent>
             </Select>
+              </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Patients Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Fila de Pacientes ({filteredPatients.length})</CardTitle>
-          <CardDescription>
+        <Card className="border-blue-100 shadow-md">
+          <CardHeader className="pb-4 bg-gradient-to-r from-blue-50/50 to-teal-50/50 border-b border-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg font-semibold text-gray-900">
+                  Fila de Pacientes ({filteredPatients.length})
+                </CardTitle>
+                <CardDescription className="mt-1">
             Gerencie chegadas de pacientes e status de consultas
           </CardDescription>
+              </div>
+            </div>
         </CardHeader>
-        <CardContent>
+          <CardContent className="pt-6">
+            {loading ? (
+              <div className="text-center py-12 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <p className="text-base font-medium text-gray-700">Carregando pacientes...</p>
+              </div>
+            ) : filteredPatients.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="inline-flex p-4 bg-blue-50 rounded-full mb-4">
+                  <Users className="h-12 w-12 text-blue-400" />
+                </div>
+                <p className="text-lg font-semibold text-gray-900 mb-2">Nenhum paciente encontrado</p>
+                <p className="text-sm text-gray-600">Tente ajustar os filtros de busca.</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border-2 border-blue-100 overflow-hidden">
+                <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Paciente</TableHead>
-                <TableHead>Prioridade</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Hora de Chegada</TableHead>
-                <TableHead>Tempo de Espera</TableHead>
-                <TableHead>Médico</TableHead>
-                <TableHead>Ações</TableHead>
+                      <TableRow className="bg-gradient-to-r from-blue-50/50 to-teal-50/50 border-b border-blue-100">
+                        <TableHead className="font-semibold text-gray-900">Paciente</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Prioridade</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Hora de Chegada</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Tempo de Espera</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Médico</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPatients.map((patient) => (
-                <TableRow key={patient.id}>
+                      {filteredPatients.map((patient, index) => (
+                        <TableRow 
+                          key={patient.id}
+                          className={cn(
+                            "border-b border-blue-50 transition-colors",
+                            index % 2 === 0 ? "bg-white" : "bg-blue-50/20",
+                            "hover:bg-blue-50/50"
+                          )}
+                        >
                   <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg shadow-sm">
+                                <User className="h-4 w-4 text-white" />
+                              </div>
                     <div>
-                      <div className="font-medium">{patient.name}</div>
+                                <div className="font-semibold text-gray-900">{patient.name}</div>
                       {patient.cpf && (
-                        <div className="text-sm text-muted-foreground">
-                          CPF: {patient.cpf}
+                                  <div className="text-sm text-gray-600 flex items-center gap-1 mt-0.5">
+                                    <FileText className="h-3 w-3" />
+                                    {patient.cpf}
                         </div>
                       )}
+                              </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getPriorityColor(patient.priority) as any}>
-                      {patient.priority}
+                            <Badge className={cn("text-xs font-semibold border", getPriorityColor(patient.priority))}>
+                              {patient.priority === 'urgent' ? 'Urgente' :
+                               patient.priority === 'high' ? 'Alta' :
+                               patient.priority === 'medium' ? 'Média' :
+                               patient.priority === 'low' ? 'Baixa' : patient.priority}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getStatusColor(patient.status) as any}>
+                            <Badge className={cn("text-xs font-semibold border flex items-center gap-1 w-fit", getStatusColor(patient.status))}>
                       {getStatusIcon(patient.status)}
-                      <span className="ml-1 capitalize">{patient.status.replace('_', ' ')}</span>
+                              <span className="capitalize">
+                                {patient.status === 'waiting' ? 'Aguardando' :
+                                 patient.status === 'in_consultation' ? 'Em Atendimento' :
+                                 patient.status === 'completed' ? 'Concluído' :
+                                 patient.status === 'cancelled' ? 'Cancelado' : patient.status}
+                              </span>
                     </Badge>
                   </TableCell>
                   <TableCell>
+                            <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                              <Clock className="h-3.5 w-3.5 text-gray-400" />
                     {formatTime(patient.arrivalTime)}
+                            </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{getWaitTime(patient.arrivalTime)}min</span>
+                            <div className="flex items-center gap-1.5">
+                              <Timer className="h-4 w-4 text-orange-600" />
+                              <span className="font-semibold text-gray-900">{getWaitTime(patient.arrivalTime)}min</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                              <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
                       {patient.doctor || 'Não atribuído'}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
+                            <div className="flex items-center gap-1.5">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={async () => {
                           setSelectedPatient(patient);
                           setShowPatientDialog(true);
-                          // Load patient details
                           try {
                             setLoadingPatientDetails(true);
                             const patientDetails = await patientsApi.getById(patient.id);
@@ -534,6 +650,7 @@ export default function ReceptionPage() {
                           }
                         }}
                         title="Ver detalhes"
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -544,16 +661,18 @@ export default function ReceptionPage() {
                             size="sm"
                             onClick={() => handleCheckIn(patient.appointmentId)}
                             title="Check-in"
+                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
                           >
-                            <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <UserCheck className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => updatePatientStatus(patient.appointmentId, 'in_consultation')}
                             title="Iniciar atendimento"
+                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           >
-                            <User className="h-4 w-4 text-blue-600" />
+                                    <Stethoscope className="h-4 w-4" />
                           </Button>
                         </>
                       )}
@@ -563,8 +682,9 @@ export default function ReceptionPage() {
                           size="sm"
                           onClick={() => updatePatientStatus(patient.appointmentId, 'completed')}
                           title="Marcar como concluído"
+                                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
                         >
-                          <CheckCircle className="h-4 w-4 text-green-600" />
+                                  <CheckCircle className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -573,10 +693,7 @@ export default function ReceptionPage() {
               ))}
             </TableBody>
           </Table>
-          {filteredPatients.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum paciente encontrado com os critérios selecionados</p>
+                </div>
             </div>
           )}
         </CardContent>
@@ -584,61 +701,81 @@ export default function ReceptionPage() {
 
       {/* Patient Details Dialog */}
       <Dialog open={showPatientDialog} onOpenChange={setShowPatientDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Detalhes do Paciente</DialogTitle>
-            <DialogDescription>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="pb-4 border-b border-blue-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-blue-600 to-teal-600 rounded-lg">
+                  <Users className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent">
+                    Detalhes do Paciente
+                  </DialogTitle>
+                  <DialogDescription className="mt-1">
               Visualize e gerencie informações do paciente
             </DialogDescription>
+                </div>
+              </div>
           </DialogHeader>
           {loadingPatientDetails ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="ml-2 text-muted-foreground">Carregando detalhes...</span>
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <p className="text-base font-medium text-gray-700">Carregando detalhes...</p>
             </div>
           ) : selectedPatient && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-6 pt-4">
+                {/* Patient Header */}
+                <div className="relative overflow-hidden border-2 border-blue-100 rounded-xl p-6 bg-gradient-to-r from-blue-50/50 to-white">
+                  <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[linear-gradient(135deg,transparent_25%,rgba(15,76,117,0.1)_25%,rgba(15,76,117,0.1)_50%,transparent_50%,transparent_75%,rgba(15,76,117,0.1)_75%)] bg-[length:20px_20px]" />
+                  <div className="relative flex items-center gap-4">
+                    <div className="p-4 bg-gradient-to-br from-blue-600 to-teal-600 rounded-xl shadow-lg">
+                      <Users className="h-8 w-8 text-white" />
+                    </div>
                 <div>
-                  <Label>Nome</Label>
-                  <p className="text-sm font-medium">
+                      <h2 className="text-2xl font-bold text-gray-900">
                     {selectedPatientDetails?.first_name && selectedPatientDetails?.last_name
                       ? `${selectedPatientDetails.first_name} ${selectedPatientDetails.last_name}`
                       : selectedPatient.name}
-                  </p>
+                      </h2>
+                      <div className="flex items-center gap-3 mt-2">
+                        <Badge className={cn("text-xs font-semibold border", getStatusColor(selectedPatient.status))}>
+                          {getStatusIcon(selectedPatient.status)}
+                          <span className="ml-1 capitalize">
+                            {selectedPatient.status === 'waiting' ? 'Aguardando' :
+                             selectedPatient.status === 'in_consultation' ? 'Em Atendimento' :
+                             selectedPatient.status === 'completed' ? 'Concluído' :
+                             selectedPatient.status === 'cancelled' ? 'Cancelado' : selectedPatient.status}
+                          </span>
+                        </Badge>
+                        <Badge className={cn("text-xs font-semibold border", getPriorityColor(selectedPatient.priority))}>
+                          {selectedPatient.priority === 'urgent' ? 'Urgente' :
+                           selectedPatient.priority === 'high' ? 'Alta' :
+                           selectedPatient.priority === 'medium' ? 'Média' :
+                           selectedPatient.priority === 'low' ? 'Baixa' : selectedPatient.priority}
+                        </Badge>
                 </div>
-                <div>
-                  <Label>CPF</Label>
-                  <p className="text-sm font-medium">
-                    {selectedPatientDetails?.cpf || selectedPatient.cpf || 'Não informado'}
-                  </p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Telefone</Label>
-                  <p className="text-sm font-medium">
-                    {selectedPatientDetails?.phone || selectedPatient.phone || 'Não informado'}
-                  </p>
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <p className="text-sm font-medium">
-                    {selectedPatientDetails?.email || selectedPatient.email || 'Não informado'}
-                  </p>
                 </div>
               </div>
-              {selectedPatientDetails?.address && (
-                <div>
-                  <Label>Endereço</Label>
-                  <p className="text-sm font-medium">{selectedPatientDetails.address}</p>
                 </div>
-              )}
+
+                {/* Personal Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    Informações Pessoais
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-lg border border-blue-100 bg-blue-50/30">
+                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">CPF</h4>
+                      <p className="text-base font-medium text-gray-900">
+                        {selectedPatientDetails?.cpf || selectedPatient.cpf || 'Não informado'}
+                  </p>
+                </div>
               {(selectedPatientDetails?.date_of_birth || selectedPatient.birthDate) && (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Data de Nascimento</Label>
-                    <p className="text-sm font-medium">
+                      <div className="p-4 rounded-lg border border-blue-100 bg-blue-50/30">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Data de Nascimento</h4>
+                        <p className="text-base font-medium text-gray-900 flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-blue-600" />
                       {selectedPatientDetails?.date_of_birth
                         ? format(new Date(selectedPatientDetails.date_of_birth), "dd/MM/yyyy")
                         : selectedPatient.birthDate
@@ -646,56 +783,115 @@ export default function ReceptionPage() {
                         : 'Não informado'}
                     </p>
                   </div>
+                    )}
                   {selectedPatientDetails?.gender && (
-                    <div>
-                      <Label>Gênero</Label>
-                      <p className="text-sm font-medium capitalize">
+                      <div className="p-4 rounded-lg border border-blue-100 bg-blue-50/30">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Gênero</h4>
+                        <p className="text-base font-medium text-gray-900 capitalize">
                         {selectedPatientDetails.gender === 'male' ? 'Masculino' : 
                          selectedPatientDetails.gender === 'female' ? 'Feminino' : 
                          selectedPatientDetails.gender}
                       </p>
                     </div>
                   )}
+                  </div>
+                </div>
+
+                <Separator className="bg-blue-100" />
+
+                {/* Contact Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Phone className="h-5 w-5 text-teal-600" />
+                    Informações de Contato
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-lg border border-teal-100 bg-teal-50/30">
+                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Telefone</h4>
+                      <p className="text-base font-medium text-gray-900 flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-teal-600" />
+                        {selectedPatientDetails?.phone || selectedPatient.phone || 'Não informado'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-teal-100 bg-teal-50/30">
+                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Email</h4>
+                      <p className="text-base font-medium text-gray-900 flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-teal-600" />
+                        {selectedPatientDetails?.email || selectedPatient.email || 'Não informado'}
+                      </p>
+                    </div>
+                    {selectedPatientDetails?.address && (
+                      <div className="p-4 rounded-lg border border-teal-100 bg-teal-50/30 sm:col-span-2">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Endereço</h4>
+                        <p className="text-base font-medium text-gray-900 flex items-center gap-2">
+                          <MapPin className="h-4 w-4 text-teal-600" />
+                          {selectedPatientDetails.address}
+                        </p>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Horário do Agendamento</Label>
-                  <p className="text-sm font-medium">{selectedPatient.appointmentTime || 'Não agendado'}</p>
                 </div>
-                <div>
-                  <Label>Médico</Label>
-                  <p className="text-sm font-medium">{selectedPatient.doctor || 'Não atribuído'}</p>
                 </div>
+
+                <Separator className="bg-blue-100" />
+
+                {/* Appointment Information */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-purple-600" />
+                    Informações do Agendamento
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-lg border border-purple-100 bg-purple-50/30">
+                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Horário do Agendamento</h4>
+                      <p className="text-base font-medium text-gray-900 flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-purple-600" />
+                        {selectedPatient.appointmentTime || 'Não agendado'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-purple-100 bg-purple-50/30">
+                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Médico</h4>
+                      <p className="text-base font-medium text-gray-900 flex items-center gap-2">
+                        <Stethoscope className="h-4 w-4 text-purple-600" />
+                        {selectedPatient.doctor || 'Não atribuído'}
+                      </p>
               </div>
               {selectedPatient.reason && (
-                <div>
-                  <Label>Motivo da Consulta</Label>
-                  <p className="text-sm font-medium">{selectedPatient.reason}</p>
+                      <div className="p-4 rounded-lg border border-purple-100 bg-purple-50/30 sm:col-span-2">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Motivo da Consulta</h4>
+                        <p className="text-base text-gray-900">{selectedPatient.reason}</p>
                 </div>
               )}
-              <div className="flex items-center gap-2 pt-4 border-t">
+                  </div>
+                </div>
+
+                <Separator className="bg-blue-100" />
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-4">
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={() => router.push(`/secretaria/pacientes?id=${selectedPatient.id}`)}
+                    className="border-blue-200 hover:bg-blue-50 hover:border-blue-300 text-blue-700"
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Editar Paciente
+                    <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={() => router.push(`/secretaria/agendamentos/new?patient_id=${selectedPatient.id}`)}
+                    className="border-teal-200 hover:bg-teal-50 hover:border-teal-300 text-teal-700"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Novo Agendamento
+                    <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

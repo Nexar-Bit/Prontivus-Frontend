@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,10 +32,15 @@ import {
   Printer,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  FileSpreadsheet,
+  FileCheck,
+  Activity,
+  Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface ReportData {
   id: string;
@@ -392,48 +397,61 @@ export default function FinancialReportsPage() {
   };
 
   const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'revenue':
-        return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'expenses':
-        return <TrendingDown className="h-4 w-4 text-red-500" />;
-      case 'profit':
-        return <DollarSign className="h-4 w-4 text-blue-500" />;
-      case 'patients':
-        return <Users className="h-4 w-4 text-purple-500" />;
-      case 'appointments':
-        return <CalendarIcon className="h-4 w-4 text-orange-500" />;
-      case 'procedures':
-        return <FileText className="h-4 w-4 text-indigo-500" />;
-      default:
-        return <BarChart3 className="h-4 w-4" />;
-    }
+    const configs = {
+      'revenue': { icon: TrendingUp, color: 'text-green-600', bgColor: 'bg-green-100' },
+      'expenses': { icon: TrendingDown, color: 'text-red-600', bgColor: 'bg-red-100' },
+      'profit': { icon: DollarSign, color: 'text-blue-600', bgColor: 'bg-blue-100' },
+      'patients': { icon: Users, color: 'text-purple-600', bgColor: 'bg-purple-100' },
+      'appointments': { icon: CalendarIcon, color: 'text-orange-600', bgColor: 'bg-orange-100' },
+      'procedures': { icon: FileText, color: 'text-indigo-600', bgColor: 'bg-indigo-100' },
+      'clinical': { icon: Activity, color: 'text-teal-600', bgColor: 'bg-teal-100' }
+    };
+    
+    const config = configs[type as keyof typeof configs] || { icon: BarChart3, color: 'text-slate-600', bgColor: 'bg-slate-100' };
+    const Icon = config.icon;
+    
+    return (
+      <div className={cn("p-2 rounded-lg", config.bgColor)}>
+        <Icon className={cn("h-5 w-5", config.color)} />
+      </div>
+    );
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ready':
-        return 'default';
-      case 'generating':
-        return 'secondary';
-      case 'error':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'ready':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'generating':
-        return <RefreshCw className="h-4 w-4 text-blue-500 animate-spin" />;
-      case 'error':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <Clock className="h-4 w-4" />;
-    }
+  const getStatusBadge = (status: string) => {
+    const configs = {
+      'ready': {
+        label: 'Pronto',
+        icon: CheckCircle,
+        color: 'text-green-700',
+        bgColor: 'bg-green-100 hover:bg-green-200'
+      },
+      'generating': {
+        label: 'Gerando',
+        icon: Loader2,
+        color: 'text-blue-700',
+        bgColor: 'bg-blue-100 hover:bg-blue-200'
+      },
+      'error': {
+        label: 'Erro',
+        icon: XCircle,
+        color: 'text-red-700',
+        bgColor: 'bg-red-100 hover:bg-red-200'
+      }
+    };
+    
+    const config = configs[status as keyof typeof configs] || configs.ready;
+    const Icon = config.icon;
+    
+    return (
+      <Badge variant="outline" className={cn("flex items-center gap-1.5 w-fit border-0", config.color, config.bgColor)}>
+        {status === 'generating' ? (
+          <Icon className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Icon className="h-3.5 w-3.5" />
+        )}
+        {config.label}
+      </Badge>
+    );
   };
 
   const formatCurrency = (amount: number) => {
@@ -447,11 +465,13 @@ export default function FinancialReportsPage() {
     return new Intl.NumberFormat('pt-BR').format(number);
   };
 
-  const filteredReports = reports.filter(report => {
-    const matchesType = filters.reportType === 'all' || report.type === filters.reportType;
-    const matchesStatus = filters.status === 'all' || report.status === filters.status;
-    return matchesType && matchesStatus;
-  });
+  const filteredReports = useMemo(() => {
+    return reports.filter(report => {
+      const matchesType = filters.reportType === 'all' || report.type === filters.reportType;
+      const matchesStatus = filters.status === 'all' || report.status === filters.status;
+      return matchesType && matchesStatus;
+    });
+  }, [reports, filters.reportType, filters.status]);
 
   const quickPeriodSelect = (days: number) => {
     const to = new Date();
@@ -465,161 +485,232 @@ export default function FinancialReportsPage() {
 
   if (isLoading && reports.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Carregando relatórios...</p>
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
+          <p className="text-muted-foreground font-medium">Carregando relatórios...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 bg-gradient-to-br from-slate-50 to-blue-50/30 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-8 w-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white shadow-lg">
+              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
             Relatórios Financeiros
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground mt-1.5">
             Gere e gerencie relatórios financeiros e análises
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={() => setShowFilters(!showFilters)}
+            className="bg-white"
+            size="sm"
           >
             <Filter className="h-4 w-4 mr-2" />
-            Filtros
+            <span className="hidden sm:inline">Filtros</span>
           </Button>
           <Button
             variant="outline"
             onClick={loadReports}
             disabled={loading}
+            className="bg-white"
+            size="sm"
           >
-            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-            Atualizar
+            {loading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            <span className="hidden sm:inline">Atualizar</span>
           </Button>
         </div>
       </div>
 
+      {/* Summary Stats */}
+      {analyticsSummary && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Card className="border-l-4 border-l-green-500 shadow-sm bg-gradient-to-br from-green-50 to-white">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Receita Total</p>
+                  <p className="text-lg sm:text-2xl font-bold text-green-700">
+                    {formatCurrency(analyticsSummary.totalRevenue)}
+                  </p>
+                  {analyticsSummary.revenueChange !== undefined && (
+                    <p className={cn(
+                      "text-xs mt-1 flex items-center gap-1",
+                      analyticsSummary.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'
+                    )}>
+                      {analyticsSummary.revenueChange >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      {analyticsSummary.revenueChange >= 0 ? '+' : ''}{analyticsSummary.revenueChange.toFixed(1)}%
+                    </p>
+                  )}
+                </div>
+                <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-blue-500 shadow-sm bg-gradient-to-br from-blue-50 to-white">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Lucro Líquido</p>
+                  <p className="text-lg sm:text-2xl font-bold text-blue-700">
+                    {formatCurrency(analyticsSummary.netProfit)}
+                  </p>
+                </div>
+                <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                  <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-blue-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-purple-500 shadow-sm bg-gradient-to-br from-purple-50 to-white">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Pacientes</p>
+                  <p className="text-lg sm:text-2xl font-bold text-purple-700">
+                    {formatNumber(analyticsSummary.totalPatients)}
+                  </p>
+                </div>
+                <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-l-4 border-l-orange-500 shadow-sm bg-gradient-to-br from-orange-50 to-white">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs sm:text-sm font-medium text-muted-foreground mb-1">Agendamentos</p>
+                  <p className="text-lg sm:text-2xl font-bold text-orange-700">
+                    {formatNumber(analyticsSummary.totalAppointments)}
+                  </p>
+                </div>
+                <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
+                  <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 text-orange-700" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ações Rápidas</CardTitle>
-          <CardDescription>
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
+            Ações Rápidas
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
             Gere relatórios comuns rapidamente
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             <Button
               onClick={() => generateReport('revenue')}
               disabled={generating}
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-auto py-4 sm:py-6 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
             >
-              {generating ? <Loader2 className="h-6 w-6 animate-spin" /> : <TrendingUp className="h-6 w-6" />}
-              <span className="text-sm">Relatório de Receita</span>
+              {generating ? (
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+              ) : (
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
+              )}
+              <span className="text-xs sm:text-sm font-medium">Receita</span>
             </Button>
             <Button
               onClick={() => generateReport('profit')}
               disabled={generating}
               variant="outline"
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-auto py-4 sm:py-6 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border-blue-200"
             >
-              {generating ? <Loader2 className="h-6 w-6 animate-spin" /> : <DollarSign className="h-6 w-6" />}
-              <span className="text-sm">Lucro e Prejuízo</span>
+              {generating ? (
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+              ) : (
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+              )}
+              <span className="text-xs sm:text-sm font-medium">Lucro/Prejuízo</span>
             </Button>
             <Button
               onClick={() => generateReport('clinical')}
               disabled={generating}
               variant="outline"
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-auto py-4 sm:py-6 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-teal-50 to-cyan-50 hover:from-teal-100 hover:to-cyan-100 border-teal-200"
             >
-              {generating ? <Loader2 className="h-6 w-6 animate-spin" /> : <FileText className="h-6 w-6" />}
-              <span className="text-sm">Relatório Clínico</span>
+              {generating ? (
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+              ) : (
+                <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-teal-600" />
+              )}
+              <span className="text-xs sm:text-sm font-medium">Clínico</span>
             </Button>
             <Button
               onClick={() => generateReport('appointments')}
               disabled={generating}
               variant="outline"
-              className="h-20 flex flex-col items-center justify-center space-y-2"
+              className="h-auto py-4 sm:py-6 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100 border-orange-200"
             >
-              {generating ? <Loader2 className="h-6 w-6 animate-spin" /> : <CalendarIcon className="h-6 w-6" />}
-              <span className="text-sm">Agendamentos</span>
+              {generating ? (
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
+              ) : (
+                <CalendarIcon className="h-5 w-5 sm:h-6 sm:w-6 text-orange-600" />
+              )}
+              <span className="text-xs sm:text-sm font-medium">Agendamentos</span>
             </Button>
           </div>
-          
-          {/* Summary Cards */}
-          {analyticsSummary && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(analyticsSummary.totalRevenue)}</div>
-                  {analyticsSummary.revenueChange !== undefined && (
-                    <p className={`text-xs ${analyticsSummary.revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {analyticsSummary.revenueChange >= 0 ? '+' : ''}{analyticsSummary.revenueChange.toFixed(1)}%
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(analyticsSummary.netProfit)}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Pacientes</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatNumber(analyticsSummary.totalPatients)}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Agendamentos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{formatNumber(analyticsSummary.totalAppointments)}</div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </CardContent>
       </Card>
 
       {/* Filters */}
       {showFilters && (
-        <Card>
-        <CardHeader>
-          <CardTitle>Filtros de Relatório</CardTitle>
-          <CardDescription>
-            Filtre relatórios por período, tipo e status
-          </CardDescription>
-        </CardHeader>
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5" />
+              Filtros de Relatório
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              Filtre relatórios por período, tipo e status
+            </CardDescription>
+          </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label>Período</Label>
-                <div className="flex space-x-2 mt-1">
+                <Label className="text-sm">Período</Label>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 mt-1">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="flex-1">
+                      <Button variant="outline" className="flex-1 justify-start text-left font-normal bg-white">
                         <CalendarIcon className="h-4 w-4 mr-2" />
-                        {filters.dateRange.from ? format(filters.dateRange.from, "dd/MM/yyyy") : "De"}
+                        {filters.dateRange.from ? format(filters.dateRange.from, "dd/MM/yyyy", { locale: ptBR }) : "De"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={filters.dateRange.from}
@@ -628,17 +719,18 @@ export default function FinancialReportsPage() {
                           dateRange: { ...prev.dateRange, from: date }
                         }))}
                         initialFocus
+                        locale={ptBR}
                       />
                     </PopoverContent>
                   </Popover>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="flex-1">
+                      <Button variant="outline" className="flex-1 justify-start text-left font-normal bg-white">
                         <CalendarIcon className="h-4 w-4 mr-2" />
-                        {filters.dateRange.to ? format(filters.dateRange.to, "dd/MM/yyyy") : "Até"}
+                        {filters.dateRange.to ? format(filters.dateRange.to, "dd/MM/yyyy", { locale: ptBR }) : "Até"}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={filters.dateRange.to}
@@ -647,17 +739,19 @@ export default function FinancialReportsPage() {
                           dateRange: { ...prev.dateRange, to: date }
                         }))}
                         initialFocus
+                        locale={ptBR}
                       />
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="flex flex-wrap gap-1 mt-2">
+                <div className="flex flex-wrap gap-1.5 mt-2">
                   {QUICK_PERIODS.map((period) => (
                     <Button
                       key={period.label}
                       variant="outline"
                       size="sm"
                       onClick={() => quickPeriodSelect(period.days)}
+                      className="text-xs bg-white"
                     >
                       {period.label}
                     </Button>
@@ -665,12 +759,12 @@ export default function FinancialReportsPage() {
                 </div>
               </div>
               <div>
-                <Label>Tipo de Relatório</Label>
+                <Label className="text-sm">Tipo de Relatório</Label>
                 <Select
                   value={filters.reportType}
                   onValueChange={(value) => setFilters(prev => ({ ...prev, reportType: value }))}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1 bg-white">
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -683,12 +777,12 @@ export default function FinancialReportsPage() {
                 </Select>
               </div>
               <div>
-                <Label>Status</Label>
+                <Label className="text-sm">Status</Label>
                 <Select
                   value={filters.status}
                   onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
                 >
-                  <SelectTrigger className="mt-1">
+                  <SelectTrigger className="mt-1 bg-white">
                     <SelectValue placeholder="Selecione o status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -706,104 +800,109 @@ export default function FinancialReportsPage() {
       )}
 
       {/* Reports List */}
-      <Card>
+      <Card className="border-slate-200 shadow-sm">
         <CardHeader>
-          <CardTitle>Relatórios Gerados ({filteredReports.length})</CardTitle>
-          <CardDescription>
-            Visualize e baixe seus relatórios gerados
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base sm:text-lg">Relatórios Gerados</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                {filteredReports.length} {filteredReports.length === 1 ? 'relatório encontrado' : 'relatórios encontrados'}
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredReports.map((report) => (
-              <div
-                key={report.id}
-                className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3 flex-1">
-                    {getTypeIcon(report.type)}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <h3 className="text-sm font-medium">{report.title}</h3>
-                        <Badge variant={getStatusColor(report.status) as any}>
-                          {getStatusIcon(report.status)}
-                          <span className="ml-1">
-                            {report.status === 'ready' && 'Pronto'}
-                            {report.status === 'generating' && 'Gerando'}
-                            {report.status === 'error' && 'Erro'}
+          {filteredReports.length === 0 && !loading ? (
+            <div className="text-center py-8 sm:py-12 text-muted-foreground flex flex-col items-center justify-center gap-3">
+              <BarChart3 className="h-10 w-10 sm:h-12 sm:w-12 opacity-50" />
+              <p className="font-medium text-base sm:text-lg">Nenhum relatório encontrado</p>
+              <p className="text-sm">Gere um novo relatório usando as ações rápidas acima</p>
+            </div>
+          ) : (
+            <div className="space-y-3 sm:space-y-4">
+              {filteredReports.map((report) => (
+                <div
+                  key={report.id}
+                  className="border rounded-lg p-4 sm:p-6 hover:bg-slate-50 transition-colors bg-white"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="flex items-start space-x-3 sm:space-x-4 flex-1 min-w-0">
+                      {getTypeIcon(report.type)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                          <h3 className="text-sm sm:text-base font-semibold">{report.title}</h3>
+                          {getStatusBadge(report.status)}
+                        </div>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                          Período: {report.period}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            {format(new Date(report.generatedAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                           </span>
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Período: {report.period}
-                      </p>
-                      <div className="flex items-center space-x-4 text-xs text-muted-foreground">
-                        <span>Gerado: {format(new Date(report.generatedAt), "dd/MM/yyyy HH:mm")}</span>
-                        {report.summary.total > 0 && (
-                          <span>
-                            Total: {report.type === 'revenue' || report.type === 'expenses' || report.type === 'profit' 
-                              ? formatCurrency(report.summary.total)
-                              : formatNumber(report.summary.total)
-                            }
-                          </span>
-                        )}
-                        {report.summary.change !== 0 && (
-                          <span className={`flex items-center ${
-                            report.summary.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {report.summary.changeType === 'increase' ? '+' : ''}{report.summary.change}% {report.summary.period}
-                          </span>
-                        )}
+                          {report.summary.total > 0 && (
+                            <span className="font-medium">
+                              Total: {report.type === 'revenue' || report.type === 'expenses' || report.type === 'profit' 
+                                ? formatCurrency(report.summary.total)
+                                : formatNumber(report.summary.total)
+                              }
+                            </span>
+                          )}
+                          {report.summary.change !== 0 && (
+                            <span className={cn(
+                              "flex items-center gap-1 font-medium",
+                              report.summary.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
+                            )}>
+                              {report.summary.changeType === 'increase' ? (
+                                <TrendingUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <TrendingDown className="h-3.5 w-3.5" />
+                              )}
+                              {report.summary.change >= 0 ? '+' : ''}{report.summary.change.toFixed(1)}% {report.summary.period}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-2 ml-4">
-                        {report.status === 'ready' && (
-                      <>
+                    <div className="flex items-center gap-2 sm:ml-4">
+                      {report.status === 'ready' && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => downloadReport(report.id)}
+                          className="bg-white"
                         >
-                          <Download className="h-4 w-4 mr-1" />
-                          Baixar
+                          <Download className="h-4 w-4 mr-1.5 sm:mr-2" />
+                          <span className="hidden sm:inline">Baixar</span>
+                          <span className="sm:hidden">Download</span>
                         </Button>
-                      </>
-                    )}
-                    {report.status === 'generating' && (
-                      <Button variant="outline" size="sm" disabled>
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        Gerando...
-                      </Button>
-                    )}
-                    {report.status === 'error' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => generateReport(report.type)}
-                      >
-                        <RefreshCw className="h-4 w-4 mr-1" />
-                        Tentar Novamente
-                      </Button>
-                    )}
+                      )}
+                      {report.status === 'generating' && (
+                        <Button variant="outline" size="sm" disabled className="bg-white">
+                          <Loader2 className="h-4 w-4 mr-1.5 sm:mr-2 animate-spin" />
+                          <span className="hidden sm:inline">Gerando...</span>
+                          <span className="sm:hidden">...</span>
+                        </Button>
+                      )}
+                      {report.status === 'error' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => generateReport(report.type)}
+                          className="bg-white"
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1.5 sm:mr-2" />
+                          <span className="hidden sm:inline">Tentar Novamente</span>
+                          <span className="sm:hidden">Retry</span>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {loading && reports.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Carregando relatórios...
-              </div>
-            ) : filteredReports.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum relatório encontrado com os critérios selecionados</p>
-                <p className="text-sm">Gere um novo relatório usando as ações rápidas acima</p>
-              </div>
-            ) : null}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

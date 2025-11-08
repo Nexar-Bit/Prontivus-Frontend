@@ -14,6 +14,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { api } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface ActivityItem {
   id: string;
@@ -58,6 +59,7 @@ const getActivityColor = (type: string) => {
 };
 
 export function RecentActivity() {
+  const { isAdmin } = usePermissions();
   const [activities, setActivities] = React.useState<ActivityItem[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -65,12 +67,31 @@ export function RecentActivity() {
     const fetchActivities = async () => {
       try {
         setLoading(true);
-        // Fetch recent appointments, patients, and system logs
-        const [appointmentsRes, patientsRes, logsRes] = await Promise.allSettled([
+        
+        // Prepare promises - only fetch logs if user is admin
+        const promises: Promise<any>[] = [
           api.get<any[]>("/api/appointments?limit=5&order_by=created_at&order=desc"),
           api.get<any[]>("/api/patients?limit=5&order_by=created_at&order=desc"),
-          api.get<any[]>("/api/admin/logs?limit=5").catch(() => ({ data: [] })),
-        ]);
+        ];
+        
+        // Only fetch logs if user is admin
+        if (isAdmin()) {
+          promises.push(
+            api.get<any[]>("/api/admin/logs?limit=5").catch((err) => {
+              // Handle 403 or other errors gracefully
+              if (err?.status === 403 || err?.status === 401) {
+                return { data: [] };
+              }
+              throw err;
+            })
+          );
+        } else {
+          // For non-admin users, add a resolved promise with empty data
+          promises.push(Promise.resolve({ data: [] }));
+        }
+        
+        // Fetch recent appointments, patients, and system logs (if admin)
+        const [appointmentsRes, patientsRes, logsRes] = await Promise.allSettled(promises);
 
         const activitiesList: ActivityItem[] = [];
 
