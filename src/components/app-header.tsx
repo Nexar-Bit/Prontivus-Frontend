@@ -188,7 +188,7 @@ export function AppHeader({
                 )}
                 {index === breadcrumbs.length - 1 ? (
                   <span className="text-blue-700 font-semibold truncate flex items-center gap-2">
-                    {DisplayIcon && (
+          {DisplayIcon && (
                       <DisplayIcon className="h-4 w-4 flex-shrink-0" />
                     )}
                     {crumb.label}
@@ -210,30 +210,30 @@ export function AppHeader({
         {/* Right Section: Search, Notifications, User, Primary Action */}
         <div className="flex items-center gap-3 ml-auto">
           {/* Global Search Bar */}
-          {showSearch && (
-            <form
-              onSubmit={handleSearch}
+        {showSearch && (
+          <form
+            onSubmit={handleSearch}
               className="hidden md:block"
-            >
-              <div className="relative">
+          >
+            <div className="relative">
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-400" />
-                <Input
-                  type="search"
-                  placeholder={searchPlaceholder}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+              <Input
+                type="search"
+                placeholder={searchPlaceholder}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-4 h-10 w-64 bg-blue-50/50 border-blue-200/50 rounded-lg focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 placeholder:text-blue-400/60"
-                />
-              </div>
-            </form>
-          )}
+              />
+            </div>
+          </form>
+        )}
 
           {/* Mobile Search Button */}
           {showSearch && (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
+            <Button
+              variant="ghost"
+              size="icon"
                 className="md:hidden h-10 w-10 rounded-lg hover:bg-blue-50"
                 onClick={() => setMobileSearchOpen(true)}
               >
@@ -282,7 +282,7 @@ export function AppHeader({
                             onClick={() => setMobileSearchOpen(false)}
                           >
                             Cancelar
-                          </Button>
+            </Button>
                         </div>
                     </form>
                   </div>
@@ -437,28 +437,28 @@ export function AppHeader({
 
               {/* Logout */}
               <div className="p-2">
-                <DropdownMenuItem
-                  onClick={() => {
-                    if (confirm('Deseja sair da aplicação?')) {
-                      (async () => {
-                        try {
-                          if (typeof window !== 'undefined') {
-                            localStorage.removeItem('prontivus_access_token');
-                            localStorage.removeItem('refresh_token');
-                          }
-                          await logout();
-                          router.push('/login');
-                        } catch (e) {
-                          router.push('/login');
+              <DropdownMenuItem
+                onClick={() => {
+                  if (confirm('Deseja sair da aplicação?')) {
+                    (async () => {
+                      try {
+                        if (typeof window !== 'undefined') {
+                          localStorage.removeItem('prontivus_access_token');
+                          localStorage.removeItem('refresh_token');
                         }
-                      })();
-                    }
-                  }}
+                        await logout();
+                        router.push('/login');
+                      } catch (e) {
+                        router.push('/login');
+                      }
+                    })();
+                  }
+                }}
                   className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-700 rounded-lg px-3 py-2.5 transition-colors"
-                >
+              >
                   <LogOut className="mr-3 h-4 w-4" />
                   <span className="text-sm font-medium">Sair</span>
-                </DropdownMenuItem>
+              </DropdownMenuItem>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>

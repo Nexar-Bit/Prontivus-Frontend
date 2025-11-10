@@ -48,6 +48,7 @@ export interface LoginResponse {
 export interface LoginCredentials {
   username_or_email: string;
   password: string;
+  expected_role?: string;
 }
 
 // ==================== Token Management ====================
