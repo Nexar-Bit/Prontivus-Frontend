@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import {
-  Calendar,
+  CalendarDays,
   Video,
   FileText,
   Pill,
@@ -11,8 +12,9 @@ import {
   Download,
   ArrowRight,
   Smartphone,
-  Clock,
-  Heart,
+  Timer,
+  HeartPulse,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,7 +28,7 @@ interface ForPatientsSectionProps {
 export function ForPatientsSection({ className }: ForPatientsSectionProps) {
   const benefits = [
     {
-      icon: Calendar,
+      icon: CalendarDays,
       title: "Agendamento fácil",
       description: "Marque, reagende ou cancele consultas em segundos com disponibilidade em tempo real",
     },
@@ -108,9 +110,17 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
 
         {/* Patient Journey Visualization */}
         <div className="mb-16">
-          <h3 className="text-2xl font-bold text-[#0F4C75] text-center mb-8">
-            Sua jornada de cuidado, simplificada
-          </h3>
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100/50 rounded-full mb-4">
+              <span className="text-sm font-semibold text-blue-700">Jornada do Paciente</span>
+            </div>
+            <h3 className="text-3xl lg:text-4xl font-bold text-[#0F4C75] mb-4">
+              Sua jornada de cuidado, simplificada
+            </h3>
+            <p className="text-lg text-[#5D737E] max-w-2xl mx-auto">
+              Do agendamento ao monitoramento contínuo, tudo em um só lugar
+            </p>
+          </div>
           <PatientJourneyIllustration />
         </div>
 
@@ -120,7 +130,7 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
             <CardContent className="p-8">
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1B9AAA] to-[#0F4C75] flex items-center justify-center flex-shrink-0">
-                  <Heart className="h-8 w-8 text-white" />
+                  <HeartPulse className="h-8 w-8 text-white" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-1 mb-3">
@@ -223,7 +233,7 @@ function PatientAppMockup() {
             <div className="bg-[#0F4C75] text-white p-4">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-                  <Heart className="h-5 w-5 text-white" />
+                  <HeartPulse className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <div className="font-semibold">Ana Oliveira</div>
@@ -235,7 +245,7 @@ function PatientAppMockup() {
             {/* Quick Actions */}
             <div className="p-4 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <ActionCard icon={Calendar} title="Consultas" color="bg-[#1B9AAA]/10" />
+                <ActionCard icon={CalendarDays} title="Consultas" color="bg-[#1B9AAA]/10" />
                 <ActionCard icon={Video} title="Chamada de vídeo" color="bg-[#16C79A]/10" />
               </div>
 
@@ -322,35 +332,233 @@ function MetricCard({ label, value, normal }: { label: string; value: string; no
 // Patient Journey Illustration
 function PatientJourneyIllustration() {
   const steps = [
-    { icon: Calendar, label: "Agendar", description: "Marcar consulta" },
-    { icon: Video, label: "Consultar", description: "Virtual ou presencial" },
-    { icon: FileText, label: "Revisar", description: "Acessar prontuário" },
-    { icon: Pill, label: "Gerir", description: "Prescrições e medicamentos" },
-    { icon: Activity, label: "Monitorar", description: "Acompanhar saúde" },
+    {
+      icon: CalendarDays,
+      label: "Agendar",
+      description: "Marque sua consulta em segundos com disponibilidade em tempo real",
+      image: "/resource image/prontivus (8).jpg",
+      color: "from-blue-500 to-blue-600",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
+    },
+    {
+      icon: Video,
+      label: "Consultar",
+      description: "Atendimento virtual ou presencial com seu médico de confiança",
+      image: "/resource image/prontivus (9).jpg",
+      color: "from-teal-500 to-teal-600",
+      bgColor: "bg-teal-50",
+      borderColor: "border-teal-200",
+    },
+    {
+      icon: FileText,
+      label: "Revisar",
+      description: "Acesse seu prontuário completo, exames e histórico médico",
+      image: "/resource image/prontivus (10).jpg",
+      color: "from-green-500 to-green-600",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
+    },
+    {
+      icon: Pill,
+      label: "Gerir",
+      description: "Prescrições digitais e lembretes automáticos de medicamentos",
+      image: "/resource image/prontivus (11).jpg",
+      color: "from-purple-500 to-purple-600",
+      bgColor: "bg-purple-50",
+      borderColor: "border-purple-200",
+    },
+    {
+      icon: Activity,
+      label: "Monitorar",
+      description: "Acompanhe sua saúde com métricas e indicadores em tempo real",
+      image: "/resource image/prontivus (12).jpg",
+      color: "from-orange-500 to-orange-600",
+      bgColor: "bg-orange-50",
+      borderColor: "border-orange-200",
+    },
   ];
 
   return (
     <div className="relative">
-      <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-4 relative">
-        {steps.map((step, index) => {
-          const Icon = step.icon;
-          return (
-            <React.Fragment key={index}>
-              <div className="flex flex-col items-center">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1B9AAA] to-[#0F4C75] flex items-center justify-center mb-3 shadow-lg">
-                  <Icon className="h-8 w-8 text-white" />
-                </div>
-                <div className="text-center">
-                  <div className="font-semibold text-[#0F4C75] text-sm">{step.label}</div>
-                  <div className="text-xs text-[#5D737E]">{step.description}</div>
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/2 left-0 w-96 h-96 bg-blue-200/10 rounded-full blur-3xl -translate-x-1/2" />
+        <div className="absolute top-1/2 right-0 w-96 h-96 bg-teal-200/10 rounded-full blur-3xl translate-x-1/2" />
+      </div>
+
+      {/* Journey Steps */}
+      <div className="relative z-10">
+        {/* Desktop: Horizontal Flow */}
+        <div className="hidden lg:block">
+          <div className="flex items-start justify-center gap-4 relative">
+            {/* Connection Line */}
+            <div className="absolute top-24 left-0 right-0 h-1 bg-gradient-to-r from-blue-200 via-teal-200 to-orange-200 opacity-30" />
+            
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              return (
+                <React.Fragment key={index}>
+                  <div className="flex flex-col items-center group relative z-10">
+                    {/* Step Card */}
+                    <Card
+                      className={cn(
+                        "w-72 bg-white/90 backdrop-blur-xl border-2",
+                        step.borderColor,
+                        "hover:shadow-2xl hover:shadow-blue-500/10",
+                        "transition-all duration-500 ease-out",
+                        "transform hover:-translate-y-3",
+                        "overflow-hidden"
+                      )}
+                    >
+                      {/* Image Background */}
+                      <div className="relative h-48 overflow-hidden">
+                        <Image
+                          src={step.image}
+                          alt={step.label}
+                          fill
+                          className="object-cover scale-110 group-hover:scale-100 transition-transform duration-700"
+                          sizes="288px"
+                        />
+                        <div className={cn(
+                          "absolute inset-0 bg-gradient-to-b from-transparent to-white/95",
+                          "group-hover:to-white/98 transition-all duration-500"
+                        )} />
+                        
+                        {/* Icon Badge */}
+                        <div className={cn(
+                          "absolute top-4 right-4 w-14 h-14 rounded-2xl",
+                          "bg-gradient-to-br",
+                          step.color,
+                          "flex items-center justify-center shadow-xl",
+                          "transform group-hover:scale-110 group-hover:rotate-3",
+                          "transition-all duration-500"
+                        )}>
+                          <Icon className="h-7 w-7 text-white" />
+                        </div>
+
+                        {/* Step Number */}
+                        <div className={cn(
+                          "absolute top-4 left-4 w-8 h-8 rounded-full",
+                          step.bgColor,
+                          "flex items-center justify-center",
+                          "border-2 border-white shadow-md",
+                          "font-bold text-sm text-gray-700"
+                        )}>
+                          {index + 1}
+                        </div>
+                      </div>
+
+                      <CardContent className="p-6">
+                        <h4 className="text-xl font-bold text-[#0F4C75] mb-2 group-hover:text-[#1B9AAA] transition-colors">
+                          {step.label}
+                        </h4>
+                        <p className="text-sm text-[#5D737E] leading-relaxed">
+                          {step.description}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Step Label Below */}
+                    <div className="mt-4 text-center">
+                      <div className="font-semibold text-[#0F4C75] text-sm">{step.label}</div>
+                    </div>
+                  </div>
+
+                  {/* Arrow Connector */}
+                  {index < steps.length - 1 && (
+                    <div className="flex items-center pt-24">
+                      <div className="relative">
+                        <ArrowRight className="h-8 w-8 text-blue-300 group-hover:text-blue-500 transition-colors" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mobile/Tablet: Vertical Flow */}
+        <div className="lg:hidden space-y-6">
+          {steps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <div key={index} className="relative">
+                {/* Connection Line (Mobile) */}
+                {index < steps.length - 1 && (
+                  <div className="absolute left-8 top-24 bottom-0 w-0.5 bg-gradient-to-b from-blue-200 to-teal-200 opacity-30 z-0" />
+                )}
+
+                <div className="relative z-10 flex gap-4 group">
+                  {/* Icon Circle */}
+                  <div className="flex-shrink-0">
+                    <div className={cn(
+                      "w-16 h-16 rounded-2xl",
+                      "bg-gradient-to-br",
+                      step.color,
+                      "flex items-center justify-center shadow-xl",
+                      "transform group-hover:scale-110 group-hover:rotate-3",
+                      "transition-all duration-500",
+                      "border-4 border-white"
+                    )}>
+                      <Icon className="h-8 w-8 text-white" />
+                    </div>
+                    {/* Step Number */}
+                    <div className={cn(
+                      "absolute -top-2 -right-2 w-6 h-6 rounded-full",
+                      step.bgColor,
+                      "flex items-center justify-center",
+                      "border-2 border-white shadow-md",
+                      "font-bold text-xs text-gray-700"
+                    )}>
+                      {index + 1}
+                    </div>
+                  </div>
+
+                  {/* Content Card */}
+                  <Card
+                    className={cn(
+                      "flex-1 bg-white/90 backdrop-blur-xl border-2",
+                      step.borderColor,
+                      "hover:shadow-xl transition-all duration-300",
+                      "overflow-hidden"
+                    )}
+                  >
+                    <div className="flex gap-4">
+                      {/* Image Thumbnail */}
+                      <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg">
+                        <Image
+                          src={step.image}
+                          alt={step.label}
+                          fill
+                          className="object-cover"
+                          sizes="96px"
+                        />
+                        <div className={cn(
+                          "absolute inset-0 bg-gradient-to-br from-transparent",
+                          "to-black/20"
+                        )} />
+                      </div>
+
+                      <CardContent className="p-4 flex-1">
+                        <h4 className="text-lg font-bold text-[#0F4C75] mb-1">
+                          {step.label}
+                        </h4>
+                        <p className="text-xs text-[#5D737E] leading-relaxed line-clamp-2">
+                          {step.description}
+                        </p>
+                      </CardContent>
+                    </div>
+                  </Card>
                 </div>
               </div>
-              {index < steps.length - 1 && (
-                <ArrowRight className="hidden md:block h-6 w-6 text-[#1B9AAA] mx-2 flex-shrink-0" />
-              )}
-            </React.Fragment>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

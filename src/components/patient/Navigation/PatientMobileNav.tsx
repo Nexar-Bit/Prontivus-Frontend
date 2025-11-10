@@ -10,17 +10,17 @@ import { cn } from "@/lib/utils";
 import { usePatientBadges } from "@/hooks/usePatientBadges";
 import {
   Home,
-  Calendar,
-  Folder,
+  CalendarDays,
+  FolderOpen,
   MessageCircle,
   Menu,
   X,
   Pill,
-  TestTube,
-  CreditCard,
-  Settings,
+  FlaskConical,
+  Wallet,
+  Settings2,
   FileText,
-  Heart,
+  HeartPulse,
   Stethoscope,
 } from "lucide-react";
 import { NavigationItem } from "./PatientSidebar";
@@ -31,23 +31,23 @@ interface PatientMobileNavProps {
 
 const baseMobileNavItems: NavigationItem[] = [
   { label: "Dashboard", icon: Home, href: "/patient/dashboard" },
-  { label: "Appointments", icon: Calendar, href: "/patient/appointments" },
-  { label: "Records", icon: Folder, href: "/patient/medical-records" },
+  { label: "Appointments", icon: CalendarDays, href: "/patient/appointments" },
+  { label: "Records", icon: FolderOpen, href: "/patient/medical-records" },
   { label: "Messages", icon: MessageCircle, href: "/patient/messages" },
 ];
 
 const baseNavigationItems: NavigationItem[] = [
   { label: "Dashboard", icon: Home, href: "/patient/dashboard", section: "main" },
-  { label: "Appointments", icon: Calendar, href: "/patient/appointments", section: "main" },
-  { label: "Medical Records", icon: Folder, href: "/patient/medical-records", section: "main" },
+  { label: "Appointments", icon: CalendarDays, href: "/patient/appointments", section: "main" },
+  { label: "Medical Records", icon: FolderOpen, href: "/patient/medical-records", section: "main" },
   { label: "Prescriptions", icon: Pill, href: "/patient/prescriptions", section: "health" },
-  { label: "Test Results", icon: TestTube, href: "/patient/test-results", section: "health" },
-  { label: "Health Summary", icon: Heart, href: "/patient/health", section: "health" },
+  { label: "Test Results", icon: FlaskConical, href: "/patient/test-results", section: "health" },
+  { label: "Health Summary", icon: HeartPulse, href: "/patient/health", section: "health" },
   { label: "Messages", icon: MessageCircle, href: "/patient/messages", section: "communication" },
   { label: "Clinical Notes", icon: FileText, href: "/patient/notes", section: "health" },
-  { label: "Billing & Payments", icon: CreditCard, href: "/patient/billing", section: "services" },
+  { label: "Billing & Payments", icon: Wallet, href: "/patient/billing", section: "services" },
   { label: "My Doctors", icon: Stethoscope, href: "/patient/doctors", section: "services" },
-  { label: "Settings", icon: Settings, href: "/patient/settings", section: "settings" },
+  { label: "Settings", icon: Settings2, href: "/patient/settings", section: "settings" },
 ];
 
 export function PatientMobileNav({ items }: PatientMobileNavProps) {

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
-import { Bell, Search, User, Settings, LogOut, Shield, Stethoscope, Users, UserCheck, HelpCircle, ChevronDown, Home, Save } from "lucide-react";
+import { BellRing, Search, UserRound, Settings2, LogOut, ShieldCheck, HeartPulse, UsersRound, UserRoundCheck, HelpCircle, ChevronDown, Home, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
@@ -51,6 +58,7 @@ export function AppHeader({
   const pathname = usePathname();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+  const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
 
   // Load user avatar
   React.useEffect(() => {
@@ -83,11 +91,11 @@ export function AppHeader({
 
   // Get role icon
   const getRoleIcon = () => {
-    if (isAdmin()) return Shield;
-    if (isSecretary()) return Users;
-    if (isDoctor()) return Stethoscope;
-    if (isPatient()) return UserCheck;
-    return User;
+    if (isAdmin()) return ShieldCheck;
+    if (isSecretary()) return UsersRound;
+    if (isDoctor()) return HeartPulse;
+    if (isPatient()) return UserRoundCheck;
+    return UserRound;
   };
 
   // Get role color
@@ -222,16 +230,65 @@ export function AppHeader({
 
           {/* Mobile Search Button */}
           {showSearch && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden h-10 w-10 rounded-lg hover:bg-blue-50"
-              onClick={() => {
-                // TODO: Open mobile search modal
-              }}
-            >
-              <Search className="h-5 w-5 text-blue-600" />
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden h-10 w-10 rounded-lg hover:bg-blue-50"
+                onClick={() => setMobileSearchOpen(true)}
+              >
+                <Search className="h-5 w-5 text-blue-600" />
+              </Button>
+              <Dialog open={mobileSearchOpen} onOpenChange={setMobileSearchOpen}>
+                <DialogContent className="sm:max-w-[425px] p-0 gap-0">
+                  <DialogHeader className="px-6 pt-6 pb-4">
+                    <DialogTitle className="text-xl font-bold text-blue-700">Buscar</DialogTitle>
+                    <DialogDescription>
+                      Digite sua busca abaixo
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="px-6 pb-6">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (onSearch) {
+                          onSearch(searchQuery);
+                        }
+                        setMobileSearchOpen(false);
+                      }}
+                    >
+                      <div className="relative">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-400" />
+                        <Input
+                          type="search"
+                          placeholder={searchPlaceholder}
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10 pr-4 h-12 bg-blue-50/50 border-blue-200/50 rounded-lg focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 placeholder:text-blue-400/60"
+                          autoFocus
+                        />
+                      </div>
+                        <div className="flex gap-2 mt-4">
+                          <Button
+                            type="submit"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Search className="h-4 w-4 mr-2" />
+                            Buscar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setMobileSearchOpen(false)}
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                    </form>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </>
           )}
 
           {/* Notifications */}
@@ -270,7 +327,7 @@ export function AppHeader({
                     <AvatarImage src={avatarUrl || undefined} alt={user?.username} />
                     <AvatarFallback className={cn(getRoleAvatarStyle(), "font-semibold text-sm")}>
                       {avatarUrl ? (
-                        <User className="h-5 w-5" />
+                        <UserRound className="h-5 w-5" />
                       ) : (
                         <RoleIcon className="h-5 w-5" />
                       )}
@@ -302,7 +359,7 @@ export function AppHeader({
                     <AvatarImage src={avatarUrl || undefined} alt={user?.username} />
                     <AvatarFallback className={cn(getRoleAvatarStyle(), "font-semibold text-base")}>
                       {avatarUrl ? (
-                        <User className="h-6 w-6" />
+                        <UserRound className="h-6 w-6" />
                       ) : (
                         <RoleIcon className="h-6 w-6" />
                       )}
@@ -343,14 +400,14 @@ export function AppHeader({
                   }}
                   className="cursor-pointer focus:bg-blue-50 rounded-lg px-3 py-2.5 transition-colors"
                 >
-                  <User className="mr-3 h-4 w-4 text-blue-600" />
+                  <UserRound className="mr-3 h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium">Meu Perfil</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => router.push('/settings')}
                   className="cursor-pointer focus:bg-blue-50 rounded-lg px-3 py-2.5 transition-colors"
                 >
-                  <Settings className="mr-3 h-4 w-4 text-blue-600" />
+                  <Settings2 className="mr-3 h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium">Configurações</span>
                 </DropdownMenuItem>
                 {isAdmin() && (
@@ -358,7 +415,7 @@ export function AppHeader({
                     onClick={() => router.push('/admin/settings')}
                     className="cursor-pointer focus:bg-blue-50 rounded-lg px-3 py-2.5 transition-colors"
                   >
-                    <Shield className="mr-3 h-4 w-4 text-blue-600" />
+                    <ShieldCheck className="mr-3 h-4 w-4 text-blue-600" />
                     <span className="text-sm font-medium">Admin Settings</span>
                   </DropdownMenuItem>
                 )}

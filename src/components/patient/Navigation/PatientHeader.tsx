@@ -11,14 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { notificationsApi, NotificationItem } from "@/lib/notifications-api";
 import {
-  Bell,
+  BellRing,
   Search,
   HelpCircle,
   Phone,
   X,
   FileText,
-  Calendar,
-  TestTube,
+  CalendarDays,
+  FlaskConical,
   MessageCircle,
 } from "lucide-react";
 import {
@@ -128,14 +128,14 @@ export function PatientHeader({
           title: "Consulta Agendada - 20 de Janeiro",
           description: "14:00 - Cardiologia",
           date: "20/01/2024",
-          icon: Calendar,
+          icon: CalendarDays,
         },
         {
           type: "test",
           title: "Hemograma Completo",
           description: "Resultados disponíveis",
           date: "12/01/2024",
-          icon: TestTube,
+          icon: FlaskConical,
         },
       ];
       setSearchResults(
@@ -300,7 +300,7 @@ export function PatientHeader({
                   aria-label={`Notificações${notificationCount > 0 ? ` (${notificationCount} novas)` : ''}`}
                   title="Notificações"
                 >
-                  <Bell className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
+                  <BellRing className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
                   {notificationCount > 0 && (
                     <Badge className="absolute top-0.5 right-0.5 h-5 min-w-[20px] px-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-semibold border-2 border-white shadow-md">
                       {notificationCount > 99 ? "99+" : notificationCount}
@@ -312,7 +312,7 @@ export function PatientHeader({
                 <div className="p-4 border-b border-blue-100 bg-gradient-to-r from-blue-50/50 to-white">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-blue-700 text-base flex items-center gap-2">
-                      <Bell className="h-5 w-5 text-blue-600" />
+                      <BellRing className="h-5 w-5 text-blue-600" />
                       Notificações
                     </h3>
                     {notificationCount > 0 && (
@@ -337,12 +337,12 @@ export function PatientHeader({
                         const getIcon = () => {
                           switch (notification.kind) {
                             case "appointment":
-                              return Calendar;
+                              return CalendarDays;
                             case "message":
                               return MessageCircle;
                             case "exam":
                             case "test":
-                              return TestTube;
+                              return FlaskConical;
                             default:
                               return FileText;
                           }

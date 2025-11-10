@@ -132,8 +132,51 @@ export default function ReportsPage() {
   };
 
   const handleExport = () => {
-    // TODO: Implement export functionality
-    toast.info('Funcionalidade de exportação em desenvolvimento');
+    try {
+      // Prepare export data
+      const exportData = {
+        period: selectedPeriod,
+        dateRange: dateRange ? {
+          from: dateRange.from?.toISOString(),
+          to: dateRange.to?.toISOString(),
+        } : null,
+        summary: summaryStats,
+        clinical: {
+          patientsByAge: clinicalData?.patients_by_age_group || [],
+          appointmentsByStatus: clinicalData?.appointments_by_status || [],
+          diagnoses: clinicalData?.top_diagnoses || [],
+        },
+        financial: {
+          revenue: financialData ? {
+            total: (financialData as any)?.total_stats?.total_revenue || 0,
+            byMonth: (financialData as any)?.revenue_by_month || [],
+          } : null,
+          invoices: (financialData as any)?.total_stats?.total_invoices || 0,
+        },
+        inventory: {
+          lowStock: inventoryData?.low_stock_products || [],
+          movements: inventoryData?.stock_movements_by_type || [],
+        },
+        exportedAt: new Date().toISOString(),
+      };
+
+      // Convert to JSON
+      const jsonData = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `relatorios-prontivus-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('Relatórios exportados com sucesso!');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Erro ao exportar relatórios');
+    }
   };
 
   // Calculate summary statistics

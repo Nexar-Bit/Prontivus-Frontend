@@ -3,20 +3,20 @@
 /* eslint-disable react/forbid-dom-props */
 import React from "react";
 import {
-  Users,
+  UsersRound,
   Video,
-  DollarSign,
-  BarChart3,
+  CircleDollarSign,
+  ChartLine,
   MessageSquare,
   CheckCircle2,
   ArrowRight,
-  Calendar,
-  Shield,
+  CalendarDays,
+  ShieldCheck,
   Award,
-  Clock,
+  Timer,
   TrendingUp,
   FileText,
-  Stethoscope,
+  HeartPulse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +41,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
 
   const benefits = [
     {
-      icon: Users,
+      icon: UsersRound,
       title: "Gestão de pacientes simplificada",
       description: "PEP completo com organização inteligente e acesso rápido ao prontuário",
     },
@@ -51,12 +51,12 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
       description: "Vídeo-consultas seguras com agenda integrada e comunicação com o paciente",
     },
     {
-      icon: DollarSign,
+      icon: CircleDollarSign,
       title: "Faturamento médico & TISS",
       description: "Faturamento automatizado com TISS, convênios e painel financeiro",
     },
     {
-      icon: BarChart3,
+      icon: ChartLine,
       title: "Suporte à decisão clínica",
       description: "Insights e análises para melhores desfechos e eficiência da clínica",
     },
@@ -81,12 +81,12 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
     {
       metric: "100%",
       label: "Conformidade HIPAA",
-      icon: Shield,
+      icon: ShieldCheck,
     },
     {
       metric: "24/7",
       label: "Disponibilidade da plataforma",
-      icon: Clock,
+      icon: Timer,
     },
   ];
 
@@ -187,10 +187,10 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
         {/* Trust Badges */}
         <div className="mb-16">
           <div className="flex flex-wrap items-center justify-center gap-8">
-            <TrustBadge icon={Shield} label="Conforme HIPAA" />
+            <TrustBadge icon={ShieldCheck} label="Conforme HIPAA" />
             <TrustBadge icon={Award} label="ISO 27001" />
             <TrustBadge icon={FileText} label="Padrão TISS" />
-            <TrustBadge icon={Stethoscope} label="Segurança nível médico" />
+            <TrustBadge icon={HeartPulse} label="Segurança nível médico" />
           </div>
         </div>
 
@@ -224,7 +224,7 @@ export function ForProvidersSection({ className }: ForProvidersSectionProps) {
                   }
                 }}
               >
-                <Calendar className="mr-2 h-5 w-5" />
+                <CalendarDays className="mr-2 h-5 w-5" />
                 Agendar demonstração
               </Button>
               <Button
@@ -381,7 +381,7 @@ function ProviderDashboardMockup() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0F4C75] to-[#1B9AAA] flex items-center justify-center">
-                <Stethoscope className="h-6 w-6 text-white" />
+                <HeartPulse className="h-6 w-6 text-white" />
               </div>
               <div>
                 <div className="font-semibold text-[#0F4C75] text-sm">Dr. Maria Silva</div>
@@ -461,7 +461,7 @@ function PatientRow({
     <div className="flex items-center justify-between p-2 bg-[#FAFBFC] rounded">
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 rounded-full bg-[#1B9AAA]/20 flex items-center justify-center">
-          <Users className="h-4 w-4 text-[#1B9AAA]" />
+          <UsersRound className="h-4 w-4 text-[#1B9AAA]" />
         </div>
         <div>
           <div className="text-xs font-medium text-[#2D3748]">{name}</div>

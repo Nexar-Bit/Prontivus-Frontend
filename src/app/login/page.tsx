@@ -2,6 +2,7 @@
 
 import React, { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, Stethoscope } from "lucide-react";
@@ -57,43 +58,45 @@ function LoginPageContent() {
         }
       `}</style>
 
-      {/* Logo centralizado na tela */}
-      <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
-        <div className="text-center relative">
-          <div className="mx-auto flex items-center justify-center w-40 h-40 rounded-full bg-white/90 shadow-lg ring-1 ring-[#0F4C75]/10 relative overflow-visible star-trail">
-            <Image
-              src="/Logo/Sublogo PNG Transparente.png"
-              alt="Prontivus"
-              width={220}
-              height={60}
-              priority
-              className="w-[75%] h-auto"
-            />
-              </div>
-          <p className="text-sm text-[#5D737E] mt-3 font-medium">Prontivus — Cuidado inteligente</p>
-              </div>
-        </div>
-
       {/* Metade esquerda/direita ocupadas pelos botões */}
       <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 min-h-screen">
         {/* Angled divider ~20deg */}
-        <div className="pointer-events-none absolute inset-0 hidden md:flex items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 hidden md:flex items-center justify-center z-0">
           <div className="w-px h-[130%] bg-gradient-to-b from-[#0F4C75]/20 via-[#1B9AAA] to-[#0F4C75]/20 transform rotate-[20deg]"></div>
+        </div>
+
+        {/* Logo centralizado na tela - above buttons but clickable */}
+        <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div className="text-center relative">
+            <Link href="/" className="block cursor-pointer hover:opacity-90 transition-opacity pointer-events-auto">
+              <div className="mx-auto flex items-center justify-center w-40 h-40 rounded-full bg-white/95 shadow-xl ring-2 ring-[#0F4C75]/20 relative overflow-visible star-trail backdrop-blur-sm">
+                <Image
+                  src="/Logo/Sublogo PNG Transparente.png"
+                  alt="Prontivus"
+                  width={220}
+                  height={60}
+                  priority
+                  className="w-[75%] h-auto"
+                />
+              </div>
+              <p className="text-sm text-[#5D737E] mt-3 font-medium pointer-events-auto">Prontivus — Cuidado inteligente</p>
+            </Link>
+          </div>
         </div>
         {/* Metade Paciente */}
         <button
-          className="group relative overflow-hidden w-full h-full flex flex-col items-center justify-center p-10 bg-white/70 hover:bg-white transition-colors"
+          className="group relative overflow-hidden w-full h-full flex flex-col items-center justify-center p-10 bg-white/70 hover:bg-white transition-colors cursor-pointer"
           onClick={handlePortalLogin}
           aria-label="Entrar como Paciente"
         >
           {/* Background image */}
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-40"
-            style={{ backgroundImage: "url('/resource image/image (1).jpg')" } as React.CSSProperties}
+            className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-40 transition-opacity duration-300"
+            style={{ backgroundImage: "url('/resource image/prontivus (2).jpg')" } as React.CSSProperties}
           />
           {/* Subtle gradient for readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/40 to-white/60" />
-          <div className="relative z-10 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/50 via-white/30 to-white/50 group-hover:from-white/40 group-hover:via-white/20 group-hover:to-white/40 transition-all duration-300" />
+          <div className="relative z-20 flex flex-col items-center justify-center">
             <div className="w-20 h-20 rounded-full bg-[#1B9AAA]/10 flex items-center justify-center mb-4 group-hover:bg-[#1B9AAA]/20 transition-colors">
               <Users className="h-10 w-10 text-[#1B9AAA]" />
             </div>
@@ -109,18 +112,18 @@ function LoginPageContent() {
 
         {/* Metade Equipe */}
         <button
-          className="group relative overflow-hidden w-full h-full flex flex-col items-center justify-center p-10 bg-white/70 hover:bg-white transition-colors"
+          className="group relative overflow-hidden w-full h-full flex flex-col items-center justify-center p-10 bg-white/70 hover:bg-white transition-colors cursor-pointer"
           onClick={handleDashboardLogin}
           aria-label="Entrar como Equipe"
         >
           {/* Background image */}
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-40"
-            style={{ backgroundImage: "url('/resource image/image (3).jpg')" } as React.CSSProperties}
+            className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-40 transition-opacity duration-300"
+            style={{ backgroundImage: "url('/resource image/prontivus (3).jpg')" } as React.CSSProperties}
           />
           {/* Subtle gradient for readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/40 to-white/60" />
-          <div className="relative z-10 flex flex-col items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/50 via-white/30 to-white/50 group-hover:from-white/40 group-hover:via-white/20 group-hover:to-white/40 transition-all duration-300" />
+          <div className="relative z-20 flex flex-col items-center justify-center">
             <div className="w-20 h-20 rounded-full bg-[#0F4C75]/10 flex items-center justify-center mb-4 group-hover:bg-[#0F4C75]/20 transition-colors">
               <Stethoscope className="h-10 w-10 text-[#0F4C75]" />
             </div>

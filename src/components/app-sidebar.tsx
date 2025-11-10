@@ -2,37 +2,37 @@
 
 import * as React from "react";
 import {
-  LayoutDashboard,
-  Users,
-  Calendar,
+  LayoutGrid,
+  UsersRound,
+  CalendarDays,
   FileText,
-  Settings,
-  Stethoscope,
-  ClipboardList,
-  DollarSign,
-  Receipt,
-  FileCode,
-  Clock,
-  Zap,
-  Package,
-  BarChart3,
-  Shield,
-  Building2,
-  UserCheck,
-  Activity,
-  Microscope,
+  Settings2,
+  HeartPulse,
+  ClipboardCheck,
+  CircleDollarSign,
+  ReceiptText,
+  Code2,
+  Timer,
+  Sparkles,
+  Package2,
   TrendingUp,
-  CreditCard,
-  FileSpreadsheet,
+  ShieldCheck,
+  Building,
+  UserRoundCheck,
+  Activity,
+  FlaskConical,
+  ChartLine,
+  Wallet,
+  Table2,
   Database,
-  UserCog,
-  Bell,
+  UserCog2,
+  BellRing,
   ChevronDown,
   ChevronRight,
   Menu,
   X,
   LogOut,
-  User,
+  UserRound,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
@@ -82,7 +82,7 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
   const baseItems = [
     {
       title: "Dashboard",
-      icon: LayoutDashboard,
+      icon: LayoutGrid,
       url: "/dashboard",
       roles: [ROLES.ADMIN, ROLES.SECRETARY, ROLES.DOCTOR, ROLES.PATIENT],
       module: null,
@@ -92,7 +92,7 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
   const patientItems = [
     {
       title: "Meus Agendamentos",
-      icon: Calendar,
+      icon: CalendarDays,
       url: "/portal/appointments",
       roles: [ROLES.PATIENT],
       module: null,
@@ -106,7 +106,7 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
     },
     {
       title: "Meu Perfil",
-      icon: UserCheck,
+      icon: UserRoundCheck,
       url: "/portal/profile",
       roles: [ROLES.PATIENT],
       module: null,
@@ -116,14 +116,14 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
   const doctorItems = [
     {
       title: "Agenda do Dia",
-      icon: Calendar,
+      icon: CalendarDays,
       url: "/medico/agenda",
       roles: [ROLES.DOCTOR],
       module: "appointments",
     },
     {
       title: "Atendimentos",
-      icon: Stethoscope,
+      icon: HeartPulse,
       url: "/medico/atendimentos",
       roles: [ROLES.DOCTOR],
       module: "clinical",
@@ -137,14 +137,14 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
     },
     {
       title: "Prescrições",
-      icon: ClipboardList,
+      icon: ClipboardCheck,
       url: "/medico/prescricoes",
       roles: [ROLES.DOCTOR],
       module: "clinical",
     },
     {
       title: "Exames",
-      icon: Microscope,
+      icon: FlaskConical,
       url: "/medico/exames",
       roles: [ROLES.DOCTOR],
       module: "clinical",
@@ -154,21 +154,21 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
   const secretaryItems = [
     {
       title: "Pacientes",
-      icon: Users,
+      icon: UsersRound,
       url: "/secretaria/pacientes",
       roles: [ROLES.SECRETARY],
       module: "patients",
     },
     {
       title: "Agendamentos",
-      icon: Calendar,
+      icon: CalendarDays,
       url: "/secretaria/agendamentos",
       roles: [ROLES.SECRETARY],
       module: "appointments",
     },
     {
       title: "Recepção",
-      icon: UserCheck,
+      icon: UserRoundCheck,
       url: "/secretaria/recepcao",
       roles: [ROLES.SECRETARY],
       module: "appointments",
@@ -189,7 +189,7 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
     },
     {
       title: "Médicos",
-      icon: Stethoscope,
+      icon: HeartPulse,
       url: "/secretaria/medicos",
       roles: [ROLES.SECRETARY],
       module: null,
@@ -199,21 +199,21 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
   const adminItems = [
     {
       title: "Usuários",
-      icon: UserCog,
+      icon: UserCog2,
       url: "/admin/usuarios",
       roles: [ROLES.ADMIN],
       module: null,
     },
     {
       title: "Gestão de Clínicas",
-      icon: Building2,
+      icon: Building,
       url: "/admin/clinics",
       roles: [ROLES.ADMIN],
       module: null,
     },
     {
       title: "Configurações do Sistema",
-      icon: Settings,
+      icon: Settings2,
       url: "/admin/settings",
       roles: [ROLES.ADMIN],
       module: null,
@@ -227,7 +227,7 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
     },
     {
       title: "Status da Migração",
-      icon: BarChart3,
+      icon: ChartLine,
       url: "/migration",
       roles: [ROLES.ADMIN],
       module: null,
@@ -237,21 +237,21 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
   const sharedItems = [
     {
       title: "Procedimentos",
-      icon: Stethoscope,
+      icon: HeartPulse,
       url: "/procedimentos",
       roles: [ROLES.ADMIN, ROLES.SECRETARY, ROLES.DOCTOR],
       module: "procedures",
     },
     {
       title: "Estoque",
-      icon: Package,
+      icon: Package2,
       url: "/estoque",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "stock",
     },
     {
       title: "Relatórios",
-      icon: BarChart3,
+      icon: ChartLine,
       url: "/relatorios",
       roles: [ROLES.ADMIN, ROLES.SECRETARY, ROLES.DOCTOR],
       module: "bi",
@@ -272,21 +272,21 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
     },
     {
       title: "Relatórios Operacionais",
-      icon: Clock,
+      icon: Timer,
       url: "/relatorios/operacional",
       roles: [ROLES.ADMIN, ROLES.SECRETARY, ROLES.DOCTOR],
       module: "bi",
     },
     {
       title: "Construtor de Relatórios",
-      icon: FileSpreadsheet,
+      icon: Table2,
       url: "/relatorios/custom",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "bi",
     },
     {
       title: "Notificações",
-      icon: Bell,
+      icon: BellRing,
       url: "/notificacoes",
       roles: [ROLES.ADMIN, ROLES.SECRETARY, ROLES.DOCTOR, ROLES.PATIENT],
       module: null,
@@ -324,35 +324,35 @@ const getFinancialItems = (role: string, activeModules: string[]) => {
   const financialItems = [
     {
       title: "Faturamento Básico",
-      icon: Receipt,
+      icon: ReceiptText,
       url: "/financeiro/basico",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: null,
     },
     {
       title: "Faturamento",
-      icon: Receipt,
+      icon: ReceiptText,
       url: "/financeiro/faturamento",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "financial",
     },
     {
       title: "Pagamentos",
-      icon: CreditCard,
+      icon: Wallet,
       url: "/financeiro/pagamentos",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "financial",
     },
     {
       title: "Itens de Serviço",
-      icon: DollarSign,
+      icon: CircleDollarSign,
       url: "/financeiro/servicos",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "financial",
     },
     {
       title: "Códigos TUSS",
-      icon: FileCode,
+      icon: Code2,
       url: "/financeiro/tuss-codes",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "financial",
@@ -384,35 +384,35 @@ const getTissItems = (role: string, activeModules: string[]) => {
   const tissItems = [
     {
       title: "Validador TISS",
-      icon: FileCode,
+      icon: Code2,
       url: "/financeiro/tiss-validator",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "tiss",
     },
     {
       title: "Histórico TISS",
-      icon: Clock,
+      icon: Timer,
       url: "/financeiro/tiss-history",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "tiss",
     },
     {
       title: "Templates TISS",
-      icon: FileCode,
+      icon: Code2,
       url: "/financeiro/tiss-templates",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "tiss",
     },
     {
       title: "Automação TISS",
-      icon: Zap,
+      icon: Sparkles,
       url: "/financeiro/tiss-automation",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "tiss",
     },
     {
       title: "Configurações TISS",
-      icon: Settings,
+      icon: Settings2,
       url: "/financeiro/tiss-config",
       roles: [ROLES.ADMIN, ROLES.SECRETARY],
       module: "tiss",
@@ -430,7 +430,7 @@ const getSettingsItems = (role: string) => {
   const baseSettings = [
     {
       title: "Configurações",
-      icon: Settings,
+      icon: Settings2,
       url: "/settings",
       roles: [ROLES.ADMIN, ROLES.SECRETARY, ROLES.DOCTOR, ROLES.PATIENT],
     },
@@ -439,7 +439,7 @@ const getSettingsItems = (role: string) => {
   const adminSettings = [
     {
       title: "Configurações do Sistema",
-      icon: Shield,
+      icon: ShieldCheck,
       url: "/admin/settings",
       roles: [ROLES.ADMIN],
     },
@@ -615,11 +615,11 @@ export function AppSidebar() {
 
   // Get role icon for avatar fallback
   const getRoleIcon = () => {
-    if (user.role === 'admin') return Shield;
-    if (user.role === 'secretary') return Users;
-    if (user.role === 'doctor') return Stethoscope;
-    if (user.role === 'patient') return UserCheck;
-    return User;
+    if (user.role === 'admin') return ShieldCheck;
+    if (user.role === 'secretary') return UsersRound;
+    if (user.role === 'doctor') return HeartPulse;
+    if (user.role === 'patient') return UserRoundCheck;
+    return UserRound;
   };
 
   // Get role-based avatar fallback styling (for sidebar with dark background) - Softer blues
@@ -727,7 +727,7 @@ export function AppSidebar() {
             <AvatarImage src={avatarUrl || undefined} alt={user.username} />
             <AvatarFallback className={cn(getRoleAvatarStyle(), "font-semibold")}>
               {avatarUrl ? (
-                <User className="h-5 w-5" />
+                <UserRound className="h-5 w-5" />
               ) : (
                 <RoleIcon className="h-5 w-5" />
               )}

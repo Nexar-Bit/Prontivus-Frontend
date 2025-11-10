@@ -11,15 +11,15 @@ import { Button } from "@/components/ui/button";
 import { usePatientBadges } from "@/hooks/usePatientBadges";
 import {
   Home,
-  Calendar,
-  Folder,
+  CalendarDays,
+  FolderOpen,
   Pill,
-  TestTube,
+  FlaskConical,
   MessageCircle,
-  CreditCard,
-  Settings,
+  Wallet,
+  Settings2,
   FileText,
-  Heart,
+  HeartPulse,
   Stethoscope,
   LogOut,
 } from "lucide-react";
@@ -40,16 +40,16 @@ interface PatientSidebarProps {
 // Base navigation items without badges (badges will be added dynamically)
 const baseNavigationItems: NavigationItem[] = [
   { label: "Início", icon: Home, href: "/patient/dashboard", section: "main" },
-  { label: "Agendamentos", icon: Calendar, href: "/patient/appointments", section: "main" },
-  { label: "Prontuário Médico", icon: Folder, href: "/patient/medical-records", section: "main" },
+  { label: "Agendamentos", icon: CalendarDays, href: "/patient/appointments", section: "main" },
+  { label: "Prontuário Médico", icon: FolderOpen, href: "/patient/medical-records", section: "main" },
   { label: "Prescrições", icon: Pill, href: "/patient/prescriptions", section: "health" },
-  { label: "Resultados de Exames", icon: TestTube, href: "/patient/test-results", section: "health" },
-  { label: "Resumo de Saúde", icon: Heart, href: "/patient/health", section: "health" },
+  { label: "Resultados de Exames", icon: FlaskConical, href: "/patient/test-results", section: "health" },
+  { label: "Resumo de Saúde", icon: HeartPulse, href: "/patient/health", section: "health" },
   { label: "Mensagens", icon: MessageCircle, href: "/patient/messages", section: "communication" },
   { label: "Anotações Clínicas", icon: FileText, href: "/patient/notes", section: "health" },
-  { label: "Faturamento e Pagamentos", icon: CreditCard, href: "/patient/billing", section: "services" },
+  { label: "Faturamento e Pagamentos", icon: Wallet, href: "/patient/billing", section: "services" },
   { label: "Meus Médicos", icon: Stethoscope, href: "/patient/doctors", section: "services" },
-  { label: "Configurações", icon: Settings, href: "/patient/settings", section: "settings" },
+  { label: "Configurações", icon: Settings2, href: "/patient/settings", section: "settings" },
 ];
 
 const sectionColors = {

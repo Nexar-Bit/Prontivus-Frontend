@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowUp,
   Facebook,
@@ -17,7 +18,6 @@ import {
   Globe,
   ChevronDown,
 } from "lucide-react";
-import { ProntivusLogo } from "@/components/assets";
 import { Button } from "@/components/ui/button";
 import { MedicalPattern } from "@/components/assets";
 import { cn } from "@/lib/utils";
@@ -110,7 +110,16 @@ export function LandingFooter({ className }: FooterProps) {
             {/* Column 1: Company & Product */}
             <div className="lg:col-span-1">
               <div className="mb-6">
-                <ProntivusLogo variant="full" size="md" includeMedicalSymbol={false} />
+                <Link href="/" className="inline-block">
+                  <Image
+                    src="/Logo/Prontivus Horizontal Transparents.png"
+                    alt="Prontivus"
+                    width={180}
+                    height={45}
+                    className="h-auto w-auto"
+                    priority
+                  />
+                </Link>
                 <p className="text-sm text-white/70 mt-3 mb-4">
                   Plataforma completa de gestão em saúde para clínicas modernas.
                 </p>

@@ -3,7 +3,7 @@
 /* eslint-disable react/forbid-dom-props */
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Play, Shield, Lock, CheckCircle2, Award } from "lucide-react";
+import { ArrowRight, Play, ShieldCheck, Lock, CheckCircle2, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MedicalPattern } from "@/components/assets";
 import { cn } from "@/lib/utils";
@@ -25,7 +25,7 @@ export function HeroSection({ className }: HeroSectionProps) {
   const [videoModalOpen, setVideoModalOpen] = useState(false);
 
   const trustIndicators = [
-    { icon: Shield, label: "Conforme HIPAA" },
+    { icon: ShieldCheck, label: "Conforme HIPAA" },
     { icon: Lock, label: "Segurança nível bancário" },
     { icon: Award, label: "Certificação ISO 27001" },
   ];
@@ -35,7 +35,7 @@ export function HeroSection({ className }: HeroSectionProps) {
       className={cn(
         "relative min-h-[600px] lg:min-h-[700px] flex items-center overflow-hidden",
         "bg-gradient-to-br from-[#0F4C75] via-[#1B9AAA] to-[#0F4C75]",
-        "pt-20",
+        "pt-32 lg:pt-40",
         className
       )}
     >

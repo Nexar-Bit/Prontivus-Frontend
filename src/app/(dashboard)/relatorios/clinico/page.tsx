@@ -151,7 +151,7 @@ export default function ClinicalReportsPage() {
           <div className="flex gap-2">
             <Skeleton className="h-10 w-32" />
             <Skeleton className="h-10 w-32" />
-          </div>
+        </div>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
@@ -570,17 +570,17 @@ export default function ClinicalReportsPage() {
               <CardContent>
                 {data?.top_diagnoses && data.top_diagnoses.length > 0 ? (
                   <div className="rounded-lg border overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
                           <tr className="bg-muted/50 border-b">
-                            <th className="text-left p-3 font-semibold">CID-10</th>
-                            <th className="text-left p-3 font-semibold">Descrição</th>
-                            <th className="text-right p-3 font-semibold">Casos</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {data.top_diagnoses.map((diag, idx) => (
+                          <th className="text-left p-3 font-semibold">CID-10</th>
+                          <th className="text-left p-3 font-semibold">Descrição</th>
+                          <th className="text-right p-3 font-semibold">Casos</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.top_diagnoses.map((diag, idx) => (
                             <tr key={idx} className="border-b hover:bg-muted/50 transition-colors">
                               <td className="p-3 font-mono font-medium text-blue-600">{diag.icd10_code}</td>
                               <td className="p-3">{diag.description || <span className="text-muted-foreground italic">Sem descrição</span>}</td>
@@ -589,10 +589,10 @@ export default function ClinicalReportsPage() {
                                   {diag.count}
                                 </Badge>
                               </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                     </div>
                   </div>
                 ) : (
@@ -631,16 +631,16 @@ export default function ClinicalReportsPage() {
               <CardContent>
                 {data?.consultations_by_doctor && data.consultations_by_doctor.length > 0 ? (
                   <div className="rounded-lg border overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
                           <tr className="bg-muted/50 border-b">
-                            <th className="text-left p-3 font-semibold">Médico</th>
-                            <th className="text-right p-3 font-semibold">Consultas</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {data.consultations_by_doctor.map((doc, idx) => (
+                          <th className="text-left p-3 font-semibold">Médico</th>
+                          <th className="text-right p-3 font-semibold">Consultas</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.consultations_by_doctor.map((doc, idx) => (
                             <tr key={idx} className="border-b hover:bg-muted/50 transition-colors">
                               <td className="p-3 font-medium">{doc.doctor_name || <span className="text-muted-foreground italic">Desconhecido</span>}</td>
                               <td className="p-3 text-right">
@@ -648,10 +648,10 @@ export default function ClinicalReportsPage() {
                                   {doc.count}
                                 </Badge>
                               </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                     </div>
                   </div>
                 ) : (

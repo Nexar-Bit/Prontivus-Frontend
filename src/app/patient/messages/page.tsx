@@ -46,6 +46,8 @@ import { format, formatDistanceToNow, isToday, isYesterday, parseISO } from "dat
 import { cn } from "@/lib/utils";
 import { messagesApi, MessageThread, Message as ApiMessage } from "@/lib/messages-api";
 import { useAuth } from "@/contexts/AuthContext";
+import { uploadFiles } from "@/lib/file-upload";
+import { toast } from "sonner";
 
 // Types
 interface Attachment {
@@ -186,13 +188,26 @@ export default function MessagesPage() {
     try {
       setSending(true);
       
-      // TODO: Upload files first if needed
-      const attachments = uploadedFiles.length > 0 ? uploadedFiles.map(file => ({
-        name: file.name,
-        type: file.type.startsWith("image/") ? "image" : file.type === "application/pdf" ? "pdf" : "document",
-        url: "#", // TODO: Upload and get URL
-        size: file.size,
-      })) : undefined;
+      // Upload files first if needed
+      let attachments = undefined;
+      if (uploadedFiles.length > 0 && user) {
+        try {
+          const uploaded = await uploadFiles(uploadedFiles, user.id);
+          attachments = uploaded.map(u => ({
+            name: u.name,
+            type: u.type,
+            url: u.url,
+            size: u.size,
+          }));
+        } catch (uploadError: any) {
+          console.error("Failed to upload files:", uploadError);
+          toast.error("Erro ao fazer upload dos arquivos", {
+            description: uploadError.message || "Não foi possível fazer upload dos arquivos",
+          });
+          setSending(false);
+          return;
+        }
+      }
       
       await messagesApi.sendMessage(selectedThreadId, {
         content: messageInput.trim(),
@@ -205,8 +220,13 @@ export default function MessagesPage() {
       // Reload thread to get updated messages
       await loadThread(selectedThreadId);
       await loadThreads(); // Refresh thread list
-    } catch (error) {
+      
+      toast.success("Mensagem enviada com sucesso!");
+    } catch (error: any) {
       console.error("Failed to send message:", error);
+      toast.error("Erro ao enviar mensagem", {
+        description: error.message || "Não foi possível enviar a mensagem",
+      });
     } finally {
       setSending(false);
     }
