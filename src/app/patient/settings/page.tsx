@@ -239,14 +239,14 @@ export default function PatientSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAFBFC] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch={false} notificationCount={3} />
       <PatientMobileNav />
 
@@ -256,9 +256,15 @@ export default function PatientSettingsPage() {
         </div>
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
+          {/* Modern Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Configurações</h1>
-            <p className="text-[#5D737E]">Gerencie suas informações pessoais e preferências</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Settings className="h-7 w-7 text-blue-600" />
+              </div>
+              Configurações
+            </h1>
+            <p className="text-muted-foreground text-sm">Gerencie suas informações pessoais e preferências</p>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -283,9 +289,14 @@ export default function PatientSettingsPage() {
 
             {/* Profile Tab */}
             <TabsContent value="profile" className="space-y-6">
-              <Card className="medical-card">
+              <Card className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-xl text-[#0F4C75]">Informações Pessoais</CardTitle>
+                  <CardTitle className="text-xl text-blue-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-blue-100 rounded-lg">
+                      <User className="h-5 w-5" />
+                    </div>
+                    Informações Pessoais
+                  </CardTitle>
                   <CardDescription>Atualize suas informações pessoais</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -393,9 +404,14 @@ export default function PatientSettingsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="medical-card">
+              <Card className="border-l-4 border-l-teal-500 bg-white/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-xl text-[#0F4C75]">Contato de Emergência</CardTitle>
+                  <CardTitle className="text-xl text-teal-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-teal-100 rounded-lg">
+                      <Phone className="h-5 w-5" />
+                    </div>
+                    Contato de Emergência
+                  </CardTitle>
                   <CardDescription>Informações de contato para emergências</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -429,9 +445,14 @@ export default function PatientSettingsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="medical-card">
+              <Card className="border-l-4 border-l-green-500 bg-white/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-xl text-[#0F4C75]">Informações Médicas</CardTitle>
+                  <CardTitle className="text-xl text-green-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-green-100 rounded-lg">
+                      <Heart className="h-5 w-5" />
+                    </div>
+                    Informações Médicas
+                  </CardTitle>
                   <CardDescription>Informações importantes sobre sua saúde</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -469,11 +490,11 @@ export default function PatientSettingsPage() {
               </Card>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={resetProfile}>
+                <Button variant="outline" onClick={resetProfile} className="border-gray-300">
                   <X className="h-4 w-4 mr-2" />
                   Cancelar
                 </Button>
-                <Button onClick={saveProfile} disabled={saving}>
+                <Button onClick={saveProfile} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? "Salvando..." : "Salvar Perfil"}
                 </Button>
@@ -482,13 +503,18 @@ export default function PatientSettingsPage() {
 
             {/* Notifications Tab */}
             <TabsContent value="notifications" className="space-y-6">
-              <Card className="medical-card">
+              <Card className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-xl text-[#0F4C75]">Preferências de Notificação</CardTitle>
+                  <CardTitle className="text-xl text-blue-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-blue-100 rounded-lg">
+                      <Bell className="h-5 w-5" />
+                    </div>
+                    Preferências de Notificação
+                  </CardTitle>
                   <CardDescription>Escolha como deseja receber notificações</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
                     <div className="space-y-0.5">
                       <Label>Notificações por Email</Label>
                       <p className="text-sm text-muted-foreground">Receba notificações importantes por email</p>
@@ -499,7 +525,7 @@ export default function PatientSettingsPage() {
                     />
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
                     <div className="space-y-0.5">
                       <Label>Notificações Push</Label>
                       <p className="text-sm text-muted-foreground">Receba notificações no navegador</p>
@@ -510,7 +536,7 @@ export default function PatientSettingsPage() {
                     />
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
                     <div className="space-y-0.5">
                       <Label>Notificações por SMS</Label>
                       <p className="text-sm text-muted-foreground">Receba notificações por mensagem de texto</p>
@@ -521,7 +547,7 @@ export default function PatientSettingsPage() {
                     />
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-teal-50/50 border border-teal-100">
                     <div className="space-y-0.5">
                       <Label>Lembretes de Consulta</Label>
                       <p className="text-sm text-muted-foreground">Receba lembretes sobre suas consultas</p>
@@ -532,7 +558,7 @@ export default function PatientSettingsPage() {
                     />
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-teal-50/50 border border-teal-100">
                     <div className="space-y-0.5">
                       <Label>Atualizações do Sistema</Label>
                       <p className="text-sm text-muted-foreground">Receba informações sobre atualizações e manutenções</p>
@@ -543,7 +569,7 @@ export default function PatientSettingsPage() {
                     />
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-orange-50/50 border border-orange-100">
                     <div className="space-y-0.5">
                       <Label>Comunicações de Marketing</Label>
                       <p className="text-sm text-muted-foreground">Receba ofertas e informações promocionais</p>
@@ -557,11 +583,11 @@ export default function PatientSettingsPage() {
               </Card>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={resetSettings}>
+                <Button variant="outline" onClick={resetSettings} className="border-gray-300">
                   <X className="h-4 w-4 mr-2" />
                   Cancelar
                 </Button>
-                <Button onClick={saveSettings} disabled={saving}>
+                <Button onClick={saveSettings} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? "Salvando..." : "Salvar Configurações"}
                 </Button>
@@ -570,19 +596,24 @@ export default function PatientSettingsPage() {
 
             {/* Privacy Tab */}
             <TabsContent value="privacy" className="space-y-6">
-              <Card className="medical-card">
+              <Card className="border-l-4 border-l-teal-500 bg-white/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-xl text-[#0F4C75]">Configurações de Privacidade</CardTitle>
+                  <CardTitle className="text-xl text-teal-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-teal-100 rounded-lg">
+                      <Shield className="h-5 w-5" />
+                    </div>
+                    Configurações de Privacidade
+                  </CardTitle>
                   <CardDescription>Controle quem pode ver suas informações</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
+                  <div className="p-4 rounded-lg bg-teal-50/50 border border-teal-100">
                     <Label htmlFor="profileVisibility">Visibilidade do Perfil</Label>
                     <Select
                       value={settingsForm.privacy?.profileVisibility || "contacts"}
                       onValueChange={(value) => handleSettingsChange("privacy", "profileVisibility", value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-2">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -596,7 +627,7 @@ export default function PatientSettingsPage() {
                     </p>
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-teal-50/50 border border-teal-100">
                     <div className="space-y-0.5">
                       <Label>Mostrar Status Online</Label>
                       <p className="text-sm text-muted-foreground">Permitir que outros vejam quando você está online</p>
@@ -607,7 +638,7 @@ export default function PatientSettingsPage() {
                     />
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-teal-50/50 border border-teal-100">
                     <div className="space-y-0.5">
                       <Label>Permitir Mensagens Diretas</Label>
                       <p className="text-sm text-muted-foreground">Permitir que provedores enviem mensagens diretas</p>
@@ -618,7 +649,7 @@ export default function PatientSettingsPage() {
                     />
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-orange-50/50 border border-orange-100">
                     <div className="space-y-0.5">
                       <Label>Compartilhamento de Dados</Label>
                       <p className="text-sm text-muted-foreground">Permitir compartilhamento anonimizado de dados para pesquisa</p>
@@ -632,11 +663,11 @@ export default function PatientSettingsPage() {
               </Card>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={resetSettings}>
+                <Button variant="outline" onClick={resetSettings} className="border-gray-300">
                   <X className="h-4 w-4 mr-2" />
                   Cancelar
                 </Button>
-                <Button onClick={saveSettings} disabled={saving}>
+                <Button onClick={saveSettings} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? "Salvando..." : "Salvar Configurações"}
                 </Button>
@@ -645,9 +676,14 @@ export default function PatientSettingsPage() {
 
             {/* Preferences Tab */}
             <TabsContent value="preferences" className="space-y-6">
-              <Card className="medical-card">
+              <Card className="border-l-4 border-l-purple-500 bg-white/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-xl text-[#0F4C75]">Aparência e Preferências</CardTitle>
+                  <CardTitle className="text-xl text-purple-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-purple-100 rounded-lg">
+                      <Palette className="h-5 w-5" />
+                    </div>
+                    Aparência e Preferências
+                  </CardTitle>
                   <CardDescription>Personalize a aparência e comportamento do sistema</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -734,13 +770,18 @@ export default function PatientSettingsPage() {
                 </CardContent>
               </Card>
 
-              <Card className="medical-card">
+              <Card className="border-l-4 border-l-green-500 bg-white/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="text-xl text-[#0F4C75]">Segurança</CardTitle>
+                  <CardTitle className="text-xl text-green-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-green-100 rounded-lg">
+                      <Lock className="h-5 w-5" />
+                    </div>
+                    Segurança
+                  </CardTitle>
                   <CardDescription>Configurações de segurança da conta</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-green-50/50 border border-green-100">
                     <div className="space-y-0.5">
                       <Label>Autenticação de Dois Fatores</Label>
                       <p className="text-sm text-muted-foreground">Adicione uma camada extra de segurança</p>
@@ -751,7 +792,7 @@ export default function PatientSettingsPage() {
                     />
                   </div>
                   <Separator />
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-green-50/50 border border-green-100">
                     <div className="space-y-0.5">
                       <Label>Alertas de Login</Label>
                       <p className="text-sm text-muted-foreground">Receba notificações quando houver novo login</p>
@@ -793,11 +834,11 @@ export default function PatientSettingsPage() {
               </Card>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={resetSettings}>
+                <Button variant="outline" onClick={resetSettings} className="border-gray-300">
                   <X className="h-4 w-4 mr-2" />
                   Cancelar
                 </Button>
-                <Button onClick={saveSettings} disabled={saving}>
+                <Button onClick={saveSettings} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
                   <Save className="h-4 w-4 mr-2" />
                   {saving ? "Salvando..." : "Salvar Configurações"}
                 </Button>

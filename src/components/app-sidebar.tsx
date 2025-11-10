@@ -637,17 +637,16 @@ export function AppSidebar() {
     <div className="flex flex-col h-full">
       {/* Logo Section */}
       <div className="px-6 py-6 border-b border-white/10">
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center w-full">
           <Image
-            src={"/Logo/Prontivus Horizontal Transparents.png"}
+            src={"/Logo/Logotipo em Fundo Transparente.png"}
             alt="Prontivus"
             width={240}
-            height={44}
+            height={240}
             priority
-            className="h-14 w-auto"
+            className="w-full h-auto object-contain"
           />
         </Link>
-        <p className="text-white/70 text-xs mt-2 ml-1">Cuidado Inteligente</p>
       </div>
 
       {/* Navigation Content */}
@@ -798,10 +797,10 @@ export function AppSidebar() {
           <div className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] bg-blue-700 shadow-2xl transform transition-transform duration-300 ease-in-out">
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <Image
-                src={"/Logo/Prontivus Horizontal Transparents.png"}
+                src={"/Logo/Logotipo em Fundo Transparente.png"}
                 alt="Prontivus"
                 width={200}
-                height={37}
+                height={200}
                 className="h-10 w-auto"
                 style={{ height: 40, width: "auto" }}
               />

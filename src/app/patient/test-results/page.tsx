@@ -278,8 +278,8 @@ export default function TestResultsPage() {
         {
           label: testName,
           data: sorted.map(r => r.value),
-          borderColor: '#0F4C75',
-          backgroundColor: 'rgba(15, 76, 117, 0.1)',
+          borderColor: '#5b9eff',
+          backgroundColor: 'rgba(91, 158, 255, 0.1)',
           tension: 0.4,
           fill: true,
         },
@@ -293,7 +293,7 @@ export default function TestResultsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch={false} notificationCount={3} />
       <PatientMobileNav />
 
@@ -303,17 +303,81 @@ export default function TestResultsPage() {
         </div>
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
-          {/* Header */}
+          {/* Modern Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Resultados de Exames</h1>
-            <p className="text-[#5D737E]">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <TestTube className="h-7 w-7 text-blue-600" />
+              </div>
+              Resultados de Exames
+            </h1>
+            <p className="text-muted-foreground text-sm">
               Acompanhe seus exames laboratoriais e resultados
             </p>
           </div>
 
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total de Exames
+                </CardTitle>
+                <TestTube className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{reports.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Relatórios disponíveis</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Normais
+                </CardTitle>
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {reports.reduce((sum, r) => 
+                    sum + r.results.filter(res => res.status === 'normal').length, 0
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Resultados normais</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Atenção
+                </CardTitle>
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{abnormalResults.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Requerem atenção</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-red-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Críticos
+                </CardTitle>
+                <Bell className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{criticalResults.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Resultados críticos</p>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Critical Results Alert */}
           {criticalResults.length > 0 && (
-            <Alert className="medical-card border-red-300 bg-red-50 mb-6">
+            <Alert className="border-l-4 border-l-red-500 bg-red-50/50 mb-6">
               <Bell className="h-5 w-5 text-red-600" />
               <AlertTitle className="text-red-900 font-semibold">
                 Resultados Críticos Requerem Atenção Imediata
@@ -336,7 +400,7 @@ export default function TestResultsPage() {
           )}
 
           {/* Search and Filters */}
-          <Card className="medical-card mb-6">
+          <Card className="border-l-4 border-l-blue-500 mb-6 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative">
@@ -400,10 +464,12 @@ export default function TestResultsPage() {
             <div className="space-y-6">
               {/* Abnormal Results Summary */}
               {abnormalResults.length > 0 && (
-                <Card className="medical-card">
+                <Card className="border-l-4 border-l-orange-500 bg-white/80 backdrop-blur-sm">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-[#0F4C75]">
-                      <AlertTriangle className="h-5 w-5" />
+                    <CardTitle className="flex items-center gap-2 text-orange-600">
+                      <div className="p-1.5 bg-orange-100 rounded-lg">
+                        <AlertTriangle className="h-5 w-5" />
+                      </div>
                       Resultados que Requerem Atenção
                     </CardTitle>
                     <CardDescription>
@@ -516,17 +582,22 @@ export default function TestResultsPage() {
 
               {/* All Reports */}
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold text-[#0F4C75]">Todos os Relatórios</h2>
+                <h2 className="text-xl font-semibold text-blue-600 flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-100 rounded-lg">
+                    <FileText className="h-5 w-5" />
+                  </div>
+                  Todos os Relatórios
+                </h2>
                 {filteredReports.map((report) => (
                   <Card
                     key={report.id}
-                    className="medical-card hover:shadow-lg transition-shadow cursor-pointer"
+                    className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow cursor-pointer bg-white/80 backdrop-blur-sm"
                     onClick={() => setSelectedReport(report)}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg text-[#0F4C75] mb-1">
+                          <CardTitle className="text-lg text-blue-600 mb-1">
                             {report.summary || 'Relatório de Exames'}
                           </CardTitle>
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mt-2">
@@ -604,11 +675,11 @@ export default function TestResultsPage() {
           {viewMode === 'detailed' && (
             <div className="space-y-6">
               {filteredReports.map((report) => (
-                <Card key={report.id} className="medical-card">
+                <Card key={report.id} className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-xl text-[#0F4C75] mb-2">
+                        <CardTitle className="text-xl text-blue-600 mb-2">
                           {report.summary || 'Relatório de Exames'}
                         </CardTitle>
                         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
@@ -709,7 +780,7 @@ export default function TestResultsPage() {
 
                     {/* Doctor Notes */}
                     {report.doctorNotes && (
-                      <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                      <div className="p-4 rounded-lg bg-blue-50/50 border border-blue-200">
                         <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
                           <User className="h-4 w-4" />
                           Observações do Médico
@@ -720,7 +791,7 @@ export default function TestResultsPage() {
 
                     {/* Recommendations */}
                     {report.recommendations && (
-                      <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                      <div className="p-4 rounded-lg bg-green-50/50 border border-green-200">
                         <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
                           <ArrowRight className="h-4 w-4" />
                           Recomendações
@@ -755,7 +826,8 @@ export default function TestResultsPage() {
             <Dialog open={!!selectedReport} onOpenChange={() => setSelectedReport(null)}>
               <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="text-2xl text-[#0F4C75]">
+                  <DialogTitle className="text-2xl text-blue-600 flex items-center gap-2">
+                    <TestTube className="h-6 w-6" />
                     {selectedReport.summary || 'Relatório de Exames'}
                   </DialogTitle>
                   <DialogDescription>
@@ -821,13 +893,13 @@ export default function TestResultsPage() {
                     </table>
                   </div>
                   {selectedReport.doctorNotes && (
-                    <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                    <div className="p-4 rounded-lg bg-blue-50/50 border border-blue-200">
                       <h4 className="font-semibold text-blue-900 mb-2">Observações do Médico</h4>
                       <p className="text-blue-800 text-sm">{selectedReport.doctorNotes}</p>
                     </div>
                   )}
                   {selectedReport.recommendations && (
-                    <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                    <div className="p-4 rounded-lg bg-green-50/50 border border-green-200">
                       <h4 className="font-semibold text-green-900 mb-2">Recomendações</h4>
                       <p className="text-green-800 text-sm">{selectedReport.recommendations}</p>
                     </div>

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -58,13 +60,25 @@ export function PatientHeader({
   // Fetch notifications from database
   useEffect(() => {
     const loadNotifications = async () => {
+      // Only load notifications if user is authenticated
+      if (!user) {
+        setLoadingNotifications(false);
+        return;
+      }
+
       try {
         setLoadingNotifications(true);
         const data = await notificationsApi.getAll();
         setNotifications(data || []);
-      } catch (error) {
-        console.error("Failed to load notifications:", error);
-        setNotifications([]);
+      } catch (error: any) {
+        // Silently handle 401/403 errors (user not authenticated)
+        if (error?.status === 401 || error?.status === 403) {
+          console.warn("Not authenticated, skipping notifications load");
+          setNotifications([]);
+        } else {
+          console.error("Failed to load notifications:", error);
+          setNotifications([]);
+        }
       } finally {
         setLoadingNotifications(false);
       }
@@ -76,7 +90,7 @@ export function PatientHeader({
     const interval = setInterval(loadNotifications, 30000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   // Calculate unread notification count from database
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -148,59 +162,59 @@ export function PatientHeader({
   return (
     <header
       className={cn(
-        "bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-white/95",
+        "bg-gradient-to-r from-white via-blue-50/30 to-white border-b border-blue-100/50 sticky top-0 z-50 backdrop-blur-md bg-white/95 shadow-sm",
         className
       )}
     >
       <div className="px-4 lg:px-6 py-4">
         <div className="flex items-center justify-between gap-4">
-          {/* Left Section: Patient Info & Greeting */}
-          <div className="flex items-center gap-4 flex-1 min-w-0">
-            <Avatar className="h-12 w-12 border-2 border-[#0F4C75]/20 flex-shrink-0">
-              <AvatarImage src={(user as any)?.avatar} alt={user?.username} />
-              <AvatarFallback className="bg-[#0F4C75] text-white font-semibold">
-                {getUserInitials()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-lg lg:text-xl font-bold text-[#0F4C75] truncate">
-                {getGreeting()}, {user?.first_name || "Paciente"}! 👋
-              </h1>
-              <p className="text-sm text-gray-600 truncate">
-                {user?.email || "Seu painel de saúde"}
-              </p>
-            </div>
+          {/* Left Section: Logo */}
+          <div className="flex items-center gap-4 flex-shrink-0">
+            <Link href="/patient/dashboard" className="flex-shrink-0">
+              <div className="relative h-12 w-auto">
+                <Image
+                  src="/Logo/Sublogo PNG Transparente.png"
+                  alt="Prontivus"
+                  width={180}
+                  height={48}
+                  className="h-12 w-auto object-contain"
+                  priority
+                />
+              </div>
+            </Link>
           </div>
 
           {/* Center Section: Search */}
           {showSearch && (
             <div className="hidden md:flex flex-1 max-w-md mx-4 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <Input
-                type="search"
-                placeholder="Buscar em registros médicos..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 pr-10 h-10 border-2 border-gray-200 focus:border-[#0F4C75] rounded-lg"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSearchResults([]);
-                    setIsSearchOpen(false);
-                  }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2"
-                  aria-label="Limpar busca"
-                  title="Limpar busca"
-                >
-                  <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
-                </button>
-              )}
+              <div className="relative w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-400 z-10" />
+                <Input
+                  type="search"
+                  placeholder="Buscar em registros médicos..."
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="pl-11 pr-11 h-11 border-2 border-blue-200/50 focus:border-blue-500 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm focus:shadow-md focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSearchResults([]);
+                      setIsSearchOpen(false);
+                    }}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors z-10"
+                    aria-label="Limpar busca"
+                    title="Limpar busca"
+                  >
+                    <X className="h-3.5 w-3.5 text-gray-500" />
+                  </button>
+                )}
+              </div>
 
               {/* Search Results Dropdown */}
               {isSearchOpen && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-blue-100 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto backdrop-blur-sm">
                   <div className="p-2 space-y-1">
                     {searchResults.map((result, index) => {
                       const Icon = result.icon;
@@ -212,19 +226,19 @@ export function PatientHeader({
                             setSearchQuery("");
                             // Navigate to result
                           }}
-                          className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                          className="w-full flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50/50 transition-all duration-200 text-left border border-transparent hover:border-blue-100"
                         >
-                          <div className="h-10 w-10 rounded-lg bg-[#0F4C75]/10 flex items-center justify-center flex-shrink-0">
-                            <Icon className="h-5 w-5 text-[#0F4C75]" />
+                          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <Icon className="h-5 w-5 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 truncate">
+                            <p className="font-semibold text-gray-900 truncate">
                               {result.title}
                             </p>
-                            <p className="text-sm text-gray-600 truncate">
+                            <p className="text-sm text-gray-600 truncate mt-0.5">
                               {result.description}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-blue-600/70 mt-1.5 font-medium">
                               {result.date}
                             </p>
                           </div>
@@ -237,14 +251,35 @@ export function PatientHeader({
             </div>
           )}
 
-          {/* Right Section: Actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Right Section: Patient Info, Actions */}
+          <div className="flex items-center gap-4 flex-shrink-0">
+            {/* Patient Info & Greeting */}
+            <div className="hidden lg:flex items-center gap-3 min-w-0">
+              <div className="min-w-0 text-right">
+                <h1 className="text-lg lg:text-xl font-bold text-blue-700 truncate flex items-center justify-end gap-2">
+                  <span>{getGreeting()}, {user?.first_name || "Paciente"}! 👋</span>
+                </h1>
+                <p className="text-sm text-blue-600/70 truncate flex items-center justify-end gap-1.5 mt-0.5">
+                  <span>{user?.email || "Seu painel de saúde"}</span>
+                </p>
+              </div>
+              <div className="relative">
+                <Avatar className="h-14 w-14 border-2 border-blue-200 shadow-md shadow-blue-500/20 flex-shrink-0 ring-2 ring-white">
+                  <AvatarImage src={(user as any)?.avatar} alt={user?.username} />
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-base">
+                    {getUserInitials()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 bg-green-500 border-2 border-white rounded-full shadow-sm" />
+              </div>
+            </div>
+
             {/* Mobile Search Button */}
             {showSearch && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden h-10 w-10"
+                className="md:hidden h-11 w-11 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors"
                 onClick={() => {
                   // Open mobile search
                 }}
@@ -261,21 +296,31 @@ export function PatientHeader({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-10 w-10"
+                  className="relative h-11 w-11 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors"
                   aria-label={`Notificações${notificationCount > 0 ? ` (${notificationCount} novas)` : ''}`}
                   title="Notificações"
                 >
-                  <Bell className="h-5 w-5 text-gray-600" />
+                  <Bell className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
                   {notificationCount > 0 && (
-                    <Badge className="absolute top-0 right-0 h-5 min-w-[20px] px-1.5 bg-red-500 text-white text-[10px] border-0">
+                    <Badge className="absolute top-0.5 right-0.5 h-5 min-w-[20px] px-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-semibold border-2 border-white shadow-md">
                       {notificationCount > 99 ? "99+" : notificationCount}
                     </Badge>
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
-                <div className="p-4 border-b border-gray-200">
-                  <h3 className="font-semibold text-[#0F4C75]">Notificações</h3>
+              <PopoverContent className="w-80 p-0 rounded-xl border-blue-100 shadow-xl" align="end">
+                <div className="p-4 border-b border-blue-100 bg-gradient-to-r from-blue-50/50 to-white">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-blue-700 text-base flex items-center gap-2">
+                      <Bell className="h-5 w-5 text-blue-600" />
+                      Notificações
+                    </h3>
+                    {notificationCount > 0 && (
+                      <Badge className="bg-blue-600 text-white text-xs font-semibold">
+                        {notificationCount} nova{notificationCount > 1 ? 's' : ''}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <div className="max-h-96 overflow-y-auto">
                   {loadingNotifications ? (
@@ -306,12 +351,12 @@ export function PatientHeader({
                         const getIconColor = () => {
                           switch (notification.kind) {
                             case "appointment":
-                              return "text-[#0F4C75] bg-[#0F4C75]/10";
+                              return "text-blue-600 bg-blue-100";
                             case "message":
-                              return "text-[#1B9AAA] bg-[#1B9AAA]/10";
+                              return "text-teal-600 bg-teal-100";
                             case "exam":
                             case "test":
-                              return "text-[#16C79A] bg-[#16C79A]/10";
+                              return "text-green-600 bg-green-100";
                             default:
                               return "text-gray-600 bg-gray-100";
                           }
@@ -338,24 +383,24 @@ export function PatientHeader({
                               }
                             }}
                             className={cn(
-                              "w-full flex gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors text-left",
-                              !notification.read && "bg-blue-50/50"
+                              "w-full flex gap-3 p-3 rounded-xl hover:bg-blue-50/50 transition-all duration-200 text-left border border-transparent hover:border-blue-100",
+                              !notification.read && "bg-blue-50/30 border-blue-100"
                             )}
                           >
-                            <div className={cn("h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0", getIconColor())}>
+                            <div className={cn("h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm", getIconColor())}>
                               <Icon className="h-5 w-5" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className={cn("text-sm font-medium", !notification.read && "font-semibold text-gray-900")}>
+                              <p className={cn("text-sm font-medium", !notification.read && "font-bold text-gray-900")}>
                                 {notification.title}
                               </p>
-                              <p className="text-xs text-gray-600 line-clamp-2">{notification.message}</p>
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs text-gray-600 line-clamp-2 mt-0.5">{notification.message}</p>
+                              <p className="text-xs text-blue-600/70 mt-1.5 font-medium">
                                 {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true, locale: ptBR })}
                               </p>
                             </div>
                             {!notification.read && (
-                              <div className="h-2 w-2 rounded-full bg-[#1B9AAA] flex-shrink-0 mt-1" />
+                              <div className="h-2.5 w-2.5 rounded-full bg-teal-500 flex-shrink-0 mt-1 shadow-sm ring-2 ring-white" />
                             )}
                           </button>
                         );
@@ -364,10 +409,10 @@ export function PatientHeader({
                   )}
                 </div>
                 {notifications.length > 0 && (
-                  <div className="p-4 border-t border-gray-200">
+                  <div className="p-4 border-t border-blue-100 bg-blue-50/30">
                     <Button
                       variant="outline"
-                      className="w-full border-[#1B9AAA] text-[#1B9AAA]"
+                      className="w-full border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 rounded-xl font-medium shadow-sm"
                       onClick={() => router.push("/patient/notifications")}
                     >
                       Ver Todas as Notificações
@@ -381,16 +426,18 @@ export function PatientHeader({
             <Button
               variant="outline"
               size="sm"
-              className="hidden lg:flex items-center gap-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+              className="hidden lg:flex items-center gap-2 border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 rounded-xl font-semibold shadow-sm transition-all duration-200"
               onClick={handleEmergencyContact}
             >
-              <HelpCircle className="h-4 w-4" />
-              <span className="font-medium">Precisa de Ajuda?</span>
+              <div className="h-7 w-7 rounded-lg bg-red-100 flex items-center justify-center">
+                <HelpCircle className="h-4 w-4 text-red-600" />
+              </div>
+              <span>Precisa de Ajuda?</span>
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-10 w-10 text-red-600 hover:bg-red-50"
+              className="lg:hidden h-11 w-11 rounded-xl text-red-600 hover:bg-red-50 transition-colors border-2 border-red-200"
               onClick={handleEmergencyContact}
               aria-label="Emergency help"
             >

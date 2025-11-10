@@ -255,7 +255,7 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch notificationCount={3} />
       <PatientMobileNav />
 
@@ -292,13 +292,13 @@ export default function MessagesPage() {
                     key={conversation.id}
                     onClick={() => setSelectedThreadId(conversation.id)}
                     className={cn(
-                      "p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors",
+                      "p-4 border-b border-gray-100 cursor-pointer hover:bg-blue-50/50 transition-colors",
                       selectedThreadId === conversation.id && "bg-blue-50 border-l-4 border-l-blue-500"
                     )}
                   >
                     <div className="flex items-start gap-3">
                       <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-[#1B9AAA] text-white">
+                        <AvatarFallback className="bg-blue-600 text-white">
                           {conversation.provider_name
                             .split(" ")
                             .map((n) => n[0])
@@ -359,7 +359,7 @@ export default function MessagesPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-[#1B9AAA] text-white">
+                        <AvatarFallback className="bg-blue-600 text-white">
                           {currentThread.provider_name
                             .split(" ")
                             .map((n) => n[0])
@@ -757,7 +757,7 @@ export default function MessagesPage() {
                     </div>
                     <Button
                       onClick={handleSendMessage}
-                      className="bg-[#0F4C75] hover:bg-[#0F4C75]/90 flex-shrink-0"
+                      className="bg-blue-600 hover:bg-blue-700 flex-shrink-0"
                       disabled={(!messageInput.trim() && uploadedFiles.length === 0) || sending}
                     >
                       <Send className="h-4 w-4" />

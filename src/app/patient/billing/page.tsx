@@ -224,7 +224,7 @@ export default function PatientBillingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch={false} notificationCount={3} />
       <PatientMobileNav />
 
@@ -234,39 +234,48 @@ export default function PatientBillingPage() {
         </div>
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
+          {/* Modern Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Faturas e Pagamentos</h1>
-            <p className="text-[#5D737E]">Visualize suas faturas e histórico de pagamentos</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Receipt className="h-7 w-7 text-blue-600" />
+              </div>
+              Faturas e Pagamentos
+            </h1>
+            <p className="text-muted-foreground text-sm">Visualize suas faturas e histórico de pagamentos</p>
           </div>
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Total de Faturas</CardDescription>
+            <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total de Faturas</CardTitle>
+                <DollarSign className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-semibold text-[#0F4C75]">{formatCurrency(totalAmount)}</div>
+                <div className="text-2xl font-bold text-blue-600">{formatCurrency(totalAmount)}</div>
                 <p className="text-xs text-muted-foreground mt-1">{invoices.length} fatura(s)</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Total Pago</CardDescription>
+            <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Pago</CardTitle>
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-semibold text-green-600">{formatCurrency(paidAmount)}</div>
+                <div className="text-2xl font-bold text-green-600">{formatCurrency(paidAmount)}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {invoices.filter(inv => inv.status === "paid").length} fatura(s) paga(s)
                 </p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Pendente</CardDescription>
+            <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Pendente</CardTitle>
+                <Clock className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-semibold text-yellow-600">{formatCurrency(pendingAmount)}</div>
+                <div className="text-2xl font-bold text-orange-600">{formatCurrency(pendingAmount)}</div>
                 <p className="text-xs text-muted-foreground mt-1">
                   {invoices.filter(inv => inv.status === "pending" || inv.status === "overdue").length} fatura(s) pendente(s)
                 </p>
@@ -275,9 +284,14 @@ export default function PatientBillingPage() {
           </div>
 
           {/* Filters */}
-          <Card className="medical-card mb-6">
+          <Card className="border-l-4 border-l-blue-500 mb-6 bg-white/80 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-xl text-[#0F4C75]">Filtros</CardTitle>
+              <CardTitle className="text-xl text-blue-600 flex items-center gap-2">
+                <div className="p-1.5 bg-blue-100 rounded-lg">
+                  <Filter className="h-5 w-5" />
+                </div>
+                Filtros
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -320,14 +334,19 @@ export default function PatientBillingPage() {
           </Card>
 
           {/* Invoices Table */}
-          <Card className="medical-card">
+          <Card className="border-l-4 border-l-teal-500 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl text-[#0F4C75]">Suas Faturas</CardTitle>
+                  <CardTitle className="text-xl text-teal-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-teal-100 rounded-lg">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    Suas Faturas
+                  </CardTitle>
                   <CardDescription>Lista de todas as suas faturas</CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={loadInvoices}>
+                <Button variant="outline" size="sm" onClick={loadInvoices} className="border-teal-300 text-teal-700 hover:bg-teal-50">
                   <Download className="h-4 w-4 mr-2" />
                   Recarregar
                 </Button>
@@ -339,9 +358,11 @@ export default function PatientBillingPage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
                 </div>
               ) : filteredInvoices.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Receipt className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <p>Nenhuma fatura encontrada</p>
+                <div className="text-center py-12">
+                  <div className="p-4 bg-teal-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                    <Receipt className="h-10 w-10 text-teal-600" />
+                  </div>
+                  <p className="text-gray-500 font-medium">Nenhuma fatura encontrada</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -420,7 +441,8 @@ export default function PatientBillingPage() {
         <Dialog open={!!selectedInvoice} onOpenChange={() => setSelectedInvoice(null)}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-2xl text-[#0F4C75]">
+              <DialogTitle className="text-2xl text-blue-600 flex items-center gap-2">
+                <Receipt className="h-6 w-6" />
                 Fatura #{selectedInvoice.id}
               </DialogTitle>
               <DialogDescription>
@@ -437,7 +459,7 @@ export default function PatientBillingPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Valor Total</p>
-                  <p className="text-xl font-bold text-[#0F4C75]">
+                  <p className="text-xl font-bold text-blue-600">
                     {formatCurrency(Number(selectedInvoice.total_amount))}
                   </p>
                 </div>

@@ -118,7 +118,7 @@ export default function PatientHealthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch={false} notificationCount={3} />
       <PatientMobileNav />
 
@@ -128,24 +128,33 @@ export default function PatientHealthPage() {
         </div>
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
+          {/* Modern Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Saúde</h1>
-            <p className="text-[#5D737E]">Resumo da sua saúde, consultas, exames e medicações</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Activity className="h-7 w-7 text-blue-600" />
+              </div>
+              Saúde
+            </h1>
+            <p className="text-muted-foreground text-sm">Resumo da sua saúde, consultas, exames e medicações</p>
           </div>
 
           {/* Summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Próxima Consulta</CardDescription></CardHeader>
+            <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Próxima Consulta</CardTitle>
+                <Calendar className="h-4 w-4 text-blue-500" />
+              </CardHeader>
               <CardContent>
                 {nextAppointment ? (
                   <div className="space-y-1 text-sm">
                     <div className="flex items-center gap-2 text-gray-700">
-                      <Calendar className="h-4 w-4" />
+                      <Calendar className="h-4 w-4 text-blue-600" />
                       {format(parseISO(nextAppointment.scheduled_datetime), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
                     </div>
                     <div className="flex items-center gap-2 text-gray-700">
-                      <Stethoscope className="h-4 w-4" />
+                      <Stethoscope className="h-4 w-4 text-blue-600" />
                       {nextAppointment.doctor_name}
                     </div>
                   </div>
@@ -154,53 +163,69 @@ export default function PatientHealthPage() {
                 )}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Prescrições Ativas</CardDescription></CardHeader>
+            <Card className="border-l-4 border-l-teal-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Prescrições Ativas</CardTitle>
+                <Pill className="h-4 w-4 text-teal-500" />
+              </CardHeader>
               <CardContent>
-                <div className="text-2xl font-semibold text-[#0F4C75]">{activePrescriptions.length}</div>
+                <div className="text-2xl font-bold">{activePrescriptions.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Medicações em uso</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Exames Pendentes</CardDescription></CardHeader>
+            <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Exames Pendentes</CardTitle>
+                <TestTube className="h-4 w-4 text-orange-500" />
+              </CardHeader>
               <CardContent>
-                <div className="text-2xl font-semibold text-[#0F4C75]">{pendingExams.length}</div>
+                <div className="text-2xl font-bold">{pendingExams.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Aguardando resultados</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardDescription>Condições Ativas</CardDescription></CardHeader>
+            <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Condições Ativas</CardTitle>
+                <Activity className="h-4 w-4 text-green-500" />
+              </CardHeader>
               <CardContent>
-                <div className="text-2xl font-semibold text-[#0F4C75]">{activeDiagnoses.length}</div>
+                <div className="text-2xl font-bold">{activeDiagnoses.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Condições monitoradas</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Next appointment card */}
-          <Card className="medical-card mb-6">
+          <Card className="border-l-4 border-l-blue-500 mb-6 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl text-[#0F4C75]">Sua próxima consulta</CardTitle>
+                  <CardTitle className="text-xl text-blue-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-blue-100 rounded-lg">
+                      <Calendar className="h-5 w-5" />
+                    </div>
+                    Sua próxima consulta
+                  </CardTitle>
                   <CardDescription>Gerencie sua consulta</CardDescription>
                 </div>
-                <Calendar className="h-6 w-6 text-[#1B9AAA]" />
               </div>
             </CardHeader>
             <CardContent>
               {nextAppointment ? (
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1">
-                    <Avatar className="h-16 w-16 border-2 border-[#0F4C75]/20">
+                    <Avatar className="h-16 w-16 border-2 border-blue-200">
                       <AvatarImage src="" />
-                      <AvatarFallback className="bg-[#0F4C75]/10 text-[#0F4C75]">
+                      <AvatarFallback className="bg-blue-100 text-blue-600">
                         {nextAppointment.doctor_name?.split(' ')[0]?.[0]}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <CardTitle className="text-lg text-[#0F4C75]">
+                        <CardTitle className="text-lg text-blue-600">
                           {nextAppointment.doctor_name}
                         </CardTitle>
-                        <Badge variant="outline">{nextAppointment.appointment_type || 'Consulta'}</Badge>
+                        <Badge variant="outline" className="border-blue-300 text-blue-700">{nextAppointment.appointment_type || 'Consulta'}</Badge>
                       </div>
                       <div className="flex items-center gap-3 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
@@ -244,14 +269,18 @@ export default function PatientHealthPage() {
           </Card>
 
           {/* Active prescriptions */}
-          <Card className="medical-card mb-6">
+          <Card className="border-l-4 border-l-teal-500 mb-6 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl text-[#0F4C75]">Prescrições ativas</CardTitle>
+                  <CardTitle className="text-xl text-teal-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-teal-100 rounded-lg">
+                      <Pill className="h-5 w-5" />
+                    </div>
+                    Prescrições ativas
+                  </CardTitle>
                   <CardDescription>Medicações atuais</CardDescription>
                 </div>
-                <Pill className="h-6 w-6 text-[#1B9AAA]" />
               </div>
             </CardHeader>
             <CardContent>
@@ -295,25 +324,34 @@ export default function PatientHealthPage() {
           </Card>
 
           {/* Pending exams */}
-          <Card className="medical-card">
+          <Card className="border-l-4 border-l-orange-500 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl text-[#0F4C75]">Exames pendentes</CardTitle>
+                  <CardTitle className="text-xl text-orange-600 flex items-center gap-2">
+                    <div className="p-1.5 bg-orange-100 rounded-lg">
+                      <TestTube className="h-5 w-5" />
+                    </div>
+                    Exames pendentes
+                  </CardTitle>
                   <CardDescription>Solicitações de exame ainda não concluídas</CardDescription>
                 </div>
-                <TestTube className="h-6 w-6 text-[#1B9AAA]" />
               </div>
             </CardHeader>
             <CardContent>
               {pendingExams.length === 0 ? (
-                <div className="text-sm text-muted-foreground">Nenhum exame pendente</div>
+                <div className="text-center py-8">
+                  <div className="p-4 bg-orange-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                    <TestTube className="h-10 w-10 text-orange-600" />
+                  </div>
+                  <p className="text-sm text-muted-foreground font-medium">Nenhum exame pendente</p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {pendingExams.map(er => (
-                    <div key={er.id} className="p-3 rounded-lg border flex items-center justify-between">
+                    <div key={er.id} className="p-3 rounded-lg border border-orange-200 bg-orange-50/50 flex items-center justify-between hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded bg-[#0F4C75]/10"><TestTube className="h-4 w-4 text-[#0F4C75]" /></div>
+                        <div className="p-2 rounded bg-orange-100"><TestTube className="h-4 w-4 text-orange-600" /></div>
                         <div>
                           <div className="font-medium text-gray-900">{er.exam_type}</div>
                           <div className="text-xs text-gray-600">Solicitado em {format(parseISO(er.requested_date), "dd/MM/yyyy", { locale: ptBR })}</div>

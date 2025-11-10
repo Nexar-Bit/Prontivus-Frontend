@@ -165,14 +165,14 @@ export default function PatientDoctorsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAFBFC] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch={false} notificationCount={0} />
       <PatientMobileNav />
 
@@ -182,14 +182,67 @@ export default function PatientDoctorsPage() {
         </div>
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
-          {/* Header */}
+          {/* Modern Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Nossos Médicos</h1>
-            <p className="text-[#5D737E]">Escolha um médico para agendar sua consulta</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <User className="h-7 w-7 text-blue-600" />
+              </div>
+              Nossos Médicos
+            </h1>
+            <p className="text-muted-foreground text-sm">Escolha um médico para agendar sua consulta</p>
+          </div>
+
+          {/* Statistics Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total de Médicos</CardTitle>
+                <User className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{doctors.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Médicos disponíveis</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-teal-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Especialidades</CardTitle>
+                <GraduationCap className="h-4 w-4 text-teal-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {new Set(doctors.map(d => d.specialty).filter(Boolean)).size}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Especialidades diferentes</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Verificados</CardTitle>
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {doctors.filter(d => d.is_verified).length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Médicos verificados</p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Filters */}
-          <Card className="medical-card mb-6">
+          <Card className="border-l-4 border-l-blue-500 mb-6 bg-white/80 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-lg text-blue-600 flex items-center gap-2">
+                <div className="p-1.5 bg-blue-100 rounded-lg">
+                  <Filter className="h-5 w-5" />
+                </div>
+                Buscar Médicos
+              </CardTitle>
+            </CardHeader>
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
@@ -235,23 +288,25 @@ export default function PatientDoctorsPage() {
 
           {/* Results count */}
           <div className="mb-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground font-medium">
               {filteredDoctors.length} {filteredDoctors.length === 1 ? "médico encontrado" : "médicos encontrados"}
             </p>
           </div>
 
           {/* Doctors Grid */}
           {filteredDoctors.length === 0 ? (
-            <Card className="medical-card">
+            <Card className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
               <CardContent className="py-12 text-center">
-                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
+                <div className="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                  <AlertCircle className="h-10 w-10 text-blue-600" />
+                </div>
+                <p className="text-muted-foreground font-medium mb-4">
                   Nenhum médico encontrado com os filtros selecionados.
                 </p>
                 {(searchQuery || specialtyFilter !== "all") && (
                   <Button
                     variant="outline"
-                    className="mt-4"
+                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
                     onClick={() => {
                       setSearchQuery("");
                       setSpecialtyFilter("all");
@@ -265,16 +320,16 @@ export default function PatientDoctorsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredDoctors.map((doctor) => (
-                <Card key={doctor.id} className="medical-card hover:shadow-lg transition-shadow">
+                <Card key={doctor.id} className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
                   <CardContent className="pt-6">
                     <div className="flex flex-col items-center text-center mb-4">
-                      <Avatar className="h-20 w-20 mb-3">
+                      <Avatar className="h-20 w-20 mb-3 border-2 border-blue-200">
                         <AvatarImage src="" alt={`${doctor.first_name} ${doctor.last_name}`} />
-                        <AvatarFallback className="text-lg">
+                        <AvatarFallback className="text-lg bg-blue-100 text-blue-600">
                           {getInitials(doctor.first_name, doctor.last_name)}
                         </AvatarFallback>
                       </Avatar>
-                      <h3 className="text-xl font-semibold text-[#0F4C75]">
+                      <h3 className="text-xl font-semibold text-blue-600">
                         Dr(a). {doctor.first_name} {doctor.last_name}
                       </h3>
                       {doctor.specialty && (
@@ -334,14 +389,14 @@ export default function PatientDoctorsPage() {
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
-                        className="flex-1"
+                        className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50"
                         onClick={() => handleViewDetails(doctor)}
                       >
                         <User className="h-4 w-4 mr-2" />
                         Detalhes
                       </Button>
                       <Button
-                        className="flex-1"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
                         onClick={() => handleBookAppointment(doctor)}
                         disabled={!doctor.is_active}
                       >
@@ -360,14 +415,14 @@ export default function PatientDoctorsPage() {
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <div className="flex items-center gap-4 mb-2">
-                  <Avatar className="h-16 w-16">
+                  <Avatar className="h-16 w-16 border-2 border-blue-200">
                     <AvatarImage src="" alt={`${selectedDoctor?.first_name} ${selectedDoctor?.last_name}`} />
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-blue-100 text-blue-600">
                       {selectedDoctor ? getInitials(selectedDoctor.first_name, selectedDoctor.last_name) : ""}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <DialogTitle className="text-2xl">
+                    <DialogTitle className="text-2xl text-blue-600">
                       Dr(a). {selectedDoctor?.first_name} {selectedDoctor?.last_name}
                     </DialogTitle>
                     {selectedDoctor?.specialty && (
@@ -461,7 +516,7 @@ export default function PatientDoctorsPage() {
               )}
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setIsDetailDialogOpen(false)} className="border-gray-300">
                   Fechar
                 </Button>
                 <Button
@@ -472,6 +527,7 @@ export default function PatientDoctorsPage() {
                     }
                   }}
                   disabled={!selectedDoctor?.is_active}
+                  className="bg-blue-600 hover:bg-blue-700"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
                   Agendar Consulta

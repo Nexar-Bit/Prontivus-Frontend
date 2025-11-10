@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -171,28 +170,6 @@ export function AppHeader({
   return (
     <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-blue-100/50 shadow-sm">
       <div className="flex h-20 items-center gap-6 px-6 lg:px-8">
-        {/* Left: Logo and System Name */}
-        <div className="flex items-center gap-4 flex-shrink-0">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:shadow-lg group-hover:shadow-blue-500/30 transition-all duration-200">
-              <Stethoscope className="h-6 w-6 text-white" />
-            </div>
-            <div className="hidden sm:block">
-              <div className="flex items-center gap-2">
-                <Image
-                  src="/Logo/Prontivus Horizontal Transparents.png"
-                  alt="Prontivus"
-                  width={140}
-                  height={28}
-                  priority
-                  className="h-7 w-auto"
-                />
-              </div>
-              <p className="text-xs text-blue-600/70 font-medium mt-0.5">Sistema de Gestão Hospitalar</p>
-            </div>
-          </Link>
-        </div>
-
         {/* Center: Breadcrumb Navigation */}
         <nav className="flex-1 hidden lg:flex items-center gap-2 min-w-0">
           <ol className="flex items-center gap-2 text-sm">

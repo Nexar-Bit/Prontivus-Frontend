@@ -100,31 +100,31 @@ const mockMedications: MedicationAdherence[] = [
 const recordTypeConfig = {
   consultation: {
     icon: Stethoscope,
-    color: '#0F4C75',
-    bgColor: 'bg-[#0F4C75]/10',
-    borderColor: 'border-[#0F4C75]/20',
-    textColor: 'text-[#0F4C75]',
+    color: '#5b9eff',
+    bgColor: 'bg-blue-100',
+    borderColor: 'border-blue-200',
+    textColor: 'text-blue-600',
     label: 'Consulta',
   },
   prescription: {
     icon: Pill,
-    color: '#16C79A',
-    bgColor: 'bg-[#16C79A]/10',
-    borderColor: 'border-[#16C79A]/20',
-    textColor: 'text-[#16C79A]',
+    color: '#14b8a6',
+    bgColor: 'bg-teal-100',
+    borderColor: 'border-teal-200',
+    textColor: 'text-teal-600',
     label: 'Prescrição',
   },
   test: {
     icon: TestTube,
-    color: '#FF8C42',
-    bgColor: 'bg-[#FF8C42]/10',
-    borderColor: 'border-[#FF8C42]/20',
-    textColor: 'text-[#FF8C42]',
+    color: '#f59e0b',
+    bgColor: 'bg-orange-100',
+    borderColor: 'border-orange-200',
+    textColor: 'text-orange-600',
     label: 'Exame',
   },
   allergy: {
     icon: AlertTriangle,
-    color: '#DC2626',
+    color: '#ef4444',
     bgColor: 'bg-red-50',
     borderColor: 'border-red-200',
     textColor: 'text-red-700',
@@ -132,7 +132,7 @@ const recordTypeConfig = {
   },
   condition: {
     icon: Heart,
-    color: '#9333EA',
+    color: '#a78bfa',
     bgColor: 'bg-purple-50',
     borderColor: 'border-purple-200',
     textColor: 'text-purple-700',
@@ -140,18 +140,18 @@ const recordTypeConfig = {
   },
   procedure: {
     icon: Activity,
-    color: '#1B9AAA',
-    bgColor: 'bg-[#1B9AAA]/10',
-    borderColor: 'border-[#1B9AAA]/20',
-    textColor: 'text-[#1B9AAA]',
+    color: '#14b8a6',
+    bgColor: 'bg-teal-100',
+    borderColor: 'border-teal-200',
+    textColor: 'text-teal-600',
     label: 'Procedimento',
   },
   immunization: {
     icon: Syringe,
-    color: '#16C79A',
-    bgColor: 'bg-[#16C79A]/10',
-    borderColor: 'border-[#16C79A]/20',
-    textColor: 'text-[#16C79A]',
+    color: '#22c55e',
+    bgColor: 'bg-green-100',
+    borderColor: 'border-green-200',
+    textColor: 'text-green-600',
     label: 'Vacinação',
   },
 };
@@ -370,7 +370,7 @@ export default function MedicalRecordsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch={false} notificationCount={3} />
 
       <PatientMobileNav />
@@ -381,16 +381,82 @@ export default function MedicalRecordsPage() {
         </div>
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
-          {/* Header */}
+          {/* Modern Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Prontuário Médico</h1>
-            <p className="text-[#5D737E]">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FileText className="h-7 w-7 text-blue-600" />
+              </div>
+              Prontuário Médico
+            </h1>
+            <p className="text-muted-foreground text-sm">
               Seu histórico médico completo, organizado e acessível
             </p>
           </div>
 
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total de Registros
+                </CardTitle>
+                <FileText className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{records.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Registros médicos</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-teal-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Consultas
+                </CardTitle>
+                <Stethoscope className="h-4 w-4 text-teal-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {records.filter(r => r.type === 'consultation').length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Consultas realizadas</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Prescrições
+                </CardTitle>
+                <Pill className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {records.filter(r => r.type === 'prescription').length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Prescrições ativas</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Exames
+                </CardTitle>
+                <TestTube className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {records.filter(r => r.type === 'test').length}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Exames realizados</p>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Search and Filters */}
-          <Card className="medical-card mb-6">
+          <Card className="border-l-4 border-l-blue-500 mb-6 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative">
@@ -487,10 +553,12 @@ export default function MedicalRecordsPage() {
               </div>
               {/* Vital Signs Trends */}
               {mockVitalSigns.length > 0 && (
-              <Card className="medical-card">
+              <Card className="border-l-4 border-l-teal-500 bg-white/80 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-[#0F4C75]">
-                    <TrendingUp className="h-5 w-5" />
+                  <CardTitle className="flex items-center gap-2 text-teal-600">
+                    <div className="p-1.5 bg-teal-100 rounded-lg">
+                      <TrendingUp className="h-5 w-5" />
+                    </div>
                     Tendência de Sinais Vitais
                   </CardTitle>
                   <CardDescription>
@@ -569,7 +637,10 @@ export default function MedicalRecordsPage() {
             {/* Timeline View */}
             <TabsContent value={activeTab} className="space-y-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-[#0F4C75]">
+                <h2 className="text-xl font-semibold text-blue-600 flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-100 rounded-lg">
+                    <Clock className="h-5 w-5" />
+                  </div>
                   Linha do Tempo Médica
                 </h2>
                 <Button variant="outline" size="sm">
@@ -581,14 +652,16 @@ export default function MedicalRecordsPage() {
               {/* Timeline Visualization */}
               <div className="relative">
                 {/* Vertical timeline line */}
-                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#0F4C75] via-[#1B9AAA] to-[#16C79A]" />
+                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-teal-500 to-green-500" />
 
                 <div className="space-y-6">
                   {filteredRecords.length === 0 ? (
-                    <Card className="medical-card">
+                    <Card className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
                       <CardContent className="py-12 text-center">
-                        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">Nenhum registro encontrado</p>
+                        <div className="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                          <FileText className="h-10 w-10 text-blue-600" />
+                        </div>
+                        <p className="text-gray-500 font-medium">Nenhum registro encontrado</p>
                       </CardContent>
                     </Card>
                   ) : (
@@ -611,7 +684,7 @@ export default function MedicalRecordsPage() {
                           {/* Record Card */}
                           <Card
                             className={cn(
-                              "ml-16 transition-all hover:shadow-lg cursor-pointer medical-card",
+                              "ml-16 transition-all hover:shadow-lg cursor-pointer border-l-4 bg-white/80 backdrop-blur-sm",
                               config.borderColor,
                               isExpanded && "shadow-md"
                             )}
@@ -668,7 +741,7 @@ export default function MedicalRecordsPage() {
                                   </div>
 
                                   {record.details && (
-                                    <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
+                                    <div className="grid grid-cols-2 gap-4 p-4 rounded-lg bg-blue-50/50 border border-blue-200">
                                       {Object.entries(record.details).map(([key, value]) => (
                                         <div key={key}>
                                           <span className="text-xs font-medium text-blue-700 capitalize">

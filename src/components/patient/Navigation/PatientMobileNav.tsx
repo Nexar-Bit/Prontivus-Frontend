@@ -18,7 +18,6 @@ import {
   Pill,
   TestTube,
   CreditCard,
-  User,
   Settings,
   FileText,
   Heart,
@@ -48,7 +47,6 @@ const baseNavigationItems: NavigationItem[] = [
   { label: "Clinical Notes", icon: FileText, href: "/patient/notes", section: "health" },
   { label: "Billing & Payments", icon: CreditCard, href: "/patient/billing", section: "services" },
   { label: "My Doctors", icon: Stethoscope, href: "/patient/doctors", section: "services" },
-  { label: "Profile", icon: User, href: "/portal/profile", section: "settings" },
   { label: "Settings", icon: Settings, href: "/patient/settings", section: "settings" },
 ];
 
@@ -110,7 +108,7 @@ export function PatientMobileNav({ items }: PatientMobileNavProps) {
 
             return (
               <Link
-                key={item.href}
+                key={`mobile-${item.label}-${item.href}`}
                 href={item.href}
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 min-h-[44px] relative",
@@ -169,7 +167,7 @@ export function PatientMobileNav({ items }: PatientMobileNavProps) {
                         (item.href !== "/patient/dashboard" && pathname.startsWith(item.href));
 
                       return (
-                        <li key={item.href}>
+                        <li key={`${item.section}-${item.label}-${item.href}`}>
                           <Link
                             href={item.href}
                             onClick={() => setIsOpen(false)}

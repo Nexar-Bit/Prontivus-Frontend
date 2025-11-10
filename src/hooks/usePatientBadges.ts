@@ -2,6 +2,7 @@
  * Custom hook to fetch badge counts for patient sidebar
  */
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts';
 import { api } from '@/lib/api';
 import { messagesApi } from '@/lib/messages-api';
 
@@ -11,11 +12,19 @@ export interface PatientBadges {
 }
 
 export function usePatientBadges() {
+  const { user, isAuthenticated } = useAuth();
   const [badges, setBadges] = useState<PatientBadges>({ appointments: 0, messages: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchBadges = async () => {
+      // Only fetch badges if user is authenticated
+      if (!isAuthenticated || !user) {
+        setBadges({ appointments: 0, messages: 0 });
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         
@@ -44,10 +53,16 @@ export function usePatientBadges() {
           appointments: upcomingCount,
           messages: unreadCount,
         });
-      } catch (error) {
-        console.error('Failed to fetch badge counts:', error);
-        // On error, set to 0 to avoid showing incorrect counts
-        setBadges({ appointments: 0, messages: 0 });
+      } catch (error: any) {
+        // Silently handle 401/403 errors (user not authenticated)
+        if (error?.status === 401 || error?.status === 403) {
+          console.warn("Not authenticated, skipping badge fetch");
+          setBadges({ appointments: 0, messages: 0 });
+        } else {
+          console.error('Failed to fetch badge counts:', error);
+          // On error, set to 0 to avoid showing incorrect counts
+          setBadges({ appointments: 0, messages: 0 });
+        }
       } finally {
         setLoading(false);
       }
@@ -59,7 +74,7 @@ export function usePatientBadges() {
     const interval = setInterval(fetchBadges, 30000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated, user]);
 
   return { badges, loading };
 }

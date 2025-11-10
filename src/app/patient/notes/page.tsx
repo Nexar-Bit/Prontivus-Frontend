@@ -131,7 +131,7 @@ export default function PatientNotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch={false} notificationCount={3} />
       <PatientMobileNav />
 
@@ -141,21 +141,31 @@ export default function PatientNotesPage() {
         </div>
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
+          {/* Modern Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Notas</h1>
-            <p className="text-[#5D737E]">Anote informações pessoais e reveja notas clínicas das suas consultas</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <NotebookText className="h-7 w-7 text-blue-600" />
+              </div>
+              Notas
+            </h1>
+            <p className="text-muted-foreground text-sm">Anote informações pessoais e reveja notas clínicas das suas consultas</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Create personal note */}
-            <Card className="lg:col-span-2 medical-card">
+            <Card className="lg:col-span-2 border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl text-[#0F4C75]">Minhas notas</CardTitle>
+                    <CardTitle className="text-xl text-blue-600 flex items-center gap-2">
+                      <div className="p-1.5 bg-blue-100 rounded-lg">
+                        <NotebookText className="h-5 w-5" />
+                      </div>
+                      Minhas notas
+                    </CardTitle>
                     <CardDescription>Crie e gerencie suas notas pessoais</CardDescription>
                   </div>
-                  <NotebookText className="h-6 w-6 text-[#1B9AAA]" />
                 </div>
               </CardHeader>
               <CardContent>
@@ -165,7 +175,7 @@ export default function PatientNotesPage() {
                     <Textarea placeholder="Sua nota" value={newContent} onChange={(e) => setNewContent(e.target.value)} rows={3} />
                   </div>
                 </div>
-                <Button disabled={saving} onClick={addNote}>
+                <Button disabled={saving} onClick={addNote} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="h-4 w-4 mr-2" /> Adicionar nota
                 </Button>
 
@@ -204,14 +214,18 @@ export default function PatientNotesPage() {
             </Card>
 
             {/* Recent clinical notes (read-only) */}
-            <Card className="medical-card">
+            <Card className="border-l-4 border-l-teal-500 bg-white/80 backdrop-blur-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl text-[#0F4C75]">Notas clínicas recentes</CardTitle>
+                    <CardTitle className="text-xl text-teal-600 flex items-center gap-2">
+                      <div className="p-1.5 bg-teal-100 rounded-lg">
+                        <Stethoscope className="h-5 w-5" />
+                      </div>
+                      Notas clínicas recentes
+                    </CardTitle>
                     <CardDescription>Registros de suas últimas consultas</CardDescription>
                   </div>
-                  <Stethoscope className="h-6 w-6 text-[#1B9AAA]" />
                 </div>
               </CardHeader>
               <CardContent>
@@ -220,7 +234,7 @@ export default function PatientNotesPage() {
                 ) : (
                   <div className="space-y-4">
                     {recentClinicalNotes.map(item => (
-                      <div key={item.appointment_id} className="p-3 rounded-lg border">
+                      <div key={item.appointment_id} className="p-3 rounded-lg border border-teal-200 bg-teal-50/30 hover:shadow-md transition-shadow">
                         <div className="flex items-center gap-3 text-sm text-gray-700 mb-2">
                           <Calendar className="h-4 w-4" />
                           {format(parseISO(item.appointment_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}

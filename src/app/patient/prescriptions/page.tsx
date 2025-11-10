@@ -145,11 +145,11 @@ const mockPharmacies: Pharmacy[] = [
 ];
 
 const medicationTypeColors: Record<string, string> = {
-  tablet: '#0F4C75',
-  capsule: '#1B9AAA',
-  syrup: '#16C79A',
-  injection: '#FF8C42',
-  cream: '#9333EA',
+  tablet: '#5b9eff',
+  capsule: '#14b8a6',
+  syrup: '#22c55e',
+  injection: '#f59e0b',
+  cream: '#a78bfa',
 };
 
 const medicationTypeIcons: Record<string, React.ReactNode> = {
@@ -297,7 +297,7 @@ export default function PrescriptionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch={false} notificationCount={3} />
       <PatientMobileNav />
 
@@ -307,23 +307,87 @@ export default function PrescriptionsPage() {
         </div>
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
+          {/* Modern Header */}
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Medicamentos</h1>
-              <p className="text-[#5D737E]">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Pill className="h-7 w-7 text-blue-600" />
+                </div>
+                Medicamentos
+              </h1>
+              <p className="text-muted-foreground text-sm">
                 Gerencie suas prescrições e acompanhe sua adesão medicamentosa
               </p>
             </div>
-            <Button variant="outline">
+            <Button variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-50">
               <Download className="h-4 w-4 mr-2" />
               Exportar Lista
             </Button>
           </div>
 
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Ativos
+                </CardTitle>
+                <Pill className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{activeMeds.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Medicamentos ativos</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-teal-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Histórico
+                </CardTitle>
+                <Package className="h-4 w-4 text-teal-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{pastMeds.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Medicamentos anteriores</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Adesão Média
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {activeMeds.length > 0 
+                    ? Math.round(activeMeds.reduce((sum, m) => sum + m.adherence, 0) / activeMeds.length)
+                    : 0}%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Taxa de adesão</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Renovações
+                </CardTitle>
+                <RefreshCw className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{pendingRefills.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Pendentes</p>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Pending Refills Alert */}
           {pendingRefills.length > 0 && (
-            <Alert className="medical-card border-yellow-300 bg-yellow-50 mb-6">
+            <Alert className="border-l-4 border-l-orange-500 bg-orange-50/50 mb-6">
               <Bell className="h-5 w-5 text-yellow-600" />
               <AlertTitle className="text-yellow-900 font-semibold">
                 Renovação de Prescrições Pendentes
@@ -349,7 +413,7 @@ export default function PrescriptionsPage() {
           )}
 
           {/* Search and Filters */}
-          <Card className="medical-card mb-6">
+          <Card className="border-l-4 border-l-blue-500 mb-6 bg-white/80 backdrop-blur-sm">
             <CardHeader>
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative">
@@ -389,10 +453,12 @@ export default function PrescriptionsPage() {
             {/* Active Medications */}
             <TabsContent value="active" className="space-y-4">
               {filteredActive.length === 0 ? (
-                <Card className="medical-card">
+                <Card className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
                   <CardContent className="py-12 text-center">
-                    <Pill className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum medicamento ativo encontrado</p>
+                    <div className="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                      <Pill className="h-10 w-10 text-blue-600" />
+                    </div>
+                    <p className="text-gray-500 font-medium">Nenhum medicamento ativo encontrado</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -404,7 +470,7 @@ export default function PrescriptionsPage() {
                   return (
                     <Card
                       key={medication.id}
-                      className="medical-card hover:shadow-lg transition-shadow"
+                      className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm"
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -422,7 +488,7 @@ export default function PrescriptionsPage() {
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
-                                <CardTitle className="text-xl text-[#0F4C75]">
+                                <CardTitle className="text-xl text-blue-600">
                                   {medication.name}
                                 </CardTitle>
                                 {getStatusBadge(medication.status)}
@@ -536,7 +602,7 @@ export default function PrescriptionsPage() {
                         </div>
 
                         {/* Refill Status */}
-                        <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                        <div className="p-4 rounded-lg bg-blue-50/50 border border-blue-200">
                           <div className="flex items-center justify-between mb-2">
                             <div className="text-sm font-medium text-blue-900">Renovações</div>
                             <Badge variant="outline" className="border-blue-300 text-blue-700">
@@ -654,15 +720,17 @@ export default function PrescriptionsPage() {
             {/* Past Medications */}
             <TabsContent value="past" className="space-y-4">
               {filteredPast.length === 0 ? (
-                <Card className="medical-card">
+                <Card className="border-l-4 border-l-teal-500 bg-white/80 backdrop-blur-sm">
                   <CardContent className="py-12 text-center">
-                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhum medicamento no histórico</p>
+                    <div className="p-4 bg-teal-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                      <Package className="h-10 w-10 text-teal-600" />
+                    </div>
+                    <p className="text-gray-500 font-medium">Nenhum medicamento no histórico</p>
                   </CardContent>
                 </Card>
               ) : (
                 filteredPast.map((medication) => (
-                  <Card key={medication.id} className="medical-card opacity-75">
+                  <Card key={medication.id} className="border-l-4 border-l-teal-500 opacity-75 bg-white/80 backdrop-blur-sm">
                     <CardHeader>
                       <div className="flex items-start gap-4">
                         {/* eslint-disable-next-line react/forbid-dom-props */}
@@ -699,20 +767,22 @@ export default function PrescriptionsPage() {
             {/* Refills */}
             <TabsContent value="refills" className="space-y-4">
               {refillRequests.length === 0 && pendingRefills.length === 0 ? (
-                <Card className="medical-card">
+                <Card className="border-l-4 border-l-orange-500 bg-white/80 backdrop-blur-sm">
                   <CardContent className="py-12 text-center">
-                    <RefreshCw className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">Nenhuma renovação pendente</p>
+                    <div className="p-4 bg-orange-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                      <RefreshCw className="h-10 w-10 text-orange-600" />
+                    </div>
+                    <p className="text-gray-500 font-medium">Nenhuma renovação pendente</p>
                   </CardContent>
                 </Card>
               ) : (
                 <>
                   {refillRequests.map(request => (
-                    <Card key={request.id} className="medical-card">
+                    <Card key={request.id} className="border-l-4 border-l-orange-500 bg-white/80 backdrop-blur-sm">
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle className="text-lg text-[#0F4C75]">
+                            <CardTitle className="text-lg text-blue-600">
                               {request.medicationName}
                             </CardTitle>
                             <CardDescription>
@@ -737,11 +807,11 @@ export default function PrescriptionsPage() {
                     </Card>
                   ))}
                   {pendingRefills.map(med => (
-                    <Card key={med.id} className="medical-card border-yellow-300">
+                    <Card key={med.id} className="border-l-4 border-l-orange-500 bg-orange-50/30">
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <CardTitle className="text-lg text-[#0F4C75]">
+                            <CardTitle className="text-lg text-blue-600">
                               {med.name}
                             </CardTitle>
                             <CardDescription>
@@ -767,18 +837,23 @@ export default function PrescriptionsPage() {
             {/* Pharmacy */}
             <TabsContent value="pharmacy" className="space-y-4">
               <div>
-                <h3 className="text-lg font-semibold text-[#0F4C75] mb-4">Farmácias Próximas</h3>
+                <h3 className="text-lg font-semibold text-blue-600 mb-4 flex items-center gap-2">
+                  <div className="p-1.5 bg-blue-100 rounded-lg">
+                    <ShoppingCart className="h-5 w-5" />
+                  </div>
+                  Farmácias Próximas
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {mockPharmacies.map((pharmacy) => (
                     <Card
                       key={pharmacy.id}
-                      className="medical-card hover:shadow-lg transition-shadow cursor-pointer"
+                      className="border-l-4 border-l-teal-500 hover:shadow-lg transition-shadow cursor-pointer bg-white/80 backdrop-blur-sm"
                       onClick={() => setSelectedPharmacy(pharmacy)}
                     >
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <CardTitle className="text-lg text-[#0F4C75] mb-2">
+                            <CardTitle className="text-lg text-blue-600 mb-2">
                               {pharmacy.name}
                             </CardTitle>
                             <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
@@ -804,7 +879,7 @@ export default function PrescriptionsPage() {
                         <div className="flex items-center justify-between pt-2 border-t border-gray-200">
                           <div>
                             <div className="text-xs text-gray-500">Preço Estimado</div>
-                            <div className="text-lg font-bold text-[#0F4C75]">
+                            <div className="text-lg font-bold text-blue-600">
                               R$ {pharmacy.price.toFixed(2)}
                             </div>
                           </div>
@@ -836,7 +911,7 @@ export default function PrescriptionsPage() {
                     key={pharmacy.id}
                     className={cn(
                       "cursor-pointer transition-all hover:shadow-md",
-                      selectedPharmacy?.id === pharmacy.id && "border-2 border-[#0F4C75]"
+                      selectedPharmacy?.id === pharmacy.id && "border-2 border-blue-500"
                     )}
                     onClick={() => setSelectedPharmacy(pharmacy)}
                   >
@@ -861,7 +936,7 @@ export default function PrescriptionsPage() {
                           </div>
                         </div>
                         <div className="text-right ml-4">
-                          <div className="text-2xl font-bold text-[#0F4C75]">
+                          <div className="text-2xl font-bold text-blue-600">
                             R$ {pharmacy.price.toFixed(2)}
                           </div>
                           {selectedMedication?.insuranceCoverage && (
@@ -893,7 +968,7 @@ export default function PrescriptionsPage() {
                   Cancelar
                 </Button>
                 <Button
-                  className="flex-1 bg-[#0F4C75] hover:bg-[#1B9AAA]"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
                   onClick={() => {
                     if (selectedPharmacy && selectedMedication) {
                       setShowPharmacyDialog(false);
