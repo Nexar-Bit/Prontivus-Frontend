@@ -2,10 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Settings, BarChart3, PieChart, LineChart, Loader2 } from "lucide-react";
+import { 
+  FileText, Settings, BarChart3, PieChart, LineChart, Loader2, 
+  RefreshCw, Save, RotateCcw, AlertCircle, CheckCircle2, Info
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 
@@ -28,50 +33,58 @@ interface ReportConfig {
   };
 }
 
+const DEFAULT_CONFIG: ReportConfig = {
+  financial: {
+    enabled: true,
+    detailed: true,
+  },
+  clinical: {
+    enabled: true,
+    anonymize: false,
+  },
+  operational: {
+    enabled: true,
+    automatic_scheduling: false,
+  },
+  general: {
+    allow_export: true,
+    send_by_email: false,
+  },
+};
+
 export default function RelatoriosConfigPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [config, setConfig] = useState<ReportConfig>({
-    financial: {
-      enabled: true,
-      detailed: true,
-    },
-    clinical: {
-      enabled: true,
-      anonymize: false,
-    },
-    operational: {
-      enabled: true,
-      automatic_scheduling: false,
-    },
-    general: {
-      allow_export: true,
-      send_by_email: false,
-    },
-  });
+  const [hasChanges, setHasChanges] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [config, setConfig] = useState<ReportConfig>(DEFAULT_CONFIG);
+  const [originalConfig, setOriginalConfig] = useState<ReportConfig>(DEFAULT_CONFIG);
 
   useEffect(() => {
     loadConfig();
   }, []);
 
+  useEffect(() => {
+    // Check if config has changed from original
+    const changed = JSON.stringify(config) !== JSON.stringify(originalConfig);
+    setHasChanges(changed);
+  }, [config, originalConfig]);
+
   const loadConfig = async () => {
     try {
       setLoading(true);
-      // Try both API versions
-      let data: ReportConfig;
-      try {
-        data = await api.get<ReportConfig>("/api/v1/report-config");
-      } catch (e) {
-        // Fallback to legacy endpoint
-        data = await api.get<ReportConfig>("/api/report-config");
-      }
+      const data = await api.get<ReportConfig>("/api/v1/report-config");
       setConfig(data);
+      setOriginalConfig(data);
+      setHasChanges(false);
     } catch (error: any) {
       console.error("Failed to load report configuration:", error);
       toast.error("Erro ao carregar configurações", {
         description: error?.message || error?.detail || "Não foi possível carregar as configurações de relatórios",
       });
-      // Keep default values on error
+      // Use default values on error
+      setConfig(DEFAULT_CONFIG);
+      setOriginalConfig(DEFAULT_CONFIG);
     } finally {
       setLoading(false);
     }
@@ -80,13 +93,13 @@ export default function RelatoriosConfigPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      // Try both API versions
-      try {
-        await api.put("/api/v1/report-config", config);
-      } catch (e) {
-        // Fallback to legacy endpoint
-        await api.put("/api/report-config", config);
-      }
+      const response = await api.put<{ message: string; config: ReportConfig }>("/api/v1/report-config", config);
+      
+      // Update original config to reflect saved state
+      setOriginalConfig(response.config || config);
+      setHasChanges(false);
+      setLastSaved(new Date());
+      
       toast.success("Configurações salvas com sucesso", {
         description: "As configurações de relatórios foram atualizadas",
       });
@@ -98,6 +111,17 @@ export default function RelatoriosConfigPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleReset = () => {
+    if (!confirm("Tem certeza que deseja restaurar as configurações padrão? Todas as alterações não salvas serão perdidas.")) {
+      return;
+    }
+    setConfig(DEFAULT_CONFIG);
+    setHasChanges(true);
+    toast.info("Configurações restauradas para os valores padrão", {
+      description: "Lembre-se de salvar para aplicar as alterações",
+    });
   };
 
   const updateConfig = (section: keyof ReportConfig, field: string, value: boolean) => {
@@ -126,11 +150,30 @@ export default function RelatoriosConfigPage() {
           Configurações de Relatórios
         </h1>
         <p className="text-gray-600 mt-2">
-          Configure os relatórios disponíveis para a clínica
+          Configure os relatórios disponíveis e suas opções para a clínica
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {lastSaved && (
+        <Alert className="bg-green-50 border-green-200">
+          <CheckCircle2 className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800">
+            Configurações salvas com sucesso em {lastSaved.toLocaleString("pt-BR")}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {hasChanges && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Você tem alterações não salvas. Não esqueça de salvar antes de sair da página.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Financial Reports */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -138,30 +181,50 @@ export default function RelatoriosConfigPage() {
               Relatórios Financeiros
             </CardTitle>
             <CardDescription>
-              Configurações de relatórios financeiros
+              Configure relatórios financeiros e de receita
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="financial-enabled">Habilitar Relatórios Financeiros</Label>
-              <Switch
-                id="financial-enabled"
-                checked={config.financial.enabled}
-                onCheckedChange={(checked) => updateConfig("financial", "enabled", checked)}
-              />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="financial-enabled" className="cursor-pointer">
+                    Habilitar Relatórios Financeiros
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ativa a geração de relatórios financeiros (receitas, despesas, etc.)
+                  </p>
+                </div>
+                <Switch
+                  id="financial-enabled"
+                  checked={config.financial.enabled}
+                  onCheckedChange={(checked) => updateConfig("financial", "enabled", checked)}
+                />
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="financial-detailed">Relatórios Detalhados</Label>
-              <Switch
-                id="financial-detailed"
-                checked={config.financial.detailed}
-                onCheckedChange={(checked) => updateConfig("financial", "detailed", checked)}
-                disabled={!config.financial.enabled}
-              />
+            <Separator />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="financial-detailed" className="cursor-pointer">
+                    Relatórios Detalhados
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Inclui informações detalhadas e análises aprofundadas nos relatórios
+                  </p>
+                </div>
+                <Switch
+                  id="financial-detailed"
+                  checked={config.financial.detailed}
+                  onCheckedChange={(checked) => updateConfig("financial", "detailed", checked)}
+                  disabled={!config.financial.enabled}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Clinical Reports */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -169,30 +232,50 @@ export default function RelatoriosConfigPage() {
               Relatórios Clínicos
             </CardTitle>
             <CardDescription>
-              Configurações de relatórios clínicos
+              Configure relatórios clínicos e de pacientes
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="clinical-enabled">Habilitar Relatórios Clínicos</Label>
-              <Switch
-                id="clinical-enabled"
-                checked={config.clinical.enabled}
-                onCheckedChange={(checked) => updateConfig("clinical", "enabled", checked)}
-              />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="clinical-enabled" className="cursor-pointer">
+                    Habilitar Relatórios Clínicos
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ativa a geração de relatórios clínicos (consultas, diagnósticos, etc.)
+                  </p>
+                </div>
+                <Switch
+                  id="clinical-enabled"
+                  checked={config.clinical.enabled}
+                  onCheckedChange={(checked) => updateConfig("clinical", "enabled", checked)}
+                />
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="clinical-anonymous">Anonimizar Dados</Label>
-              <Switch
-                id="clinical-anonymous"
-                checked={config.clinical.anonymize}
-                onCheckedChange={(checked) => updateConfig("clinical", "anonymize", checked)}
-                disabled={!config.clinical.enabled}
-              />
+            <Separator />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="clinical-anonymous" className="cursor-pointer">
+                    Anonimizar Dados
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Remove informações pessoais identificáveis dos relatórios clínicos
+                  </p>
+                </div>
+                <Switch
+                  id="clinical-anonymous"
+                  checked={config.clinical.anonymize}
+                  onCheckedChange={(checked) => updateConfig("clinical", "anonymize", checked)}
+                  disabled={!config.clinical.enabled}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Operational Reports */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -200,30 +283,50 @@ export default function RelatoriosConfigPage() {
               Relatórios Operacionais
             </CardTitle>
             <CardDescription>
-              Configurações de relatórios operacionais
+              Configure relatórios operacionais e de gestão
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="operational-enabled">Habilitar Relatórios Operacionais</Label>
-              <Switch
-                id="operational-enabled"
-                checked={config.operational.enabled}
-                onCheckedChange={(checked) => updateConfig("operational", "enabled", checked)}
-              />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="operational-enabled" className="cursor-pointer">
+                    Habilitar Relatórios Operacionais
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Ativa a geração de relatórios operacionais (agendamentos, produtividade, etc.)
+                  </p>
+                </div>
+                <Switch
+                  id="operational-enabled"
+                  checked={config.operational.enabled}
+                  onCheckedChange={(checked) => updateConfig("operational", "enabled", checked)}
+                />
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="operational-schedule">Agendamento Automático</Label>
-              <Switch
-                id="operational-schedule"
-                checked={config.operational.automatic_scheduling}
-                onCheckedChange={(checked) => updateConfig("operational", "automatic_scheduling", checked)}
-                disabled={!config.operational.enabled}
-              />
+            <Separator />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="operational-schedule" className="cursor-pointer">
+                    Agendamento Automático
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Gera e envia relatórios automaticamente em intervalos programados
+                  </p>
+                </div>
+                <Switch
+                  id="operational-schedule"
+                  checked={config.operational.automatic_scheduling}
+                  onCheckedChange={(checked) => updateConfig("operational", "automatic_scheduling", checked)}
+                  disabled={!config.operational.enabled}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* General Settings */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -231,46 +334,99 @@ export default function RelatoriosConfigPage() {
               Configurações Gerais
             </CardTitle>
             <CardDescription>
-              Configurações gerais de relatórios
+              Configurações gerais aplicadas a todos os relatórios
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="export-enabled">Permitir Exportação</Label>
-              <Switch
-                id="export-enabled"
-                checked={config.general.allow_export}
-                onCheckedChange={(checked) => updateConfig("general", "allow_export", checked)}
-              />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="export-enabled" className="cursor-pointer">
+                    Permitir Exportação
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Permite exportar relatórios em formatos como PDF, Excel, CSV
+                  </p>
+                </div>
+                <Switch
+                  id="export-enabled"
+                  checked={config.general.allow_export}
+                  onCheckedChange={(checked) => updateConfig("general", "allow_export", checked)}
+                />
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email-reports">Enviar por E-mail</Label>
-              <Switch
-                id="email-reports"
-                checked={config.general.send_by_email}
-                onCheckedChange={(checked) => updateConfig("general", "send_by_email", checked)}
-              />
+            <Separator />
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="email-reports" className="cursor-pointer">
+                    Enviar por E-mail
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Envia relatórios automaticamente por e-mail quando gerados
+                  </p>
+                </div>
+                <Switch
+                  id="email-reports"
+                  checked={config.general.send_by_email}
+                  onCheckedChange={(checked) => updateConfig("general", "send_by_email", checked)}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex justify-end">
-        <Button
-          className="bg-blue-600 hover:bg-blue-700"
-          onClick={handleSave}
-          disabled={saving}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            "Salvar Configurações"
-          )}
-        </Button>
-      </div>
+      {/* Action Buttons */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Info className="h-4 w-4" />
+              <span>
+                {hasChanges 
+                  ? "Você tem alterações não salvas" 
+                  : "Todas as alterações foram salvas"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                onClick={loadConfig}
+                disabled={loading || saving}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Recarregar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleReset}
+                disabled={saving}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Restaurar Padrões
+              </Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={handleSave}
+                disabled={saving || !hasChanges}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Salvar Configurações
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -69,35 +69,35 @@ export const messagesApi = {
    * List all message threads for the current user
    */
   listThreads: async (archived: boolean = false): Promise<MessageThread[]> => {
-    return api.get<MessageThread[]>(`/api/messages/threads?archived=${archived}`);
+    return api.get<MessageThread[]>(`/api/v1/messages/threads?archived=${archived}`);
   },
 
   /**
    * Get a specific thread with all messages
    */
   getThread: async (threadId: number): Promise<MessageThreadDetail> => {
-    return api.get<MessageThreadDetail>(`/api/messages/threads/${threadId}`);
+    return api.get<MessageThreadDetail>(`/api/v1/messages/threads/${threadId}`);
   },
 
   /**
    * Create a new message thread
    */
   createThread: async (data: CreateThreadRequest): Promise<MessageThread> => {
-    return api.post<MessageThread>('/api/messages/threads', data);
+    return api.post<MessageThread>('/api/v1/messages/threads', data);
   },
 
   /**
    * Send a message in a thread
    */
   sendMessage: async (threadId: number, data: SendMessageRequest): Promise<Message> => {
-    return api.post<Message>(`/api/messages/threads/${threadId}/send`, data);
+    return api.post<Message>(`/api/v1/messages/threads/${threadId}/send`, data);
   },
 
   /**
    * Delete (archive) a thread
    */
   deleteThread: async (threadId: number): Promise<void> => {
-    return api.delete(`/api/messages/threads/${threadId}`);
+    return api.delete(`/api/v1/messages/threads/${threadId}`);
   },
 };
 

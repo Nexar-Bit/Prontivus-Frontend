@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { clinicalRecordsApi } from "@/lib/clinical-api";
+import { getUserSettings } from "@/lib/settings-api";
 import { format, parseISO } from "date-fns";
 import {
   Shield,
@@ -44,6 +45,11 @@ import {
   Pill,
   Stethoscope,
   FileText,
+  RefreshCw,
+  Upload,
+  Download,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 interface PatientProfile {
@@ -129,6 +135,16 @@ export default function PatientProfilePage() {
     phone: "",
     relationship: "",
   });
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -139,7 +155,7 @@ export default function PatientProfilePage() {
     if (isAuthenticated) {
       loadData();
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, refreshKey]);
 
   const loadData = async () => {
     try {
@@ -148,7 +164,7 @@ export default function PatientProfilePage() {
       // Load patient profile
       let patientData: PatientProfile;
       try {
-        patientData = await api.get<PatientProfile>("/api/patients/me");
+        patientData = await api.get<PatientProfile>("/api/v1/patients/me");
         setProfile(patientData);
         setProfileForm(patientData);
       } catch (profileError: any) {
@@ -157,6 +173,24 @@ export default function PatientProfilePage() {
           description: profileError?.message || profileError?.detail || "Não foi possível carregar seu perfil",
         });
         return;
+      }
+      
+      // Load avatar from user settings
+      try {
+        const settings = await getUserSettings();
+        if (settings.profile.avatar) {
+          let url = settings.profile.avatar;
+          if (url && !url.startsWith('http')) {
+            const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            url = `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+          }
+          setAvatarUrl(url);
+        } else {
+          setAvatarUrl(null);
+        }
+      } catch (avatarError) {
+        console.warn("Failed to load avatar:", avatarError);
+        setAvatarUrl(null);
       }
       
       // Load clinical history (optional, don't fail if it errors)
@@ -276,7 +310,7 @@ export default function PatientProfilePage() {
         }
       }
       
-      const updated = await api.put<PatientProfile>("/api/patients/me", updateData);
+      const updated = await api.put<PatientProfile>("/api/v1/patients/me", updateData);
       setProfile(updated);
       setProfileForm(updated);
       setIsEditing(false);
@@ -322,7 +356,7 @@ export default function PatientProfilePage() {
     
     try {
       setSaving(true);
-      const updated = await api.put<PatientProfile>("/api/patients/me", {
+      const updated = await api.put<PatientProfile>("/api/v1/patients/me", {
         emergency_contact_name: null,
         emergency_contact_phone: null,
         emergency_contact_relationship: null,
@@ -345,7 +379,7 @@ export default function PatientProfilePage() {
     
     try {
       setSaving(true);
-      const updated = await api.put<PatientProfile>("/api/patients/me", {
+      const updated = await api.put<PatientProfile>("/api/v1/patients/me", {
         emergency_contact_name: contactForm.name,
         emergency_contact_phone: contactForm.phone,
         emergency_contact_relationship: contactForm.relationship,
@@ -363,6 +397,102 @@ export default function PatientProfilePage() {
       setSaving(false);
     }
   };
+
+  const handleChangePassword = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    
+    if (passwordForm.newPassword.length < 8) {
+      toast.error("A senha deve ter pelo menos 8 caracteres");
+      return;
+    }
+    
+    try {
+      setChangingPassword(true);
+      await api.post("/api/v1/settings/me/change-password", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
+        confirmPassword: passwordForm.confirmPassword,
+      });
+      
+      toast.success("Senha alterada com sucesso");
+      setShowPasswordDialog(false);
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error: any) {
+      toast.error("Erro ao alterar senha", {
+        description: error?.message || error?.detail || "Não foi possível alterar a senha",
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error("Tipo de arquivo inválido", {
+        description: "Por favor, selecione uma imagem (JPG, PNG, GIF ou WebP)",
+      });
+      return;
+    }
+    
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Arquivo muito grande", {
+        description: "O arquivo deve ter no máximo 5MB",
+      });
+      return;
+    }
+    
+    try {
+      setUploadingAvatar(true);
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      const response = await api.post<{ avatar_url: string }>("/api/v1/settings/me/avatar", formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      // Update avatar URL
+      if (response.avatar_url) {
+        let url = response.avatar_url;
+        if (url && !url.startsWith('http')) {
+          const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+          url = `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+        }
+        setAvatarUrl(url);
+      }
+      
+      toast.success("Avatar atualizado com sucesso");
+      setRefreshKey(prev => prev + 1);
+    } catch (error: any) {
+      toast.error("Erro ao fazer upload do avatar", {
+        description: error?.message || error?.detail || "Não foi possível atualizar o avatar",
+      });
+    } finally {
+      setUploadingAvatar(false);
+      // Reset file input
+      event.target.value = '';
+    }
+  };
+
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
 
   const initials = (name?: string) => {
     if (!name) return "U";
@@ -409,12 +539,31 @@ export default function PatientProfilePage() {
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src="" alt={`${profile.first_name} ${profile.last_name}`} />
-                <AvatarFallback>{initials(`${profile.first_name} ${profile.last_name}`)}</AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={avatarUrl || ""} alt={`${profile.first_name} ${profile.last_name}`} />
+                  <AvatarFallback>{initials(`${profile.first_name} ${profile.last_name}`)}</AvatarFallback>
+                </Avatar>
+                <label
+                  htmlFor="avatar-upload"
+                  className="absolute bottom-0 right-0 p-1.5 bg-blue-600 text-white rounded-full cursor-pointer hover:bg-blue-700 transition-colors"
+                  title="Alterar foto"
+                >
+                  <Upload className="h-3 w-3" />
+                </label>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  disabled={uploadingAvatar}
+                  title="Alterar foto de perfil"
+                  aria-label="Alterar foto de perfil"
+                />
+              </div>
               <div>
                 <h1 className="text-2xl font-semibold text-[#0F4C75]">
                   {profile.first_name} {profile.last_name}
@@ -422,9 +571,29 @@ export default function PatientProfilePage() {
                 <p className="text-muted-foreground">Gerencie suas informações e perfil médico</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <Progress value={profileCompletion} className="w-44" />
               <span className="text-sm text-muted-foreground">{profileCompletion}% completo</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setRefreshKey(prev => prev + 1);
+                  toast.success('Dados atualizados!');
+                }}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPasswordDialog(true)}
+              >
+                <Lock className="h-4 w-4 mr-2" />
+                Alterar Senha
+              </Button>
             </div>
           </div>
 
@@ -761,6 +930,101 @@ export default function PatientProfilePage() {
                 </Button>
                 <Button onClick={saveContact} disabled={saving}>
                   {saving ? "Salvando..." : "Salvar"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Password Change Dialog */}
+          <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Alterar Senha
+                </DialogTitle>
+                <DialogDescription>
+                  Digite sua senha atual e a nova senha
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="current-password">Senha Atual</Label>
+                  <div className="relative">
+                    <Input
+                      id="current-password"
+                      type={showPassword.current ? "text" : "password"}
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                      placeholder="Digite sua senha atual"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => setShowPassword(prev => ({ ...prev, current: !prev.current }))}
+                    >
+                      {showPassword.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="new-password">Nova Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showPassword.new ? "text" : "password"}
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                      placeholder="Digite a nova senha (mín. 8 caracteres)"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => setShowPassword(prev => ({ ...prev, new: !prev.new }))}
+                    >
+                      {showPassword.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="confirm-password">Confirmar Nova Senha</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showPassword.confirm ? "text" : "password"}
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                      placeholder="Confirme a nova senha"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => setShowPassword(prev => ({ ...prev, confirm: !prev.confirm }))}
+                    >
+                      {showPassword.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setShowPasswordDialog(false);
+                  setPasswordForm({
+                    currentPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
+                  });
+                }}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleChangePassword} disabled={changingPassword}>
+                  {changingPassword ? "Alterando..." : "Alterar Senha"}
                 </Button>
               </DialogFooter>
             </DialogContent>

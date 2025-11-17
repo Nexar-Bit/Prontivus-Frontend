@@ -29,6 +29,8 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useOperationProgress } from "@/contexts/OperationProgressContext";
+import { Loader2 } from "lucide-react";
 
 interface PatientHeaderProps {
   className?: string;
@@ -56,6 +58,14 @@ export function PatientHeader({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  
+  // Get operation progress state
+  let operationProgress: ReturnType<typeof useOperationProgress> | null = null;
+  try {
+    operationProgress = useOperationProgress();
+  } catch {
+    // OperationProgressContext not available, continue without it
+  }
 
   // Fetch notifications from database
   useEffect(() => {
@@ -166,6 +176,23 @@ export function PatientHeader({
         className
       )}
     >
+      {/* Progress Indicator */}
+      {operationProgress?.isOperating && (
+        <div className="h-1 bg-blue-100 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 animate-pulse" style={{ width: '100%' }} />
+          <div className="absolute inset-0 bg-blue-500 animate-[shimmer_2s_infinite] opacity-50" style={{ 
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+            width: '50%',
+            animation: 'shimmer 2s infinite'
+          }} />
+        </div>
+      )}
+      {operationProgress?.isOperating && operationProgress.operationMessage && (
+        <div className="px-4 lg:px-6 py-2 bg-blue-50/50 border-b border-blue-100/50 flex items-center gap-2 text-sm text-blue-700">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>{operationProgress.operationMessage}</span>
+        </div>
+      )}
       <div className="px-4 lg:px-6 py-4">
         <div className="flex items-center justify-between gap-4">
           {/* Left Section: Logo */}

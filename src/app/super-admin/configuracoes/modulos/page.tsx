@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, RefreshCw, Building, CheckCircle2, XCircle, Search } from "lucide-react";
+import { 
+  Package, RefreshCw, Building, CheckCircle2, XCircle, Search, 
+  AlertTriangle, Loader2, Save, Info, ArrowRight
+} from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -25,6 +29,8 @@ interface Clinic {
   tax_id: string;
   active_modules: string[];
   is_active: boolean;
+  user_count?: number;
+  max_users?: number;
 }
 
 interface Module {
@@ -33,6 +39,8 @@ interface Module {
   description: string;
   enabled: boolean;
   required: boolean;
+  dependencies: string[];
+  dependents: string[];
 }
 
 const MODULE_DEFINITIONS: Record<string, { name: string; description: string; required: boolean }> = {
@@ -88,6 +96,17 @@ const MODULE_DEFINITIONS: Record<string, { name: string; description: string; re
   },
 };
 
+const MODULE_DEPENDENCIES: Record<string, string[]> = {
+  bi: ["financial", "clinical", "appointments"],
+  telemed: ["appointments", "clinical"],
+  stock: ["financial"],
+  financial: ["appointments"],
+  clinical: ["appointments"],
+  procedures: ["financial", "stock"],
+  tiss: ["financial", "clinical"],
+  mobile: ["appointments", "clinical", "patients"],
+};
+
 export default function ModulosPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -96,6 +115,8 @@ export default function ModulosPage() {
   const [availableModules, setAvailableModules] = useState<string[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadData();
@@ -106,6 +127,8 @@ export default function ModulosPage() {
       loadClinicModules();
     } else {
       setModules([]);
+      setPendingChanges({});
+      setHasChanges(false);
     }
   }, [selectedClinicId]);
 
@@ -132,7 +155,7 @@ export default function ModulosPage() {
 
   const loadClinics = async () => {
     try {
-      const data = await api.get<Clinic[]>("/api/v1/admin/clinics");
+      const data = await api.get<Clinic[]>("/api/v1/admin/clinics?limit=1000");
       setClinics(data);
       if (data.length > 0 && !selectedClinicId) {
         setSelectedClinicId(data[0].id.toString());
@@ -152,7 +175,6 @@ export default function ModulosPage() {
       setAvailableModules(data);
     } catch (error: any) {
       console.error("Failed to load available modules:", error);
-      // Fallback to default modules
       setAvailableModules(Object.keys(MODULE_DEFINITIONS));
     }
   };
@@ -162,28 +184,66 @@ export default function ModulosPage() {
 
     try {
       const clinic = clinics.find(c => c.id.toString() === selectedClinicId);
-      if (!clinic) return;
-
-      const activeModules = clinic.active_modules || [];
-      
-      // Build modules list from available modules
-      const modulesList: Module[] = availableModules.map(moduleId => {
-        const definition = MODULE_DEFINITIONS[moduleId] || {
-          name: moduleId,
-          description: `Módulo ${moduleId}`,
-          required: false,
-        };
+      if (!clinic) {
+        const fullClinic = await api.get<Clinic>(`/api/v1/admin/clinics/${selectedClinicId}`);
+        const activeModules = fullClinic.active_modules || [];
         
-        return {
-          id: moduleId,
-          name: definition.name,
-          description: definition.description,
-          enabled: activeModules.includes(moduleId),
-          required: definition.required,
-        };
-      });
+        const modulesList: Module[] = availableModules.map(moduleId => {
+          const definition = MODULE_DEFINITIONS[moduleId] || {
+            name: moduleId,
+            description: `Módulo ${moduleId}`,
+            required: false,
+          };
+          
+          const dependencies = MODULE_DEPENDENCIES[moduleId] || [];
+          const dependents = Object.keys(MODULE_DEPENDENCIES).filter(
+            key => MODULE_DEPENDENCIES[key].includes(moduleId)
+          );
+          
+          return {
+            id: moduleId,
+            name: definition.name,
+            description: definition.description,
+            enabled: activeModules.includes(moduleId),
+            required: definition.required,
+            dependencies,
+            dependents,
+          };
+        });
 
-      setModules(modulesList);
+        setModules(modulesList);
+        setPendingChanges({});
+        setHasChanges(false);
+      } else {
+        const activeModules = clinic.active_modules || [];
+        
+        const modulesList: Module[] = availableModules.map(moduleId => {
+          const definition = MODULE_DEFINITIONS[moduleId] || {
+            name: moduleId,
+            description: `Módulo ${moduleId}`,
+            required: false,
+          };
+          
+          const dependencies = MODULE_DEPENDENCIES[moduleId] || [];
+          const dependents = Object.keys(MODULE_DEPENDENCIES).filter(
+            key => MODULE_DEPENDENCIES[key].includes(moduleId)
+          );
+          
+          return {
+            id: moduleId,
+            name: definition.name,
+            description: definition.description,
+            enabled: activeModules.includes(moduleId),
+            required: definition.required,
+            dependencies,
+            dependents,
+          };
+        });
+
+        setModules(modulesList);
+        setPendingChanges({});
+        setHasChanges(false);
+      }
     } catch (error: any) {
       console.error("Failed to load clinic modules:", error);
       toast.error("Erro ao carregar módulos da clínica", {
@@ -194,10 +254,10 @@ export default function ModulosPage() {
   };
 
   const filterModules = () => {
-    // Filtering is handled in the render, but we can add it here if needed
+    // Filtering is handled in the render
   };
 
-  const toggleModule = async (moduleId: string) => {
+  const toggleModule = (moduleId: string) => {
     if (!selectedClinicId) {
       toast.error("Selecione uma clínica primeiro");
       return;
@@ -211,48 +271,113 @@ export default function ModulosPage() {
       return;
     }
 
+    const newEnabled = !module.enabled;
+    
+    // Check dependencies
+    if (newEnabled && module.dependencies.length > 0) {
+      const missingDeps = module.dependencies.filter(
+        dep => !modules.find(m => m.id === dep)?.enabled
+      );
+      if (missingDeps.length > 0) {
+        const depNames = missingDeps.map(dep => MODULE_DEFINITIONS[dep]?.name || dep).join(", ");
+        toast.error(`Este módulo requer: ${depNames}`, {
+          description: "Ative os módulos dependentes primeiro",
+        });
+        return;
+      }
+    }
+
+    // Check dependents
+    if (!newEnabled && module.dependents.length > 0) {
+      const activeDependents = module.dependents.filter(
+        dep => modules.find(m => m.id === dep)?.enabled
+      );
+      if (activeDependents.length > 0) {
+        const depNames = activeDependents.map(dep => MODULE_DEFINITIONS[dep]?.name || dep).join(", ");
+        toast.warning(`Desativar este módulo também desativará: ${depNames}`, {
+          description: "Deseja continuar?",
+          action: {
+            label: "Continuar",
+            onClick: () => {
+              // Disable dependents and the module
+              const updates: Record<string, boolean> = { [moduleId]: false };
+              activeDependents.forEach(dep => {
+                updates[dep] = false;
+              });
+              applyModuleChanges(updates);
+            }
+          },
+        });
+        return;
+      }
+    }
+
+    // Update local state
+    setModules(prev =>
+      prev.map(m =>
+        m.id === moduleId
+          ? { ...m, enabled: newEnabled }
+          : m
+      )
+    );
+
+    // Track changes
+    setPendingChanges(prev => ({
+      ...prev,
+      [moduleId]: newEnabled,
+    }));
+    setHasChanges(true);
+  };
+
+  const applyModuleChanges = (updates: Record<string, boolean>) => {
+    setModules(prev =>
+      prev.map(m => {
+        if (updates[m.id] !== undefined) {
+          return { ...m, enabled: updates[m.id] };
+        }
+        return m;
+      })
+    );
+
+    const newPendingChanges = { ...pendingChanges, ...updates };
+    setPendingChanges(newPendingChanges);
+    setHasChanges(true);
+  };
+
+  const saveChanges = async () => {
+    if (!selectedClinicId || !hasChanges) return;
+
     try {
       setSaving(true);
 
-      const clinic = clinics.find(c => c.id.toString() === selectedClinicId);
-      if (!clinic) return;
-
-      const currentModules = clinic.active_modules || [];
-      const newModules = module.enabled
-        ? currentModules.filter(m => m !== moduleId)
-        : [...currentModules, moduleId];
+      const finalModules = modules
+        .filter(m => m.enabled)
+        .map(m => m.id);
 
       // Ensure required modules are always included
       const requiredModules = availableModules.filter(m => MODULE_DEFINITIONS[m]?.required);
-      const finalModules = [...new Set([...requiredModules, ...newModules])];
+      const allModules = [...new Set([...requiredModules, ...finalModules])];
 
       await api.patch(`/api/v1/admin/clinics/${selectedClinicId}/modules`, {
-        active_modules: finalModules,
+        active_modules: allModules,
       });
-
-      // Update local state
-    setModules(prev =>
-        prev.map(m =>
-          m.id === moduleId
-            ? { ...m, enabled: !m.enabled }
-            : m
-        )
-      );
 
       // Update clinics list
       setClinics(prev =>
         prev.map(c =>
           c.id.toString() === selectedClinicId
-            ? { ...c, active_modules: finalModules }
+            ? { ...c, active_modules: allModules }
             : c
         )
       );
 
-      toast.success(`Módulo ${module.enabled ? 'desativado' : 'ativado'} com sucesso!`);
+      setPendingChanges({});
+      setHasChanges(false);
+      toast.success("Módulos atualizados com sucesso!");
     } catch (error: any) {
-      console.error("Failed to toggle module:", error);
-      toast.error("Erro ao atualizar módulo", {
-        description: error?.message || error?.detail || "Não foi possível atualizar o módulo",
+      console.error("Failed to save modules:", error);
+      toast.error("Erro ao salvar módulos", {
+        description: error?.message || error?.detail || "Não foi possível salvar as alterações",
       });
     } finally {
       setSaving(false);
@@ -270,11 +395,15 @@ export default function ModulosPage() {
     module.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) {
+  const enabledCount = modules.filter(m => m.enabled).length;
+  const disabledCount = modules.filter(m => !m.enabled && !m.required).length;
+  const requiredCount = modules.filter(m => m.required).length;
+
+  if (loading && clinics.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
         </div>
       </div>
     );
@@ -285,14 +414,14 @@ export default function ModulosPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <Package className="h-8 w-8 text-purple-600" />
-          Gestão de Módulos
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Ative ou desative módulos do sistema para cada clínica
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <Package className="h-8 w-8 text-purple-600" />
+            Gestão de Módulos
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Ative ou desative módulos do sistema para cada clínica
+          </p>
         </div>
         <Button
           variant="outline"
@@ -318,7 +447,15 @@ export default function ModulosPage() {
             <div className="flex-1">
               <Select
                 value={selectedClinicId}
-                onValueChange={setSelectedClinicId}
+                onValueChange={(value) => {
+                  if (hasChanges) {
+                    if (confirm("Há alterações não salvas. Deseja descartá-las?")) {
+                      setSelectedClinicId(value);
+                    }
+                  } else {
+                    setSelectedClinicId(value);
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma clínica" />
@@ -349,6 +486,46 @@ export default function ModulosPage() {
 
       {selectedClinicId && (
         <>
+          {/* Changes Alert */}
+          {hasChanges && (
+            <Alert className="border-yellow-200 bg-yellow-50">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>Há alterações não salvas</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      loadClinicModules();
+                      toast.info("Alterações descartadas");
+                    }}
+                  >
+                    Descartar
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-purple-600 hover:bg-purple-700"
+                    onClick={saveChanges}
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Salvar Alterações
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -358,55 +535,121 @@ export default function ModulosPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-      </div>
+          </div>
 
           {/* Modules Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredModules.length > 0 ? (
-              filteredModules.map((module) => (
-                <Card
-                  key={module.id}
-                  className={module.enabled ? "border-purple-200 bg-purple-50/30" : ""}
-                >
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    {module.name}
-                    {module.required && (
-                      <Badge variant="secondary" className="text-xs">
-                        Obrigatório
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  <CardDescription className="mt-1">
-                    {module.description}
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <Label htmlFor={module.id} className="flex items-center gap-2">
-                  {module.enabled ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-600" />
-                  ) : (
-                    <XCircle className="h-5 w-5 text-gray-400" />
-                  )}
-                  <span className={module.enabled ? "text-gray-900" : "text-gray-500"}>
-                    {module.enabled ? "Ativo" : "Inativo"}
-                  </span>
-                </Label>
-                <Switch
-                  id={module.id}
-                  checked={module.enabled}
-                  onCheckedChange={() => toggleModule(module.id)}
-                        disabled={module.required || saving}
-                />
-              </div>
-            </CardContent>
-          </Card>
-              ))
+              filteredModules.map((module) => {
+                const hasPendingChange = pendingChanges[module.id] !== undefined;
+                const isDependencyMissing = module.dependencies.some(
+                  dep => !modules.find(m => m.id === dep)?.enabled
+                );
+                
+                return (
+                  <Card
+                    key={module.id}
+                    className={`${
+                      module.enabled 
+                        ? "border-purple-200 bg-purple-50/30" 
+                        : ""
+                    } ${
+                      hasPendingChange 
+                        ? "ring-2 ring-yellow-400" 
+                        : ""
+                    }`}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            {module.name}
+                            {module.required && (
+                              <Badge variant="secondary" className="text-xs">
+                                Obrigatório
+                              </Badge>
+                            )}
+                            {hasPendingChange && (
+                              <Badge variant="outline" className="text-xs bg-yellow-100">
+                                Pendente
+                              </Badge>
+                            )}
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            {module.description}
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor={module.id} className="flex items-center gap-2">
+                            {module.enabled ? (
+                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            ) : (
+                              <XCircle className="h-5 w-5 text-gray-400" />
+                            )}
+                            <span className={module.enabled ? "text-gray-900" : "text-gray-500"}>
+                              {module.enabled ? "Ativo" : "Inativo"}
+                            </span>
+                          </Label>
+                          <Switch
+                            id={module.id}
+                            checked={module.enabled}
+                            onCheckedChange={() => toggleModule(module.id)}
+                            disabled={module.required || saving || isDependencyMissing}
+                          />
+                        </div>
+                        
+                        {module.dependencies.length > 0 && (
+                          <div className="pt-2 border-t">
+                            <div className="text-xs text-gray-500 mb-1">Dependências:</div>
+                            <div className="flex flex-wrap gap-1">
+                              {module.dependencies.map(dep => {
+                                const depModule = modules.find(m => m.id === dep);
+                                return (
+                                  <Badge
+                                    key={dep}
+                                    variant="outline"
+                                    className={`text-xs ${
+                                      depModule?.enabled 
+                                        ? "bg-green-50 border-green-200" 
+                                        : "bg-red-50 border-red-200"
+                                    }`}
+                                  >
+                                    {MODULE_DEFINITIONS[dep]?.name || dep}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {module.dependents.length > 0 && (
+                          <div className="pt-2 border-t">
+                            <div className="text-xs text-gray-500 mb-1">Usado por:</div>
+                            <div className="flex flex-wrap gap-1">
+                              {module.dependents.map(dep => {
+                                const depModule = modules.find(m => m.id === dep);
+                                return (
+                                  <Badge
+                                    key={dep}
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {MODULE_DEFINITIONS[dep]?.name || dep}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
             ) : (
               <div className="col-span-full text-center py-12 text-gray-500">
                 <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -429,23 +672,23 @@ export default function ModulosPage() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <div className="text-2xl font-bold text-purple-600">
-                      {modules.filter(m => m.enabled).length}
+                      {enabledCount}
                     </div>
                     <div className="text-sm text-gray-600">Módulos Ativos</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-gray-600">
-                      {modules.filter(m => !m.enabled && !m.required).length}
+                      {disabledCount}
                     </div>
                     <div className="text-sm text-gray-600">Módulos Inativos</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-orange-600">
-                      {modules.filter(m => m.required).length}
+                      {requiredCount}
                     </div>
                     <div className="text-sm text-gray-600">Módulos Obrigatórios</div>
                   </div>
-      </div>
+                </div>
               </CardContent>
             </Card>
           )}

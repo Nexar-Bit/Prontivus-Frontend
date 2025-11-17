@@ -20,14 +20,14 @@ export interface NotificationItem {
 
 export const notificationsApi = {
   getAll: async (): Promise<NotificationItem[]> => {
-    const res = await api.get<{ data: NotificationItem[] }>("/api/notifications");
+    const res = await api.get<{ data: NotificationItem[] }>("/api/v1/notifications");
     return res?.data || [];
   },
   markRead: async (kind: string, sourceId: number) => {
-    return api.post(`/api/notifications/${kind}/${sourceId}/read`);
+    return api.post(`/api/v1/notifications/${kind}/${sourceId}/read`);
   },
   delete: async (kind: string, sourceId: number) => {
-    return api.delete(`/api/notifications/${kind}/${sourceId}`);
+    return api.delete(`/api/v1/notifications/${kind}/${sourceId}`);
   },
 };
 

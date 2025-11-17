@@ -19,23 +19,36 @@ type Notification = NotificationItem;
 export function NotificationDropdown() {
   const [notifications, setNotifications] = React.useState<Notification[]>([]);
   const [open, setOpen] = React.useState(false);
+  const [loading, setLoading] = React.useState(false);
+
+  const loadNotifications = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await notificationsApi.getAll();
+      setNotifications(data);
+    } catch (e) {
+      // fail silently in header
+      console.warn('Failed to load notifications');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   React.useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await notificationsApi.getAll();
-        setNotifications(data);
-      } catch (e) {
-        // fail silently in header
-        console.warn('Failed to load notifications');
-      }
-    };
-    load();
-  }, []);
+    loadNotifications();
+    
+    // Refresh notifications every 30 seconds
+    const interval = setInterval(loadNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type: string, kind?: string) => {
+    if (kind === 'message') {
+      return <Info className="h-4 w-4 text-teal-500" />;
+    }
     switch (type) {
       case 'appointment':
         return <Clock className="h-4 w-4 text-blue-500" />;
@@ -123,25 +136,44 @@ export function NotificationDropdown() {
             <h3 className="font-semibold text-gray-900">Notificações</h3>
             {unreadCount > 0 && (
               <Badge variant="secondary" className="ml-2 bg-[#0F4C75]/10 text-[#0F4C75] border-[#0F4C75]/20">
-                {unreadCount} não lidas
+                {unreadCount} não lida{unreadCount > 1 ? 's' : ''}
               </Badge>
             )}
           </div>
-          {unreadCount > 0 && (
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={markAllAsRead}
+                className="h-8 text-xs text-[#0F4C75] hover:text-[#0F4C75] hover:bg-[#0F4C75]/5"
+              >
+                <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                Marcar todas
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
-              onClick={markAllAsRead}
-              className="h-8 text-xs text-[#0F4C75] hover:text-[#0F4C75] hover:bg-[#0F4C75]/5"
+              onClick={loadNotifications}
+              disabled={loading}
+              className="h-8 w-8 p-0 text-[#0F4C75] hover:text-[#0F4C75] hover:bg-[#0F4C75]/5"
+              title="Atualizar notificações"
             >
-              <CheckCheck className="h-3.5 w-3.5 mr-1" />
-              Marcar todas
+              <div className={`h-4 w-4 border-2 border-[#0F4C75] border-t-transparent rounded-full ${loading ? 'animate-spin' : ''}`} />
             </Button>
-          )}
+          </div>
         </div>
 
         <div className="max-h-[400px] overflow-y-auto">
-          {notifications.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center p-8 text-center">
+              <div className="h-8 w-8 border-2 border-[#0F4C75] border-t-transparent rounded-full animate-spin mb-3" />
+              <p className="text-sm text-muted-foreground">
+                Carregando notificações...
+              </p>
+            </div>
+          ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-8 text-center">
               <Bell className="h-12 w-12 text-gray-300 mb-3" />
               <p className="text-sm text-muted-foreground">
@@ -167,7 +199,7 @@ export function NotificationDropdown() {
                   <div className="flex gap-3">
                     {/* Icon */}
                     <div className="flex-shrink-0 mt-0.5">
-                      {getTypeIcon(notification.type)}
+                      {getTypeIcon(notification.type, notification.kind)}
                     </div>
 
                     {/* Content */}

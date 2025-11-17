@@ -29,6 +29,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { getUserSettings } from "@/lib/settings-api";
+import { useOperationProgress } from "@/contexts/OperationProgressContext";
+import { Loader2 } from "lucide-react";
 
 interface AppHeaderProps {
   pageTitle?: string;
@@ -59,6 +61,14 @@ export function AppHeader({
   const [searchQuery, setSearchQuery] = React.useState("");
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
+  
+  // Get operation progress state
+  let operationProgress: ReturnType<typeof useOperationProgress> | null = null;
+  try {
+    operationProgress = useOperationProgress();
+  } catch {
+    // OperationProgressContext not available, continue without it
+  }
 
   // Load user avatar
   React.useEffect(() => {
@@ -177,6 +187,23 @@ export function AppHeader({
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md border-b border-blue-100/50 shadow-sm">
+      {/* Progress Indicator */}
+      {operationProgress?.isOperating && (
+        <div className="h-1 bg-blue-100 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 animate-pulse" style={{ width: '100%' }} />
+          <div className="absolute inset-0 bg-blue-500 animate-[shimmer_2s_infinite] opacity-50" style={{ 
+            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+            width: '50%',
+            animation: 'shimmer 2s infinite'
+          }} />
+        </div>
+      )}
+      {operationProgress?.isOperating && operationProgress.operationMessage && (
+        <div className="px-6 lg:px-8 py-2 bg-blue-50/50 border-b border-blue-100/50 flex items-center gap-2 text-sm text-blue-700">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>{operationProgress.operationMessage}</span>
+        </div>
+      )}
       <div className="flex h-20 items-center gap-6 px-6 lg:px-8">
         {/* Center: Breadcrumb Navigation */}
         <nav className="flex-1 hidden lg:flex items-center gap-2 min-w-0">

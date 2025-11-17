@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -202,7 +204,7 @@ export default function PrescriptionsPage() {
         setLoading(true);
         
         // Fetch all prescriptions (active and past)
-        const prescriptions = await api.get<any[]>(`/api/patient/prescriptions`);
+        const prescriptions = await api.get<any[]>(`/api/v1/patient/prescriptions`);
         
         // Map prescriptions to Medication format
         const meds: Medication[] = prescriptions.map(mapPrescription);
@@ -227,28 +229,57 @@ export default function PrescriptionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null);
   const [showPharmacyDialog, setShowPharmacyDialog] = useState(false);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
   const [refillRequests, setRefillRequests] = useState<RefillRequest[]>([]);
   const [expandedMedications, setExpandedMedications] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Filter medications
   const filteredActive = useMemo(() => {
-    if (!searchQuery) return activeMeds;
-    const query = searchQuery.toLowerCase();
-    return activeMeds.filter(med =>
-      med.name.toLowerCase().includes(query) ||
-      med.prescriber.toLowerCase().includes(query)
-    );
-  }, [searchQuery, activeMeds]);
+    let filtered = activeMeds;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(med =>
+        med.name.toLowerCase().includes(query) ||
+        med.prescriber.toLowerCase().includes(query) ||
+        med.dosage.toLowerCase().includes(query) ||
+        med.frequency.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(med => med.status === statusFilter);
+    }
+    
+    return filtered;
+  }, [searchQuery, activeMeds, statusFilter]);
 
   const filteredPast = useMemo(() => {
-    if (!searchQuery) return pastMeds;
-    const query = searchQuery.toLowerCase();
-    return pastMeds.filter(med =>
-      med.name.toLowerCase().includes(query) ||
-      med.prescriber.toLowerCase().includes(query)
-    );
-  }, [searchQuery, pastMeds]);
+    let filtered = pastMeds;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(med =>
+        med.name.toLowerCase().includes(query) ||
+        med.prescriber.toLowerCase().includes(query) ||
+        med.dosage.toLowerCase().includes(query) ||
+        med.frequency.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(med => med.status === statusFilter);
+    }
+    
+    return filtered;
+  }, [searchQuery, pastMeds, statusFilter]);
 
   // Pending refills - check medications that might need refill soon
   const pendingRefills = useMemo(() => {
@@ -356,32 +387,82 @@ export default function PrescriptionsPage() {
                 Gerencie suas prescrições e acompanhe sua adesão medicamentosa
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              className="border-blue-300 text-blue-700 hover:bg-blue-50"
-              onClick={async () => {
-                try {
-                  // Export prescriptions as JSON (could be enhanced to export as PDF/CSV)
-                  const prescriptions = await api.get<any[]>(`/api/patient/prescriptions`);
-                  const dataStr = JSON.stringify(prescriptions, null, 2);
-                  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                  const url = URL.createObjectURL(dataBlob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `prescricoes_${format(new Date(), 'yyyy-MM-dd')}.json`;
-                  link.click();
-                  URL.revokeObjectURL(url);
-                  toast.success('Lista exportada com sucesso!');
-                } catch (error: any) {
-                  toast.error('Erro ao exportar lista', {
-                    description: error?.message || 'Não foi possível exportar as prescrições',
-                  });
-                }
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Lista
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    const prescriptions = await api.get<any[]>(`/api/v1/patient/prescriptions`);
+                    const meds: Medication[] = prescriptions.map(mapPrescription);
+                    setActiveMeds(meds.filter(m => m.status === 'active'));
+                    setPastMeds(meds.filter(m => m.status !== 'active'));
+                    setRefreshKey(prev => prev + 1);
+                    toast.success('Prescrições atualizadas!');
+                  } catch (error: any) {
+                    toast.error('Erro ao atualizar', {
+                      description: error?.message || error?.detail || 'Não foi possível atualizar as prescrições',
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+              <Button 
+                variant="outline" 
+                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                onClick={async () => {
+                  try {
+                    // Export prescriptions as CSV
+                    const prescriptions = await api.get<any[]>(`/api/v1/patient/prescriptions`);
+                    if (prescriptions.length === 0) {
+                      toast.info('Nenhuma prescrição para exportar');
+                      return;
+                    }
+                    
+                    // Create CSV content
+                    const csvRows = [];
+                    csvRows.push('ID,Medicamento,Dosagem,Frequência,Duração,Instruções,Data Emissão,Médico,Status');
+                    
+                    prescriptions.forEach((presc: any) => {
+                      csvRows.push([
+                        presc.id,
+                        presc.medication_name || '',
+                        presc.dosage || '',
+                        presc.frequency || '',
+                        presc.duration || '',
+                        (presc.instructions || '').replace(/,/g, ';'),
+                        presc.issued_date ? format(parseISO(presc.issued_date), 'dd/MM/yyyy', { locale: ptBR }) : '',
+                        presc.doctor_name || '',
+                        presc.is_active ? 'Ativo' : 'Concluído'
+                      ].join(','));
+                    });
+                    
+                    const csvContent = csvRows.join('\n');
+                    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `prescricoes_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    toast.success('Lista exportada com sucesso!');
+                  } catch (error: any) {
+                    toast.error('Erro ao exportar lista', {
+                      description: error?.message || error?.detail || 'Não foi possível exportar as prescrições',
+                    });
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </div>
           </div>
 
           {/* Loading State */}
@@ -492,16 +573,23 @@ export default function PrescriptionsPage() {
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="Buscar medicamentos..."
+                    placeholder="Buscar por medicamento, médico, dosagem ou frequência..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
                   />
                 </div>
-                <Button variant="outline">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filtros
-                </Button>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filtrar por status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Status</SelectItem>
+                    <SelectItem value="active">Ativos</SelectItem>
+                    <SelectItem value="completed">Concluídos</SelectItem>
+                    <SelectItem value="discontinued">Descontinuados</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardHeader>
           </Card>
@@ -761,24 +849,31 @@ export default function PrescriptionsPage() {
                                 size="sm"
                                 onClick={() => {
                                   setSelectedMedication(medication);
+                                  setShowDetailsDialog(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver Detalhes
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedMedication(medication);
                                   setShowPharmacyDialog(true);
                                 }}
                               >
                                 <ShoppingCart className="h-4 w-4 mr-2" />
                                 Encontrar Farmácia
                               </Button>
-                              <Button variant="outline" size="sm">
-                                <Share2 className="h-4 w-4 mr-2" />
-                                Compartilhar
-                              </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={async () => {
-                                try {
-                                  // For now, we'll create a simple text-based prescription
-                                  // In production, this would generate a PDF from the backend
-                                  const prescriptionText = `
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    // For now, we'll create a simple text-based prescription
+                                    // In production, this would generate a PDF from the backend
+                                    const prescriptionText = `
 PRESCRIÇÃO MÉDICA
 
 Medicamento: ${medication.name}
@@ -803,14 +898,14 @@ ${medication.instructions || ''}
                                   toast.success('Receita baixada com sucesso!');
                                 } catch (error: any) {
                                   toast.error('Erro ao baixar receita', {
-                                    description: error?.message || 'Não foi possível baixar a receita',
+                                    description: error?.message || error?.detail || 'Não foi possível baixar a receita',
                                   });
                                 }
                               }}
                             >
-                                <Download className="h-4 w-4 mr-2" />
-                                Baixar Receita
-                              </Button>
+                              <Download className="h-4 w-4 mr-2" />
+                              Baixar Receita
+                            </Button>
                             </div>
                           </div>
                         )}
@@ -1085,6 +1180,189 @@ ${medication.instructions || ''}
                   Solicitar na {selectedPharmacy?.name}
                 </Button>
               </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Prescription Details Dialog */}
+          <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Detalhes da Prescrição</DialogTitle>
+                <DialogDescription>
+                  Informações completas sobre a prescrição médica
+                </DialogDescription>
+              </DialogHeader>
+              {selectedMedication && (
+                <div className="space-y-6">
+                  {/* Header */}
+                  <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    {/* eslint-disable-next-line react/forbid-dom-props */}
+                    <div
+                      className="w-16 h-16 rounded-lg flex items-center justify-center text-3xl border-2 flex-shrink-0"
+                      style={{
+                        backgroundColor: `${medicationTypeColors[selectedMedication.type]}15`,
+                        borderColor: `${medicationTypeColors[selectedMedication.type]}40`,
+                      } as React.CSSProperties}
+                    >
+                      {medicationTypeIcons[selectedMedication.type] || '💊'}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-bold text-blue-600 mb-2">{selectedMedication.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {getStatusBadge(selectedMedication.status)}
+                        <Badge variant="outline" className="capitalize">
+                          {selectedMedication.type}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Main Information */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Dosagem</div>
+                      <div className="font-semibold text-gray-900">{selectedMedication.dosage}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Frequência</div>
+                      <div className="font-semibold text-gray-900">{selectedMedication.frequency}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Duração do Tratamento</div>
+                      <div className="font-semibold text-gray-900">{selectedMedication.duration}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Prescrito por</div>
+                      <div className="font-semibold text-gray-900">{selectedMedication.prescriber}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Data de Emissão</div>
+                      <div className="font-semibold text-gray-900">
+                        {format(parseISO(selectedMedication.issuedDate), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Adesão ao Tratamento</div>
+                      <div className={cn("font-semibold", getAdherenceColor(selectedMedication.adherence))}>
+                        {selectedMedication.adherence}% - {getAdherenceLabel(selectedMedication.adherence)}
+                      </div>
+                      <Progress
+                        value={selectedMedication.adherence}
+                        className={cn(
+                          "h-2 mt-2",
+                          selectedMedication.adherence >= 90 && "bg-green-100",
+                          selectedMedication.adherence >= 70 && selectedMedication.adherence < 90 && "bg-yellow-100",
+                          selectedMedication.adherence < 70 && "bg-red-100"
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Instructions */}
+                  <div>
+                    <div className="text-sm font-semibold text-gray-700 mb-2">Instruções de Uso</div>
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-gray-900 whitespace-pre-wrap">{selectedMedication.instructions}</p>
+                    </div>
+                  </div>
+
+                  {/* Additional Information */}
+                  {selectedMedication.warnings && selectedMedication.warnings.length > 0 && (
+                    <div className="p-4 rounded-lg bg-red-50 border border-red-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertTriangle className="h-5 w-5 text-red-600" />
+                        <div className="text-sm font-semibold text-red-900">Avisos Importantes</div>
+                      </div>
+                      <ul className="space-y-2">
+                        {selectedMedication.warnings.map((warning, idx) => (
+                          <li key={idx} className="text-sm text-red-800 flex items-start gap-2">
+                            <span className="text-red-600 mt-0.5">•</span>
+                            <span>{warning}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {selectedMedication.sideEffects && selectedMedication.sideEffects.length > 0 && (
+                    <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+                      <div className="text-sm font-semibold text-yellow-900 mb-3">Possíveis Efeitos Colaterais</div>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedMedication.sideEffects.map((effect, idx) => (
+                          <Badge key={idx} variant="outline" className="border-yellow-300 text-yellow-700">
+                            {effect}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedMedication.interactions && selectedMedication.interactions.length > 0 && (
+                    <div className="p-4 rounded-lg bg-orange-50 border border-orange-200">
+                      <div className="text-sm font-semibold text-orange-900 mb-2">Interações Medicamentosas</div>
+                      <div className="text-sm text-orange-800">
+                        {selectedMedication.interactions.join(', ')}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setSelectedMedication(selectedMedication);
+                        setShowPharmacyDialog(true);
+                        setShowDetailsDialog(false);
+                      }}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Encontrar Farmácia
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={async () => {
+                        try {
+                          const prescriptionText = `
+PRESCRIÇÃO MÉDICA
+
+Medicamento: ${selectedMedication.name}
+Dosagem: ${selectedMedication.dosage}
+Frequência: ${selectedMedication.frequency}
+Duração: ${selectedMedication.duration}
+Instruções: ${selectedMedication.instructions}
+
+Prescrito por: ${selectedMedication.prescriber}
+Data: ${format(parseISO(selectedMedication.issuedDate), "dd/MM/yyyy", { locale: ptBR })}
+
+${selectedMedication.instructions || ''}
+                          `.trim();
+                          
+                          const blob = new Blob([prescriptionText], { type: 'text/plain' });
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = `receita_${selectedMedication.name.replace(/\s+/g, '_')}_${format(parseISO(selectedMedication.issuedDate), 'yyyy-MM-dd', { locale: ptBR })}.txt`;
+                          link.click();
+                          URL.revokeObjectURL(url);
+                          toast.success('Receita baixada com sucesso!');
+                        } catch (error: any) {
+                          toast.error('Erro ao baixar receita', {
+                            description: error?.message || error?.detail || 'Não foi possível baixar a receita',
+                          });
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Baixar Receita
+                    </Button>
+                  </div>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         </main>

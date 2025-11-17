@@ -2,10 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, CalendarDays, Users, Clock, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { ClipboardList, CalendarDays, Users, Clock, CheckCircle2, AlertCircle, RefreshCw, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -32,17 +37,31 @@ interface DashboardData {
   today_appointments: TodayAppointment[];
 }
 
+interface Task {
+  id: number;
+  title: string;
+  description?: string;
+  priority: string;
+  completed: boolean;
+  completed_at?: string;
+  due_date?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export default function SecretaryDashboard() {
   const [loading, setLoading] = useState(true);
+  const [tasksLoading, setTasksLoading] = useState(false);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [tasks] = useState([
-    { id: 1, title: "Confirmar agendamentos de amanhã", priority: "Alta", completed: false },
-    { id: 2, title: "Atualizar cadastro de pacientes", priority: "Média", completed: false },
-    { id: 3, title: "Verificar estoque de insumos", priority: "Baixa", completed: true },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState("Média");
 
   useEffect(() => {
     loadDashboardData();
+    loadTasks();
   }, []);
 
   const loadDashboardData = async () => {
@@ -67,6 +86,84 @@ export default function SecretaryDashboard() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTasks = async () => {
+    try {
+      setTasksLoading(true);
+      const data = await api.get<Task[]>("/api/secretary/tasks");
+      setTasks(data);
+    } catch (error: any) {
+      console.error("Failed to load tasks:", error);
+      toast.error("Erro ao carregar tarefas", {
+        description: error?.message || error?.detail || "Não foi possível carregar as tarefas",
+      });
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  const handleToggleTask = async (taskId: number, currentCompleted: boolean) => {
+    try {
+      await api.patch(`/api/secretary/tasks/${taskId}`, {
+        completed: !currentCompleted,
+      });
+      await loadTasks();
+      await loadDashboardData(); // Refresh stats
+      toast.success("Tarefa atualizada com sucesso");
+    } catch (error: any) {
+      console.error("Failed to update task:", error);
+      toast.error("Erro ao atualizar tarefa", {
+        description: error?.message || error?.detail || "Não foi possível atualizar a tarefa",
+      });
+    }
+  };
+
+  const handleCreateTask = async () => {
+    if (!newTaskTitle.trim()) {
+      toast.error("Título da tarefa é obrigatório");
+      return;
+    }
+
+    try {
+      await api.post("/api/secretary/tasks", {
+        title: newTaskTitle,
+        description: newTaskDescription || undefined,
+        priority: newTaskPriority,
+      });
+      
+      setNewTaskTitle("");
+      setNewTaskDescription("");
+      setNewTaskPriority("Média");
+      setIsTaskDialogOpen(false);
+      
+      await loadTasks();
+      await loadDashboardData(); // Refresh stats
+      toast.success("Tarefa criada com sucesso");
+    } catch (error: any) {
+      console.error("Failed to create task:", error);
+      toast.error("Erro ao criar tarefa", {
+        description: error?.message || error?.detail || "Não foi possível criar a tarefa",
+      });
+    }
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    if (!confirm("Tem certeza que deseja excluir esta tarefa?")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/api/secretary/tasks/${taskId}`);
+      await loadTasks();
+      await loadDashboardData(); // Refresh stats
+      toast.success("Tarefa excluída com sucesso");
+    } catch (error: any) {
+      console.error("Failed to delete task:", error);
+      toast.error("Erro ao excluir tarefa", {
+        description: error?.message || error?.detail || "Não foi possível excluir a tarefa",
+      });
     }
   };
 
@@ -272,44 +369,138 @@ export default function SecretaryDashboard() {
         {/* Tasks */}
         <Card>
           <CardHeader>
-            <CardTitle>Tarefas Pendentes</CardTitle>
-            <CardDescription>
-              Lista de tarefas a realizar
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      className="w-5 h-5 text-teal-600 rounded"
-                      readOnly
-                      aria-label={`Tarefa: ${task.title}`}
-                    />
-                    <div className="flex-1">
-                      <div className={`font-medium ${task.completed ? 'line-through text-gray-400' : ''}`}>
-                        {task.title}
-                      </div>
-                      <Badge className={
-                        `mt-1 ${
-                          task.priority === "Alta" ? "bg-red-100 text-red-800" :
-                          task.priority === "Média" ? "bg-yellow-100 text-yellow-800" :
-                          "bg-blue-100 text-blue-800"
-                        }`
-                      } variant="outline">
-                        {task.priority}
-                      </Badge>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Tarefas Pendentes</CardTitle>
+                <CardDescription>
+                  Lista de tarefas a realizar
+                </CardDescription>
+              </div>
+              <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Tarefa
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Nova Tarefa</DialogTitle>
+                    <DialogDescription>
+                      Adicione uma nova tarefa à sua lista
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="task-title">Título *</Label>
+                      <Input
+                        id="task-title"
+                        value={newTaskTitle}
+                        onChange={(e) => setNewTaskTitle(e.target.value)}
+                        placeholder="Ex: Confirmar agendamentos de amanhã"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="task-description">Descrição</Label>
+                      <Textarea
+                        id="task-description"
+                        value={newTaskDescription}
+                        onChange={(e) => setNewTaskDescription(e.target.value)}
+                        placeholder="Adicione uma descrição opcional..."
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="task-priority">Prioridade</Label>
+                      <Select value={newTaskPriority} onValueChange={setNewTaskPriority}>
+                        <SelectTrigger id="task-priority">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Baixa">Baixa</SelectItem>
+                          <SelectItem value="Média">Média</SelectItem>
+                          <SelectItem value="Alta">Alta</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
-                </div>
-              ))}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsTaskDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleCreateTask}>
+                      Criar Tarefa
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
+          </CardHeader>
+          <CardContent>
+            {tasksLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600" />
+              </div>
+            ) : tasks.length > 0 ? (
+              <div className="space-y-3">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 group"
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => handleToggleTask(task.id, task.completed)}
+                        className="w-5 h-5 text-teal-600 rounded cursor-pointer"
+                        aria-label={`Tarefa: ${task.title}`}
+                      />
+                      <div className="flex-1">
+                        <div className={`font-medium ${task.completed ? 'line-through text-gray-400' : ''}`}>
+                          {task.title}
+                        </div>
+                        {task.description && (
+                          <div className={`text-sm text-gray-500 mt-1 ${task.completed ? 'line-through' : ''}`}>
+                            {task.description}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <Badge className={
+                            `${
+                              task.priority === "Alta" ? "bg-red-100 text-red-800" :
+                              task.priority === "Média" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-blue-100 text-blue-800"
+                            }`
+                          } variant="outline">
+                            {task.priority}
+                          </Badge>
+                          {task.due_date && (
+                            <span className="text-xs text-gray-500">
+                              {format(parseISO(task.due_date), "dd/MM/yyyy", { locale: ptBR })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <ClipboardList className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>Nenhuma tarefa cadastrada</p>
+                <p className="text-sm mt-1">Clique em "Nova Tarefa" para adicionar uma</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

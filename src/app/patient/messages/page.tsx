@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ import {
   RefreshCw,
   ExternalLink,
   Shield,
+  Plus,
 } from "lucide-react";
 import { PatientHeader, PatientSidebar, PatientMobileNav } from "@/components/patient/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -48,6 +49,10 @@ import { messagesApi, MessageThread, Message as ApiMessage } from "@/lib/message
 import { useAuth } from "@/contexts/AuthContext";
 import { uploadFiles } from "@/lib/file-upload";
 import { toast } from "sonner";
+import { api } from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ptBR } from "date-fns/locale";
 
 // Types
 interface Attachment {
@@ -107,11 +112,25 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [showCreateThreadDialog, setShowCreateThreadDialog] = useState(false);
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState<number | null>(null);
+  const [newThreadTopic, setNewThreadTopic] = useState("");
+  const [newThreadUrgent, setNewThreadUrgent] = useState(false);
+  const [creatingThread, setCreatingThread] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [threadToArchive, setThreadToArchive] = useState<number | null>(null);
+  const [archivedThreads, setArchivedThreads] = useState<MessageThread[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
+  const [stats, setStats] = useState({ total: 0, unread: 0, urgent: 0 });
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Load threads on mount
+  // Load threads on mount and when refresh key changes
   useEffect(() => {
     loadThreads();
-  }, []);
+    loadDoctors();
+    loadStats();
+  }, [refreshKey]);
 
   // Load thread details when selected
   useEffect(() => {
@@ -128,19 +147,46 @@ export default function MessagesPage() {
   const loadThreads = async () => {
     try {
       setLoading(true);
-      const data = await messagesApi.listThreads(false);
-      setThreads(data);
-      if (data.length > 0 && !selectedThreadId) {
-        setSelectedThreadId(data[0].id);
+      const [activeData, archivedData] = await Promise.all([
+        messagesApi.listThreads(false).catch(() => []),
+        messagesApi.listThreads(true).catch(() => []),
+      ]);
+      setThreads(activeData);
+      setArchivedThreads(archivedData);
+      if (activeData.length > 0 && !selectedThreadId) {
+        setSelectedThreadId(activeData[0].id);
       }
     } catch (error: any) {
       console.error("Failed to load threads:", error);
       toast.error("Erro ao carregar conversas", {
-        description: error?.message || "Não foi possível carregar suas conversas",
+        description: error?.message || error?.detail || "Não foi possível carregar suas conversas",
       });
       setThreads([]);
+      setArchivedThreads([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadDoctors = async () => {
+    try {
+      const data = await api.get<any[]>(`/api/v1/users/doctors`);
+      setDoctors(data);
+    } catch (error: any) {
+      console.error("Failed to load doctors:", error);
+      // Don't show error toast, just log it
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const activeThreads = await messagesApi.listThreads(false).catch(() => []);
+      const total = activeThreads.length;
+      const unread = activeThreads.reduce((sum, t) => sum + (t.unread_count || 0), 0);
+      const urgent = activeThreads.filter(t => t.is_urgent).length;
+      setStats({ total, unread, urgent });
+    } catch (error) {
+      console.error("Failed to load stats:", error);
     }
   };
 
@@ -187,9 +233,62 @@ export default function MessagesPage() {
     }
   };
 
-  const filteredConversations = threads.filter((conv) =>
-    conv.provider_name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = (showArchived ? archivedThreads : threads).filter((conv) =>
+    conv.provider_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.topic?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.last_message?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleCreateThread = async () => {
+    if (!selectedDoctorId || !newThreadTopic.trim()) {
+      toast.error("Por favor, selecione um médico e digite um assunto");
+      return;
+    }
+
+    try {
+      setCreatingThread(true);
+      const newThread = await messagesApi.createThread({
+        provider_id: selectedDoctorId,
+        topic: newThreadTopic.trim(),
+        is_urgent: newThreadUrgent,
+      });
+      
+      setShowCreateThreadDialog(false);
+      setSelectedDoctorId(null);
+      setNewThreadTopic("");
+      setNewThreadUrgent(false);
+      setSelectedThreadId(newThread.id);
+      setRefreshKey(prev => prev + 1);
+      toast.success("Conversa criada com sucesso!");
+    } catch (error: any) {
+      console.error("Failed to create thread:", error);
+      toast.error("Erro ao criar conversa", {
+        description: error?.message || error?.detail || "Não foi possível criar a conversa",
+      });
+    } finally {
+      setCreatingThread(false);
+    }
+  };
+
+  const handleArchiveThread = async (threadId: number) => {
+    try {
+      await messagesApi.deleteThread(threadId);
+      setShowArchiveDialog(false);
+      setThreadToArchive(null);
+      if (selectedThreadId === threadId) {
+        setSelectedThreadId(null);
+        setCurrentThread(null);
+        setCurrentMessages([]);
+      }
+      setRefreshKey(prev => prev + 1);
+      toast.success("Conversa arquivada com sucesso!");
+    } catch (error: any) {
+      console.error("Failed to archive thread:", error);
+      toast.error("Erro ao arquivar conversa", {
+        description: error?.message || error?.detail || "Não foi possível arquivar a conversa",
+      });
+    }
+  };
 
   const handleSendMessage = async () => {
     if ((!messageInput.trim() && uploadedFiles.length === 0) || !selectedThreadId || sending) {
@@ -233,7 +332,7 @@ export default function MessagesPage() {
       
       // Reload thread to get updated messages
       await loadThread(selectedThreadId);
-      await loadThreads(); // Refresh thread list
+      setRefreshKey(prev => prev + 1); // Refresh thread list and stats
       
       toast.success("Mensagem enviada com sucesso!");
     } catch (error: any) {
@@ -301,6 +400,73 @@ export default function MessagesPage() {
         <main className="flex-1 flex h-[calc(100vh-80px)]">
           {/* Conversation List Sidebar */}
           <div className="w-full lg:w-80 border-r border-gray-200 bg-white flex flex-col">
+            {/* Header with Stats and New Thread Button */}
+            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-teal-50">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-gray-900">Mensagens</h2>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setRefreshKey(prev => prev + 1)}
+                    title="Atualizar"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowCreateThreadDialog(true)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Nova
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="text-center p-2 bg-white rounded-lg border border-gray-200">
+                  <div className="text-xs text-gray-500">Total</div>
+                  <div className="text-lg font-bold text-gray-900">{stats.total}</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded-lg border border-gray-200">
+                  <div className="text-xs text-gray-500">Não lidas</div>
+                  <div className="text-lg font-bold text-blue-600">{stats.unread}</div>
+                </div>
+                <div className="text-center p-2 bg-white rounded-lg border border-gray-200">
+                  <div className="text-xs text-gray-500">Urgentes</div>
+                  <div className="text-lg font-bold text-yellow-600">{stats.urgent}</div>
+                </div>
+              </div>
+
+              {/* Tabs for Active/Archived */}
+              <div className="flex gap-2">
+                <Button
+                  variant={!showArchived ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowArchived(false);
+                    setSelectedThreadId(null);
+                  }}
+                >
+                  Ativas
+                </Button>
+                <Button
+                  variant={showArchived ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowArchived(true);
+                    setSelectedThreadId(null);
+                  }}
+                >
+                  Arquivadas
+                </Button>
+              </div>
+            </div>
+
             {/* Search Bar */}
             <div className="p-4 border-b border-gray-200">
               <div className="relative">
@@ -325,12 +491,22 @@ export default function MessagesPage() {
                 <div className="p-4 text-center">
                   <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-sm text-gray-500 mb-2">
-                    {searchQuery ? "Nenhuma conversa encontrada" : "Nenhuma conversa ainda"}
+                    {searchQuery ? "Nenhuma conversa encontrada" : showArchived ? "Nenhuma conversa arquivada" : "Nenhuma conversa ainda"}
                   </p>
-                  {!searchQuery && (
-                    <p className="text-xs text-gray-400">
-                      Suas conversas com os provedores aparecerão aqui
-                    </p>
+                  {!searchQuery && !showArchived && (
+                    <>
+                      <p className="text-xs text-gray-400 mb-4">
+                        Suas conversas com os provedores aparecerão aqui
+                      </p>
+                      <Button
+                        size="sm"
+                        onClick={() => setShowCreateThreadDialog(true)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Criar Primeira Conversa
+                      </Button>
+                    </>
                   )}
                 </div>
               ) : (
@@ -443,7 +619,15 @@ export default function MessagesPage() {
                       <Button variant="ghost" size="icon">
                         <Video className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => {
+                          setThreadToArchive(currentThread.id);
+                          setShowArchiveDialog(true);
+                        }}
+                        title="Arquivar conversa"
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </div>
@@ -848,6 +1032,116 @@ export default function MessagesPage() {
           </div>
         </main>
       </div>
+
+      {/* Create Thread Dialog */}
+      <Dialog open={showCreateThreadDialog} onOpenChange={setShowCreateThreadDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova Conversa</DialogTitle>
+            <DialogDescription>
+              Inicie uma nova conversa com um médico ou profissional de saúde
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Selecionar Médico/Profissional
+              </label>
+              <Select
+                value={selectedDoctorId?.toString() || ""}
+                onValueChange={(value) => setSelectedDoctorId(parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um médico" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors.map((doctor) => (
+                    <SelectItem key={doctor.id} value={doctor.id.toString()}>
+                      {doctor.first_name} {doctor.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Assunto
+              </label>
+              <Input
+                placeholder="Ex: Dúvida sobre prescrição, Resultado de exame, etc."
+                value={newThreadTopic}
+                onChange={(e) => setNewThreadTopic(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="urgent"
+                checked={newThreadUrgent}
+                onChange={(e) => setNewThreadUrgent(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              <label htmlFor="urgent" className="text-sm text-gray-700">
+                Marcar como urgente
+              </label>
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCreateThreadDialog(false);
+                  setSelectedDoctorId(null);
+                  setNewThreadTopic("");
+                  setNewThreadUrgent(false);
+                }}
+                disabled={creatingThread}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCreateThread}
+                disabled={!selectedDoctorId || !newThreadTopic.trim() || creatingThread}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {creatingThread ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  "Criar Conversa"
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Archive Confirmation Dialog */}
+      <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arquivar Conversa</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja arquivar esta conversa? Você poderá desarquivá-la depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowArchiveDialog(false);
+              setThreadToArchive(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => threadToArchive && handleArchiveThread(threadToArchive)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Arquivar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Attachment Preview Dialog */}
       <Dialog open={!!previewAttachment} onOpenChange={() => setPreviewAttachment(null)}>

@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building, Plus, Search, Edit, Trash2, RefreshCw, Users, Calendar, AlertCircle, CheckCircle2 } from "lucide-react";
+import { 
+  Building, Plus, Search, Edit, Trash2, RefreshCw, Users, Calendar, 
+  AlertCircle, CheckCircle2, Settings, Eye, XCircle, Loader2
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +35,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -42,14 +47,17 @@ interface Clinic {
   name: string;
   legal_name: string;
   tax_id: string;
+  address?: string;
+  phone?: string;
   email?: string;
   is_active: boolean;
   license_key?: string;
   expiration_date?: string;
   max_users: number;
   active_modules: string[];
-  user_count: number;
+  user_count?: number;
   created_at: string;
+  updated_at?: string;
 }
 
 interface ClinicStats {
@@ -93,8 +101,11 @@ export default function ClinicaPage() {
   const [filteredClinics, setFilteredClinics] = useState<Clinic[]>([]);
   const [stats, setStats] = useState<ClinicStats | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showForm, setShowForm] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [editingClinic, setEditingClinic] = useState<Clinic | null>(null);
+  const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<ClinicFormData>({
     name: "",
@@ -116,7 +127,7 @@ export default function ClinicaPage() {
 
   useEffect(() => {
     filterClinics();
-  }, [clinics, searchTerm]);
+  }, [clinics, searchTerm, statusFilter]);
 
   const loadData = async () => {
     try {
@@ -137,7 +148,7 @@ export default function ClinicaPage() {
 
   const loadClinics = async () => {
     try {
-      const data = await api.get<Clinic[]>("/api/v1/admin/clinics");
+      const data = await api.get<Clinic[]>("/api/v1/admin/clinics?limit=1000");
       setClinics(data);
     } catch (error: any) {
       console.error("Failed to load clinics:", error);
@@ -154,7 +165,6 @@ export default function ClinicaPage() {
       setStats(data);
     } catch (error: any) {
       console.error("Failed to load stats:", error);
-      // Don't show error for stats, it's optional
       setStats(null);
     }
   };
@@ -169,8 +179,29 @@ export default function ClinicaPage() {
           clinic.name.toLowerCase().includes(searchLower) ||
           clinic.legal_name.toLowerCase().includes(searchLower) ||
           clinic.tax_id.includes(searchTerm) ||
-          clinic.email?.toLowerCase().includes(searchLower)
+          clinic.email?.toLowerCase().includes(searchLower) ||
+          clinic.license_key?.toLowerCase().includes(searchLower)
       );
+    }
+
+    if (statusFilter === "active") {
+      filtered = filtered.filter(c => c.is_active);
+    } else if (statusFilter === "inactive") {
+      filtered = filtered.filter(c => !c.is_active);
+    } else if (statusFilter === "expired") {
+      filtered = filtered.filter(c => {
+        if (!c.expiration_date) return false;
+        return new Date(c.expiration_date) < new Date();
+      });
+    } else if (statusFilter === "expiring") {
+      filtered = filtered.filter(c => {
+        if (!c.expiration_date) return false;
+        const expDate = new Date(c.expiration_date);
+        const today = new Date();
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
+        return expDate >= today && expDate <= thirtyDaysFromNow;
+      });
     }
 
     setFilteredClinics(filtered);
@@ -205,8 +236,8 @@ export default function ClinicaPage() {
       name: clinic.name || "",
       legal_name: clinic.legal_name || "",
       tax_id: clinic.tax_id || "",
-      address: "",
-      phone: "",
+      address: clinic.address || "",
+      phone: clinic.phone || "",
       email: clinic.email || "",
       license_key: clinic.license_key || "",
       expiration_date: expirationDate,
@@ -215,6 +246,20 @@ export default function ClinicaPage() {
       is_active: clinic.is_active ?? true,
     });
     setShowForm(true);
+  };
+
+  const openDetailDialog = async (clinic: Clinic) => {
+    try {
+      // Load full clinic details
+      const fullClinic = await api.get<Clinic>(`/api/v1/admin/clinics/${clinic.id}`);
+      setSelectedClinic(fullClinic);
+      setShowDetailDialog(true);
+    } catch (error: any) {
+      console.error("Failed to load clinic details:", error);
+      toast.error("Erro ao carregar detalhes da clínica", {
+        description: error?.message || error?.detail,
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -243,11 +288,9 @@ export default function ClinicaPage() {
       };
 
       if (editingClinic) {
-        // Update existing clinic
         await api.put(`/api/v1/admin/clinics/${editingClinic.id}`, clinicData);
         toast.success("Clínica atualizada com sucesso!");
       } else {
-        // Create new clinic
         await api.post("/api/v1/admin/clinics", clinicData);
         toast.success("Clínica cadastrada com sucesso!");
       }
@@ -266,18 +309,52 @@ export default function ClinicaPage() {
   };
 
   const handleDelete = async (clinic: Clinic) => {
-    if (!confirm(`Tem certeza que deseja desativar a clínica ${clinic.name}?`)) {
+    if (!confirm(`Tem certeza que deseja excluir a clínica "${clinic.name}"? Esta ação não pode ser desfeita.`)) {
       return;
     }
 
     try {
       await api.delete(`/api/v1/admin/clinics/${clinic.id}`);
-      toast.success("Clínica desativada com sucesso!");
+      toast.success("Clínica excluída com sucesso!");
       await loadClinics();
     } catch (error: any) {
       console.error("Failed to delete clinic:", error);
-      toast.error("Erro ao desativar clínica", {
-        description: error?.message || error?.detail || "Não foi possível desativar a clínica",
+      toast.error("Erro ao excluir clínica", {
+        description: error?.message || error?.detail || "Não foi possível excluir a clínica",
+      });
+    }
+  };
+
+  const handleToggleActive = async (clinic: Clinic) => {
+    try {
+      await api.put(`/api/v1/admin/clinics/${clinic.id}`, {
+        is_active: !clinic.is_active,
+      });
+      toast.success(`Clínica ${!clinic.is_active ? 'ativada' : 'desativada'} com sucesso!`);
+      await loadClinics();
+    } catch (error: any) {
+      console.error("Failed to toggle active status:", error);
+      toast.error("Erro ao alterar status da clínica", {
+        description: error?.message || error?.detail || "Não foi possível alterar o status",
+      });
+    }
+  };
+
+  const handleUpdateModules = async (clinic: Clinic, modules: string[]) => {
+    try {
+      await api.patch(`/api/v1/admin/clinics/${clinic.id}/modules`, {
+        active_modules: modules,
+      });
+      toast.success("Módulos atualizados com sucesso!");
+      await loadClinics();
+      if (selectedClinic && selectedClinic.id === clinic.id) {
+        const updatedClinic = await api.get<Clinic>(`/api/v1/admin/clinics/${clinic.id}`);
+        setSelectedClinic(updatedClinic);
+      }
+    } catch (error: any) {
+      console.error("Failed to update modules:", error);
+      toast.error("Erro ao atualizar módulos", {
+        description: error?.message || error?.detail || "Não foi possível atualizar os módulos",
       });
     }
   };
@@ -309,11 +386,11 @@ export default function ClinicaPage() {
     return expDate >= today && expDate <= thirtyDaysFromNow;
   };
 
-  if (loading) {
+  if (loading && clinics.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
         </div>
       </div>
     );
@@ -417,6 +494,18 @@ export default function ClinicaPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Todos os status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Ativas</SelectItem>
+                  <SelectItem value="inactive">Inativas</SelectItem>
+                  <SelectItem value="expired">Expiradas</SelectItem>
+                  <SelectItem value="expiring">Expirando</SelectItem>
+                </SelectContent>
+              </Select>
               <Button className="bg-purple-600 hover:bg-purple-700" onClick={openCreateForm}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Clínica
@@ -453,7 +542,7 @@ export default function ClinicaPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-gray-400" />
-                          {clinic.user_count} / {clinic.max_users}
+                          {clinic.user_count || 0} / {clinic.max_users}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -483,7 +572,9 @@ export default function ClinicaPage() {
                             <CheckCircle2 className="h-3 w-3 mr-1 inline" />Ativa
                           </Badge>
                         ) : (
-                          <Badge className="bg-gray-100 text-gray-800">Inativa</Badge>
+                          <Badge className="bg-gray-100 text-gray-800">
+                            <XCircle className="h-3 w-3 mr-1 inline" />Inativa
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -491,19 +582,35 @@ export default function ClinicaPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => openDetailDialog(clinic)}
+                            title="Ver detalhes"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => openEditForm(clinic)}
+                            title="Editar"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          {clinic.is_active && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(clinic)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleActive(clinic)}
+                            title={clinic.is_active ? "Desativar" : "Ativar"}
+                          >
+                            {clinic.is_active ? "Desativar" : "Ativar"}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(clinic)}
+                            title="Excluir"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -514,7 +621,7 @@ export default function ClinicaPage() {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Building className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>{searchTerm ? "Nenhuma clínica encontrada" : "Nenhuma clínica cadastrada"}</p>
+              <p>{searchTerm || statusFilter !== "all" ? "Nenhuma clínica encontrada" : "Nenhuma clínica cadastrada"}</p>
             </div>
           )}
         </CardContent>
@@ -532,140 +639,310 @@ export default function ClinicaPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Nome *</Label>
-                <Input
-                  id="name"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="legal_name">Razão Social *</Label>
-                <Input
-                  id="legal_name"
-                  required
-                  value={formData.legal_name}
-                  onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tax_id">CNPJ/CPF *</Label>
-                <Input
-                  id="tax_id"
-                  required
-                  placeholder="00.000.000/0000-00"
-                  value={formData.tax_id}
-                  onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  placeholder="(00) 00000-0000"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="address">Endereço</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold mb-3">Informações de Licenciamento</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="license_key">Chave de Licença</Label>
-                  <Input
-                    id="license_key"
-                    placeholder="Chave única da licença"
-                    value={formData.license_key}
-                    onChange={(e) => setFormData({ ...formData, license_key: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="expiration_date">Data de Expiração</Label>
-                  <Input
-                    id="expiration_date"
-                    type="date"
-                    value={formData.expiration_date}
-                    onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="max_users">Máximo de Usuários *</Label>
-                  <Input
-                    id="max_users"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    required
-                    value={formData.max_users}
-                    onChange={(e) => setFormData({ ...formData, max_users: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold mb-3">Módulos Ativos</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {AVAILABLE_MODULES.map((module) => (
-                  <div key={module.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`module-${module.value}`}
-                      checked={formData.active_modules.includes(module.value)}
-                      onCheckedChange={() => toggleModule(module.value)}
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Informações Básicas</TabsTrigger>
+                <TabsTrigger value="license">Licenciamento</TabsTrigger>
+                <TabsTrigger value="modules">Módulos</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Nome *</Label>
+                    <Input
+                      id="name"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     />
-                    <Label
-                      htmlFor={`module-${module.value}`}
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      {module.label}
-                    </Label>
                   </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked as boolean })}
-              />
-              <Label htmlFor="is_active" className="text-sm font-normal cursor-pointer">
-                Clínica ativa
-              </Label>
-            </div>
+                  <div>
+                    <Label htmlFor="legal_name">Razão Social *</Label>
+                    <Input
+                      id="legal_name"
+                      required
+                      value={formData.legal_name}
+                      onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="tax_id">CNPJ/CPF *</Label>
+                    <Input
+                      id="tax_id"
+                      required
+                      placeholder="00.000.000/0000-00"
+                      value={formData.tax_id}
+                      onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="email">E-mail</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="phone">Telefone</Label>
+                    <Input
+                      id="phone"
+                      placeholder="(00) 00000-0000"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="address">Endereço</Label>
+                    <Input
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+                  />
+                  <Label htmlFor="is_active" className="cursor-pointer">
+                    Clínica ativa
+                  </Label>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="license" className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="license_key">Chave de Licença</Label>
+                    <Input
+                      id="license_key"
+                      placeholder="Chave única da licença"
+                      value={formData.license_key}
+                      onChange={(e) => setFormData({ ...formData, license_key: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="expiration_date">Data de Expiração</Label>
+                    <Input
+                      id="expiration_date"
+                      type="date"
+                      value={formData.expiration_date}
+                      onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="max_users">Máximo de Usuários *</Label>
+                    <Input
+                      id="max_users"
+                      type="number"
+                      min="1"
+                      max="1000"
+                      required
+                      value={formData.max_users}
+                      onChange={(e) => setFormData({ ...formData, max_users: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="modules" className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {AVAILABLE_MODULES.map((module) => (
+                    <div key={module.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`module-${module.value}`}
+                        checked={formData.active_modules.includes(module.value)}
+                        onCheckedChange={() => toggleModule(module.value)}
+                      />
+                      <Label
+                        htmlFor={`module-${module.value}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {module.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+            
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                 Cancelar
               </Button>
               <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={saving}>
-                {saving ? "Salvando..." : editingClinic ? "Atualizar" : "Cadastrar"}
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : editingClinic ? "Atualizar" : "Cadastrar"}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clinic Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Clínica</DialogTitle>
+            <DialogDescription>
+              Informações completas da clínica {selectedClinic?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedClinic && (
+            <div className="space-y-6">
+              <Tabs defaultValue="info" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="info">Informações</TabsTrigger>
+                  <TabsTrigger value="license">Licenciamento</TabsTrigger>
+                  <TabsTrigger value="modules">Módulos</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="info" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm text-gray-500">Nome</Label>
+                      <p className="font-medium">{selectedClinic.name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Razão Social</Label>
+                      <p className="font-medium">{selectedClinic.legal_name}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">CNPJ/CPF</Label>
+                      <p className="font-medium">{selectedClinic.tax_id}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">E-mail</Label>
+                      <p className="font-medium">{selectedClinic.email || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Telefone</Label>
+                      <p className="font-medium">{selectedClinic.phone || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Endereço</Label>
+                      <p className="font-medium">{selectedClinic.address || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Status</Label>
+                      <div className="mt-1">
+                        {selectedClinic.is_active ? (
+                          <Badge className="bg-green-100 text-green-800">
+                            <CheckCircle2 className="h-3 w-3 mr-1 inline" />Ativa
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-800">
+                            <XCircle className="h-3 w-3 mr-1 inline" />Inativa
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Data de Criação</Label>
+                      <p className="font-medium">
+                        {selectedClinic.created_at ? format(parseISO(selectedClinic.created_at), "dd/MM/yyyy", { locale: ptBR }) : "-"}
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="license" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm text-gray-500">Chave de Licença</Label>
+                      <p className="font-medium font-mono text-sm">{selectedClinic.license_key || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Data de Expiração</Label>
+                      <p className="font-medium">
+                        {selectedClinic.expiration_date ? format(parseISO(selectedClinic.expiration_date), "dd/MM/yyyy", { locale: ptBR }) : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Máximo de Usuários</Label>
+                      <p className="font-medium">{selectedClinic.max_users}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Usuários Ativos</Label>
+                      <p className="font-medium">{selectedClinic.user_count || 0}</p>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="modules" className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between mb-4">
+                      <Label>Módulos Ativos</Label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditForm(selectedClinic)}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar Módulos
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {AVAILABLE_MODULES.map((module) => {
+                        const isActive = selectedClinic.active_modules?.includes(module.value) || false;
+                        return (
+                          <div
+                            key={module.value}
+                            className={`flex items-center space-x-2 p-2 rounded border ${
+                              isActive ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+                            }`}
+                          >
+                            <Checkbox
+                              checked={isActive}
+                              onCheckedChange={(checked) => {
+                                const newModules = checked
+                                  ? [...(selectedClinic.active_modules || []), module.value]
+                                  : (selectedClinic.active_modules || []).filter(m => m !== module.value);
+                                handleUpdateModules(selectedClinic, newModules);
+                              }}
+                            />
+                            <Label className="text-sm font-normal cursor-pointer">
+                              {module.label}
+                            </Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+              Fechar
+            </Button>
+            {selectedClinic && (
+              <Button
+                className="bg-purple-600 hover:bg-purple-700"
+                onClick={() => {
+                  setShowDetailDialog(false);
+                  openEditForm(selectedClinic);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Editar Clínica
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

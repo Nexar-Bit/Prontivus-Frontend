@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package2, Plus, Search, Edit, Trash2, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
+import { 
+  Package2, Plus, Search, Edit, Trash2, AlertCircle, CheckCircle2, RefreshCw,
+  TrendingUp, TrendingDown, History, Settings, ArrowUp, ArrowDown, XCircle, AlertTriangle
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,8 +35,40 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
-import { useAuth } from "@/contexts/AuthContext";
+
+// Product categories matching backend enum
+const PRODUCT_CATEGORIES = [
+  { value: "medication", label: "Medicamento" },
+  { value: "medical_supply", label: "Insumo Médico" },
+  { value: "equipment", label: "Equipamento" },
+  { value: "consumable", label: "Consumível" },
+  { value: "instrument", label: "Instrumento" },
+  { value: "other", label: "Outro" },
+];
+
+// Stock movement types
+const MOVEMENT_TYPES = [
+  { value: "in", label: "Entrada", icon: ArrowUp },
+  { value: "out", label: "Saída", icon: ArrowDown },
+  { value: "adjustment", label: "Ajuste", icon: Settings },
+];
+
+// Stock movement reasons
+const MOVEMENT_REASONS = [
+  { value: "purchase", label: "Compra" },
+  { value: "sale", label: "Venda" },
+  { value: "usage", label: "Uso" },
+  { value: "return", label: "Devolução" },
+  { value: "adjustment", label: "Ajuste" },
+  { value: "transfer", label: "Transferência" },
+  { value: "expired", label: "Vencido" },
+  { value: "damaged", label: "Danificado" },
+  { value: "theft", label: "Roubo" },
+  { value: "donation", label: "Doação" },
+  { value: "other", label: "Outro" },
+];
 
 interface Product {
   id: number;
@@ -47,9 +82,19 @@ interface Product {
   unit_of_measure: string;
   barcode?: string;
   is_active: boolean;
-  stock_status?: string;
+  clinic_id: number;
   created_at: string;
   updated_at?: string;
+  stock_status?: "low" | "normal" | "out_of_stock";
+}
+
+interface StockSummary {
+  total_products: number;
+  low_stock_products: number;
+  out_of_stock_products: number;
+  total_value: number;
+  recent_movements: number;
+  pending_alerts: number;
 }
 
 interface ProductFormData {
@@ -62,20 +107,64 @@ interface ProductFormData {
   unit_price: string;
   unit_of_measure: string;
   barcode: string;
+  is_active: boolean;
+}
+
+interface StockMovement {
+  id: number;
+  product_id: number;
+  type: string;
+  quantity: number;
+  reason: string;
+  description?: string;
+  unit_cost?: number;
+  total_cost?: number;
+  reference_number?: string;
+  timestamp: string;
+  product_name?: string;
+  creator_name?: string;
+}
+
+interface StockMovementFormData {
+  product_id: number;
+  type: string;
+  quantity: string;
+  reason: string;
+  description: string;
+  unit_cost: string;
+  reference_number: string;
+}
+
+interface StockAdjustmentFormData {
+  product_id: number;
+  new_quantity: string;
+  reason: string;
+  description: string;
+  reference_number: string;
 }
 
 export default function InsumosPage() {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [stockSummary, setStockSummary] = useState<StockSummary | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [showForm, setShowForm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  
+  // Dialog states
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [showMovementForm, setShowMovementForm] = useState(false);
+  const [showAdjustmentDialog, setShowAdjustmentDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  
+  // Form states
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [saving, setSaving] = useState(false);
   
-  const [formData, setFormData] = useState<ProductFormData>({
+  const [productFormData, setProductFormData] = useState<ProductFormData>({
     name: "",
     description: "",
     category: "medical_supply",
@@ -85,27 +174,56 @@ export default function InsumosPage() {
     unit_price: "",
     unit_of_measure: "unidade",
     barcode: "",
+    is_active: true,
+  });
+
+  const [movementFormData, setMovementFormData] = useState<StockMovementFormData>({
+    product_id: 0,
+    type: "in",
+    quantity: "",
+    reason: "purchase",
+    description: "",
+    unit_cost: "",
+    reference_number: "",
+  });
+
+  const [adjustmentData, setAdjustmentData] = useState<StockAdjustmentFormData>({
+    product_id: 0,
+    new_quantity: "",
+    reason: "adjustment",
+    description: "",
+    reference_number: "",
   });
 
   useEffect(() => {
-    loadProducts();
+    loadData();
   }, []);
 
   useEffect(() => {
     filterProducts();
-  }, [products, searchTerm, categoryFilter]);
+  }, [products, searchTerm, categoryFilter, statusFilter]);
+
+  const loadData = async () => {
+    await Promise.all([loadProducts(), loadStockSummary()]);
+  };
 
   const loadProducts = async () => {
     try {
       setLoading(true);
-      // Try both API versions
-      let data: Product[] = [];
-      try {
-        data = await api.get<Product[]>("/api/v1/products");
-      } catch (e) {
-        // Fallback to legacy endpoint
-        data = await api.get<Product[]>("/api/products");
+      const params = new URLSearchParams();
+      if (categoryFilter !== "all") {
+        params.append("category", categoryFilter);
       }
+      if (statusFilter === "low") {
+        params.append("low_stock", "true");
+      }
+      if (searchTerm) {
+        params.append("search", searchTerm);
+      }
+      
+      const queryString = params.toString();
+      const url = `/api/v1/products${queryString ? `?${queryString}` : ""}`;
+      const data = await api.get<Product[]>(url);
       setProducts(data);
     } catch (error: any) {
       console.error("Failed to load products:", error);
@@ -118,31 +236,56 @@ export default function InsumosPage() {
     }
   };
 
+  const loadStockSummary = async () => {
+    try {
+      const data = await api.get<StockSummary>("/api/v1/dashboard/summary");
+      setStockSummary(data);
+    } catch (error: any) {
+      // Try alternative endpoint path
+      try {
+        const data = await api.get<StockSummary>("/api/v1/stock/dashboard/summary");
+        setStockSummary(data);
+      } catch (e: any) {
+        console.error("Failed to load stock summary:", error);
+        // Non-critical error, continue without summary
+      }
+    }
+  };
+
   const filterProducts = () => {
     let filtered = [...products];
 
     // Filter by category
     if (categoryFilter !== "all") {
-      filtered = filtered.filter(product => product.category === categoryFilter);
+      filtered = filtered.filter(p => p.category === categoryFilter);
+    }
+
+    // Filter by status
+    if (statusFilter === "low") {
+      filtered = filtered.filter(p => p.stock_status === "low" || p.stock_status === "out_of_stock");
+    } else if (statusFilter === "active") {
+      filtered = filtered.filter(p => p.is_active);
+    } else if (statusFilter === "inactive") {
+      filtered = filtered.filter(p => !p.is_active);
     }
 
     // Filter by search term
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(searchLower) ||
-          product.description?.toLowerCase().includes(searchLower) ||
-          product.barcode?.includes(searchTerm) ||
-          product.supplier?.toLowerCase().includes(searchLower)
+        (p) =>
+          p.name.toLowerCase().includes(searchLower) ||
+          p.description?.toLowerCase().includes(searchLower) ||
+          p.supplier?.toLowerCase().includes(searchLower) ||
+          p.barcode?.toLowerCase().includes(searchLower)
       );
     }
 
     setFilteredProducts(filtered);
   };
 
-  const resetForm = () => {
-    setFormData({
+  const resetProductForm = () => {
+    setProductFormData({
       name: "",
       description: "",
       category: "medical_supply",
@@ -152,18 +295,19 @@ export default function InsumosPage() {
       unit_price: "",
       unit_of_measure: "unidade",
       barcode: "",
+      is_active: true,
     });
     setEditingProduct(null);
   };
 
-  const openCreateForm = () => {
-    resetForm();
-    setShowForm(true);
+  const openCreateProductForm = () => {
+    resetProductForm();
+    setShowProductForm(true);
   };
 
-  const openEditForm = (product: Product) => {
+  const openEditProductForm = (product: Product) => {
     setEditingProduct(product);
-    setFormData({
+    setProductFormData({
       name: product.name || "",
       description: product.description || "",
       category: product.category || "medical_supply",
@@ -173,15 +317,30 @@ export default function InsumosPage() {
       unit_price: product.unit_price?.toString() || "",
       unit_of_measure: product.unit_of_measure || "unidade",
       barcode: product.barcode || "",
+      is_active: product.is_active ?? true,
     });
-    setShowForm(true);
+    setShowProductForm(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.category) {
+    if (!productFormData.name || !productFormData.category) {
       toast.error("Preencha os campos obrigatórios");
+      return;
+    }
+
+    const minStock = parseInt(productFormData.min_stock) || 0;
+    const currentStock = parseInt(productFormData.current_stock) || 0;
+    const unitPrice = productFormData.unit_price ? parseFloat(productFormData.unit_price.replace(/[^\d,.-]/g, "").replace(",", ".")) : undefined;
+
+    if (minStock < 0 || currentStock < 0) {
+      toast.error("Valores de estoque não podem ser negativos");
+      return;
+    }
+
+    if (unitPrice !== undefined && unitPrice < 0) {
+      toast.error("Preço não pode ser negativo");
       return;
     }
 
@@ -189,50 +348,29 @@ export default function InsumosPage() {
       setSaving(true);
 
       const productData: any = {
-        name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
-        category: formData.category,
-        supplier: formData.supplier.trim() || undefined,
-        min_stock: parseInt(formData.min_stock) || 0,
-        current_stock: parseInt(formData.current_stock) || 0,
-        unit_of_measure: formData.unit_of_measure.trim() || "unidade",
-        barcode: formData.barcode.trim() || undefined,
-        is_active: true,
+        name: productFormData.name.trim(),
+        description: productFormData.description.trim() || undefined,
+        category: productFormData.category,
+        supplier: productFormData.supplier.trim() || undefined,
+        min_stock: minStock,
+        current_stock: currentStock,
+        unit_price: unitPrice,
+        unit_of_measure: productFormData.unit_of_measure.trim() || "unidade",
+        barcode: productFormData.barcode.trim() || undefined,
+        is_active: productFormData.is_active,
       };
 
-      if (formData.unit_price) {
-        const price = parseFloat(formData.unit_price.replace(/[^\d,.-]/g, "").replace(",", "."));
-        if (!isNaN(price) && price >= 0) {
-          productData.unit_price = price;
-        }
-      }
-
-      let endpoint = "/api/v1/products";
-      try {
         if (editingProduct) {
-          // Update existing product
-          await api.put(`${endpoint}/${editingProduct.id}`, productData);
+        await api.put(`/api/v1/products/${editingProduct.id}`, productData);
           toast.success("Insumo atualizado com sucesso!");
         } else {
-          // Create new product
-          await api.post(endpoint, productData);
+        await api.post("/api/v1/products", productData);
           toast.success("Insumo cadastrado com sucesso!");
-        }
-      } catch (e: any) {
-        // Fallback to legacy endpoint
-        endpoint = "/api/products";
-        if (editingProduct) {
-          await api.put(`${endpoint}/${editingProduct.id}`, productData);
-          toast.success("Insumo atualizado com sucesso!");
-        } else {
-          await api.post(endpoint, productData);
-          toast.success("Insumo cadastrado com sucesso!");
-        }
       }
 
-      setShowForm(false);
-      resetForm();
-      await loadProducts();
+      setShowProductForm(false);
+      resetProductForm();
+      await loadData();
     } catch (error: any) {
       console.error("Failed to save product:", error);
       toast.error(editingProduct ? "Erro ao atualizar insumo" : "Erro ao cadastrar insumo", {
@@ -243,20 +381,13 @@ export default function InsumosPage() {
     }
   };
 
-  const handleDelete = async (product: Product) => {
+  const handleDeleteProduct = async (product: Product) => {
     if (!confirm(`Tem certeza que deseja excluir o insumo "${product.name}"?`)) {
       return;
     }
 
     try {
-      let endpoint = `/api/v1/products/${product.id}`;
-      try {
-        await api.delete(endpoint);
-      } catch (e) {
-        // Fallback to legacy endpoint
-        endpoint = `/api/products/${product.id}`;
-        await api.delete(endpoint);
-      }
+      await api.delete(`/api/v1/products/${product.id}`);
       toast.success("Insumo excluído com sucesso!");
       await loadProducts();
     } catch (error: any) {
@@ -269,18 +400,9 @@ export default function InsumosPage() {
 
   const handleToggleActive = async (product: Product) => {
     try {
-      const productData = {
+      await api.put(`/api/v1/products/${product.id}`, {
         is_active: !product.is_active,
-      };
-      
-      let endpoint = `/api/v1/products/${product.id}`;
-      try {
-        await api.put(endpoint, productData);
-      } catch (e) {
-        // Fallback to legacy endpoint
-        endpoint = `/api/products/${product.id}`;
-        await api.put(endpoint, productData);
-      }
+      });
       toast.success(`Insumo ${!product.is_active ? 'ativado' : 'desativado'} com sucesso!`);
       await loadProducts();
     } catch (error: any) {
@@ -291,43 +413,131 @@ export default function InsumosPage() {
     }
   };
 
-  const getStatusBadge = (product: Product) => {
-    const status = product.stock_status || "normal";
-    
-    if (status === "out_of_stock" || product.current_stock === 0) {
-      return (
-        <Badge className="bg-red-100 text-red-800">
-          <AlertCircle className="h-3 w-3 mr-1 inline" />
-          Sem Estoque
-        </Badge>
-      );
-    } else if (status === "low" || product.current_stock <= product.min_stock) {
-      return (
-        <Badge className="bg-yellow-100 text-yellow-800">
-          <AlertCircle className="h-3 w-3 mr-1 inline" />
-          Estoque Baixo
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge className="bg-green-100 text-green-800">
-          <CheckCircle2 className="h-3 w-3 mr-1 inline" />
-          OK
-        </Badge>
-      );
+  const openMovementForm = (product: Product, type: string = "in") => {
+    setSelectedProduct(product);
+    setMovementFormData({
+      product_id: product.id,
+      type: type,
+      quantity: "",
+      reason: type === "in" ? "purchase" : "usage",
+      description: "",
+      unit_cost: product.unit_price?.toString() || "",
+      reference_number: "",
+    });
+    setShowMovementForm(true);
+  };
+
+  const handleMovementSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!movementFormData.quantity) {
+      toast.error("Informe a quantidade");
+      return;
+    }
+
+    const quantity = parseInt(movementFormData.quantity);
+    if (quantity <= 0) {
+      toast.error("Quantidade deve ser maior que zero");
+      return;
+    }
+
+    if (movementFormData.type === "out" && selectedProduct && quantity > selectedProduct.current_stock) {
+      toast.error("Quantidade insuficiente em estoque");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const movementData: any = {
+        product_id: movementFormData.product_id,
+        type: movementFormData.type,
+        quantity: movementFormData.type === "out" ? -quantity : quantity,
+        reason: movementFormData.reason,
+        description: movementFormData.description.trim() || undefined,
+        reference_number: movementFormData.reference_number.trim() || undefined,
+      };
+
+      if (movementFormData.unit_cost) {
+        const unitCost = parseFloat(movementFormData.unit_cost.replace(/[^\d,.-]/g, "").replace(",", "."));
+        if (!isNaN(unitCost) && unitCost >= 0) {
+          movementData.unit_cost = unitCost;
+          movementData.total_cost = unitCost * quantity;
+        }
+      }
+
+      await api.post("/api/v1/stock-movements", movementData);
+      toast.success("Movimentação registrada com sucesso!");
+      setShowMovementForm(false);
+      await loadData();
+    } catch (error: any) {
+      console.error("Failed to create movement:", error);
+      toast.error("Erro ao registrar movimentação", {
+        description: error?.message || error?.detail || "Não foi possível registrar a movimentação",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      medication: "Medicamento",
-      medical_supply: "Insumo Médico",
-      equipment: "Equipamento",
-      consumable: "Consumível",
-      instrument: "Instrumento",
-      other: "Outro",
-    };
-    return labels[category] || category;
+  const openAdjustmentDialog = (product: Product) => {
+    setSelectedProduct(product);
+    setAdjustmentData({
+      product_id: product.id,
+      new_quantity: product.current_stock.toString(),
+      reason: "adjustment",
+      description: "",
+      reference_number: "",
+    });
+    setShowAdjustmentDialog(true);
+  };
+
+  const handleAdjustmentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const newQuantity = parseInt(adjustmentData.new_quantity);
+    if (isNaN(newQuantity) || newQuantity < 0) {
+      toast.error("Quantidade inválida");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const adjustmentPayload = {
+        product_id: adjustmentData.product_id,
+        new_quantity: newQuantity,
+        reason: adjustmentData.reason,
+        description: adjustmentData.description.trim() || undefined,
+        reference_number: adjustmentData.reference_number.trim() || undefined,
+      };
+
+      await api.post("/api/v1/stock-movements/adjustment", adjustmentPayload);
+      toast.success("Ajuste de estoque realizado com sucesso!");
+      setShowAdjustmentDialog(false);
+      await loadData();
+    } catch (error: any) {
+      console.error("Failed to adjust stock:", error);
+      toast.error("Erro ao ajustar estoque", {
+        description: error?.message || error?.detail || "Não foi possível ajustar o estoque",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const loadStockHistory = async (product: Product) => {
+    try {
+      setSelectedProduct(product);
+      const data = await api.get<StockMovement[]>(`/api/v1/stock-movements?product_id=${product.id}&limit=50`);
+      setStockMovements(data);
+      setShowHistoryDialog(true);
+    } catch (error: any) {
+      console.error("Failed to load stock history:", error);
+      toast.error("Erro ao carregar histórico", {
+        description: error?.message || error?.detail || "Não foi possível carregar o histórico",
+      });
+    }
   };
 
   const formatPrice = (price?: number) => {
@@ -338,7 +548,22 @@ export default function InsumosPage() {
     }).format(price);
   };
 
-  if (loading) {
+  const getStockStatusBadge = (product: Product) => {
+    const status = product.stock_status || "normal";
+    if (status === "out_of_stock") {
+      return <Badge className="bg-red-100 text-red-800"><XCircle className="h-3 w-3 mr-1" />Sem Estoque</Badge>;
+    } else if (status === "low") {
+      return <Badge className="bg-yellow-100 text-yellow-800"><AlertTriangle className="h-3 w-3 mr-1" />Estoque Baixo</Badge>;
+    } else {
+      return <Badge className="bg-green-100 text-green-800"><CheckCircle2 className="h-3 w-3 mr-1" />Normal</Badge>;
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    return PRODUCT_CATEGORIES.find(c => c.value === category)?.label || category;
+  };
+
+  if (loading && products.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
@@ -360,13 +585,51 @@ export default function InsumosPage() {
         </p>
       </div>
 
+      {/* Stock Summary Cards */}
+      {stockSummary && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Total de Insumos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stockSummary.total_products}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-yellow-600">Estoque Baixo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">{stockSummary.low_stock_products}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-red-600">Sem Estoque</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{stockSummary.out_of_stock_products}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-gray-600">Valor Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatPrice(stockSummary.total_value)}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Insumos Cadastrados</CardTitle>
               <CardDescription>
-                Controle de estoque de insumos médicos ({filteredProducts.length} {filteredProducts.length === 1 ? 'insumo' : 'insumos'})
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'insumo' : 'insumos'} encontrado{filteredProducts.length === 1 ? '' : 's'}
               </CardDescription>
             </div>
             <div className="flex items-center gap-3">
@@ -385,24 +648,34 @@ export default function InsumosPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as categorias</SelectItem>
-                  <SelectItem value="medication">Medicamento</SelectItem>
-                  <SelectItem value="medical_supply">Insumo Médico</SelectItem>
-                  <SelectItem value="equipment">Equipamento</SelectItem>
-                  <SelectItem value="consumable">Consumível</SelectItem>
-                  <SelectItem value="instrument">Instrumento</SelectItem>
-                  <SelectItem value="other">Outro</SelectItem>
+                  {PRODUCT_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Todos os status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  <SelectItem value="low">Estoque Baixo</SelectItem>
+                  <SelectItem value="active">Ativos</SelectItem>
+                  <SelectItem value="inactive">Inativos</SelectItem>
                 </SelectContent>
               </Select>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={loadProducts}
+                onClick={loadData}
                 disabled={loading}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Atualizar
               </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={openCreateForm}>
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={openCreateProductForm}>
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Insumo
               </Button>
@@ -416,10 +689,10 @@ export default function InsumosPage() {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Categoria</TableHead>
-                  <TableHead>Quantidade</TableHead>
-                  <TableHead>Quantidade Mínima</TableHead>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead>Preço Unitário</TableHead>
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead>Estoque</TableHead>
+                  <TableHead>Mínimo</TableHead>
+                  <TableHead>Preço Unit.</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -429,13 +702,65 @@ export default function InsumosPage() {
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{getCategoryLabel(product.category)}</TableCell>
-                    <TableCell>{product.current_stock}</TableCell>
+                    <TableCell>{product.supplier || "-"}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{product.current_stock}</span>
+                        <span className="text-gray-500 text-sm">{product.unit_of_measure}</span>
+                      </div>
+                    </TableCell>
                     <TableCell>{product.min_stock}</TableCell>
-                    <TableCell>{product.unit_of_measure}</TableCell>
                     <TableCell>{formatPrice(product.unit_price)}</TableCell>
-                    <TableCell>{getStatusBadge(product)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {getStockStatusBadge(product)}
+                        <Badge className={product.is_active ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
+                          {product.is_active ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => loadStockHistory(product)}
+                          title="Ver histórico"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openMovementForm(product, "in")}
+                          title="Entrada de estoque"
+                        >
+                          <TrendingUp className="h-4 w-4 text-green-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openMovementForm(product, "out")}
+                          title="Saída de estoque"
+                          disabled={product.current_stock === 0}
+                        >
+                          <TrendingDown className="h-4 w-4 text-red-600" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openAdjustmentDialog(product)}
+                          title="Ajustar estoque"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditProductForm(product)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -447,14 +772,7 @@ export default function InsumosPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => openEditForm(product)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(product)}
+                          onClick={() => handleDeleteProduct(product)}
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
@@ -467,14 +785,14 @@ export default function InsumosPage() {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Package2 className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>{searchTerm || categoryFilter !== "all" ? "Nenhum insumo encontrado" : "Nenhum insumo cadastrado"}</p>
+              <p>{searchTerm || categoryFilter !== "all" || statusFilter !== "all" ? "Nenhum insumo encontrado" : "Nenhum insumo cadastrado"}</p>
           </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Create/Edit Product Dialog */}
-      <Dialog open={showForm} onOpenChange={setShowForm}>
+      {/* Product Create/Edit Dialog */}
+      <Dialog open={showProductForm} onOpenChange={setShowProductForm}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
@@ -484,57 +802,44 @@ export default function InsumosPage() {
               {editingProduct ? "Atualize os dados do insumo" : "Preencha os dados do insumo"}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+          <form onSubmit={handleProductSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
                 <Label htmlFor="name">Nome do Insumo *</Label>
                 <Input
                   id="name"
                   required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Ex: Seringa 10ml"
+                  value={productFormData.name}
+                  onChange={(e) => setProductFormData({ ...productFormData, name: e.target.value })}
                 />
               </div>
               <div>
                 <Label htmlFor="category">Categoria *</Label>
                 <Select
-                  value={formData.category}
-                  onValueChange={(value) => setFormData({ ...formData, category: value })}
+                  value={productFormData.category}
+                  onValueChange={(value) => setProductFormData({ ...productFormData, category: value })}
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="category">
                     <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="medication">Medicamento</SelectItem>
-                    <SelectItem value="medical_supply">Insumo Médico</SelectItem>
-                    <SelectItem value="equipment">Equipamento</SelectItem>
-                    <SelectItem value="consumable">Consumível</SelectItem>
-                    <SelectItem value="instrument">Instrumento</SelectItem>
-                    <SelectItem value="other">Outro</SelectItem>
+                    {PRODUCT_CATEGORIES.map((cat) => (
+                      <SelectItem key={cat.value} value={cat.value}>
+                        {cat.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-              </div>
             </div>
-            <div>
-              <Label htmlFor="description">Descrição</Label>
-              <Textarea
-                id="description"
-                placeholder="Descrição detalhada do insumo..."
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="supplier">Fornecedor</Label>
                 <Input
                   id="supplier"
                   placeholder="Nome do fornecedor"
-                  value={formData.supplier}
-                  onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
+                  value={productFormData.supplier}
+                  onChange={(e) => setProductFormData({ ...productFormData, supplier: e.target.value })}
                 />
               </div>
               <div>
@@ -542,58 +847,73 @@ export default function InsumosPage() {
                 <Input
                   id="barcode"
                   placeholder="Código de barras (opcional)"
-                  value={formData.barcode}
-                  onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
+                  value={productFormData.barcode}
+                  onChange={(e) => setProductFormData({ ...productFormData, barcode: e.target.value })}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="current_stock">Quantidade Atual *</Label>
+                <Label htmlFor="unit_of_measure">Unidade de Medida</Label>
                 <Input
-                  id="current_stock"
-                  type="number"
-                  min="0"
-                  required
-                  value={formData.current_stock}
-                  onChange={(e) => setFormData({ ...formData, current_stock: e.target.value })}
+                  id="unit_of_measure"
+                  placeholder="Ex: unidade, caixa, frasco"
+                  value={productFormData.unit_of_measure}
+                  onChange={(e) => setProductFormData({ ...productFormData, unit_of_measure: e.target.value })}
                 />
-              </div>
+            </div>
               <div>
-                <Label htmlFor="min_stock">Quantidade Mínima *</Label>
+                <Label htmlFor="min_stock">Estoque Mínimo</Label>
                 <Input
                   id="min_stock"
                   type="number"
                   min="0"
-                  required
-                  value={formData.min_stock}
-                  onChange={(e) => setFormData({ ...formData, min_stock: e.target.value })}
+                  placeholder="0"
+                  value={productFormData.min_stock}
+                  onChange={(e) => setProductFormData({ ...productFormData, min_stock: e.target.value })}
                 />
               </div>
               <div>
-                <Label htmlFor="unit_of_measure">Unidade de Medida *</Label>
+                <Label htmlFor="current_stock">Estoque Atual</Label>
                 <Input
-                  id="unit_of_measure"
-                  required
-                  placeholder="Ex: un, litro, kg"
-                  value={formData.unit_of_measure}
-                  onChange={(e) => setFormData({ ...formData, unit_of_measure: e.target.value })}
+                  id="current_stock"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={productFormData.current_stock}
+                  onChange={(e) => setProductFormData({ ...productFormData, current_stock: e.target.value })}
                 />
               </div>
-            </div>
-            <div>
-              <Label htmlFor="unit_price">Preço Unitário (R$)</Label>
-              <Input
-                id="unit_price"
-                type="text"
-                placeholder="0.00"
-                value={formData.unit_price}
-                onChange={(e) => setFormData({ ...formData, unit_price: e.target.value })}
-              />
-              <p className="text-xs text-gray-500 mt-1">Digite o valor (ex: 15.50 ou 15,50)</p>
+              <div>
+                <Label htmlFor="unit_price">Preço Unitário</Label>
+                <Input
+                  id="unit_price"
+                  type="text"
+                  placeholder="R$ 0,00"
+                  value={productFormData.unit_price}
+                  onChange={(e) => setProductFormData({ ...productFormData, unit_price: e.target.value })}
+                />
+                <p className="text-xs text-gray-500 mt-1">Digite o valor (ex: 15.50 ou 15,50)</p>
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Descrição do insumo (opcional)"
+                  value={productFormData.description}
+                  onChange={(e) => setProductFormData({ ...productFormData, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+              <div className="md:col-span-2 flex items-center gap-2">
+                <Switch
+                  id="is_active"
+                  checked={productFormData.is_active}
+                  onCheckedChange={(checked) => setProductFormData({ ...productFormData, is_active: checked })}
+                />
+                <Label htmlFor="is_active">Insumo ativo</Label>
+              </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+              <Button type="button" variant="outline" onClick={() => setShowProductForm(false)}>
                 Cancelar
               </Button>
               <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={saving}>
@@ -601,6 +921,258 @@ export default function InsumosPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stock Movement Dialog */}
+      <Dialog open={showMovementForm} onOpenChange={setShowMovementForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {movementFormData.type === "in" ? "Entrada de Estoque" : movementFormData.type === "out" ? "Saída de Estoque" : "Ajuste de Estoque"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedProduct && `Insumo: ${selectedProduct.name} (Estoque atual: ${selectedProduct.current_stock} ${selectedProduct.unit_of_measure})`}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleMovementSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="movement_type">Tipo de Movimentação</Label>
+                <Select
+                  value={movementFormData.type}
+                  onValueChange={(value) => setMovementFormData({ ...movementFormData, type: value })}
+                >
+                  <SelectTrigger id="movement_type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOVEMENT_TYPES.map((type) => {
+                      const Icon = type.icon;
+                      return (
+                        <SelectItem key={type.value} value={type.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="h-4 w-4" />
+                            {type.label}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="movement_quantity">Quantidade *</Label>
+                <Input
+                  id="movement_quantity"
+                  type="number"
+                  min="1"
+                  required
+                  placeholder="0"
+                  value={movementFormData.quantity}
+                  onChange={(e) => setMovementFormData({ ...movementFormData, quantity: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="movement_reason">Motivo *</Label>
+                <Select
+                  value={movementFormData.reason}
+                  onValueChange={(value) => setMovementFormData({ ...movementFormData, reason: value })}
+                  required
+                >
+                  <SelectTrigger id="movement_reason">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOVEMENT_REASONS.map((reason) => (
+                      <SelectItem key={reason.value} value={reason.value}>
+                        {reason.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+            </div>
+            <div>
+                <Label htmlFor="movement_unit_cost">Custo Unitário</Label>
+              <Input
+                  id="movement_unit_cost"
+                type="text"
+                  placeholder="R$ 0,00"
+                  value={movementFormData.unit_cost}
+                  onChange={(e) => setMovementFormData({ ...movementFormData, unit_cost: e.target.value })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="movement_reference">Número de Referência</Label>
+                <Input
+                  id="movement_reference"
+                  placeholder="Ex: NF-12345, PED-789"
+                  value={movementFormData.reference_number}
+                  onChange={(e) => setMovementFormData({ ...movementFormData, reference_number: e.target.value })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="movement_description">Descrição</Label>
+                <Textarea
+                  id="movement_description"
+                  placeholder="Descrição adicional (opcional)"
+                  value={movementFormData.description}
+                  onChange={(e) => setMovementFormData({ ...movementFormData, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowMovementForm(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={saving}>
+                {saving ? "Salvando..." : "Registrar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stock Adjustment Dialog */}
+      <Dialog open={showAdjustmentDialog} onOpenChange={setShowAdjustmentDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Ajustar Estoque</DialogTitle>
+            <DialogDescription>
+              {selectedProduct && `Insumo: ${selectedProduct.name} (Estoque atual: ${selectedProduct.current_stock} ${selectedProduct.unit_of_measure})`}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAdjustmentSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="adjustment_quantity">Nova Quantidade *</Label>
+                <Input
+                  id="adjustment_quantity"
+                  type="number"
+                  min="0"
+                  required
+                  placeholder="0"
+                  value={adjustmentData.new_quantity}
+                  onChange={(e) => setAdjustmentData({ ...adjustmentData, new_quantity: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="adjustment_reason">Motivo *</Label>
+                <Select
+                  value={adjustmentData.reason}
+                  onValueChange={(value) => setAdjustmentData({ ...adjustmentData, reason: value })}
+                  required
+                >
+                  <SelectTrigger id="adjustment_reason">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOVEMENT_REASONS.map((reason) => (
+                      <SelectItem key={reason.value} value={reason.value}>
+                        {reason.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="adjustment_reference">Número de Referência</Label>
+                <Input
+                  id="adjustment_reference"
+                  placeholder="Ex: INV-12345"
+                  value={adjustmentData.reference_number}
+                  onChange={(e) => setAdjustmentData({ ...adjustmentData, reference_number: e.target.value })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <Label htmlFor="adjustment_description">Descrição</Label>
+                <Textarea
+                  id="adjustment_description"
+                  placeholder="Descrição do ajuste (opcional)"
+                  value={adjustmentData.description}
+                  onChange={(e) => setAdjustmentData({ ...adjustmentData, description: e.target.value })}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowAdjustmentDialog(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={saving}>
+                {saving ? "Salvando..." : "Ajustar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stock History Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Histórico de Movimentações</DialogTitle>
+            <DialogDescription>
+              {selectedProduct && `Insumo: ${selectedProduct.name}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {stockMovements.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data/Hora</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Quantidade</TableHead>
+                    <TableHead>Motivo</TableHead>
+                    <TableHead>Custo Unit.</TableHead>
+                    <TableHead>Custo Total</TableHead>
+                    <TableHead>Referência</TableHead>
+                    <TableHead>Descrição</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stockMovements.map((movement) => {
+                    const MovementIcon = MOVEMENT_TYPES.find(t => t.value === movement.type)?.icon || ArrowUp;
+                    return (
+                      <TableRow key={movement.id}>
+                        <TableCell>
+                          {new Date(movement.timestamp).toLocaleString("pt-BR")}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <MovementIcon className={`h-4 w-4 ${movement.type === "in" ? "text-green-600" : movement.type === "out" ? "text-red-600" : "text-blue-600"}`} />
+                            {MOVEMENT_TYPES.find(t => t.value === movement.type)?.label || movement.type}
+                          </div>
+                        </TableCell>
+                        <TableCell className={movement.quantity > 0 ? "text-green-600" : "text-red-600"}>
+                          {movement.quantity > 0 ? "+" : ""}{movement.quantity}
+                        </TableCell>
+                        <TableCell>
+                          {MOVEMENT_REASONS.find(r => r.value === movement.reason)?.label || movement.reason}
+                        </TableCell>
+                        <TableCell>{formatPrice(movement.unit_cost)}</TableCell>
+                        <TableCell>{formatPrice(movement.total_cost)}</TableCell>
+                        <TableCell>{movement.reference_number || "-"}</TableCell>
+                        <TableCell>{movement.description || "-"}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <History className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>Nenhuma movimentação registrada</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowHistoryDialog(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

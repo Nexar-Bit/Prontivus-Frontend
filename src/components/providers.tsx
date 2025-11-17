@@ -3,6 +3,7 @@
 import React from "react";
 import { AuthProvider, ThemeProvider } from "@/contexts";
 import { FeatureFlagsProvider } from "@/contexts/FeatureFlags";
+import { OperationProgressProvider } from "@/contexts/OperationProgressContext";
 import { Toaster } from "sonner";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -10,8 +11,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		<ThemeProvider>
 			<FeatureFlagsProvider>
 				<AuthProvider>
-					{children}
-					<Toaster position="top-right" richColors />
+					<OperationProgressProvider>
+						{children}
+						<Toaster position="top-right" richColors />
+					</OperationProgressProvider>
 				</AuthProvider>
 			</FeatureFlagsProvider>
 		</ThemeProvider>

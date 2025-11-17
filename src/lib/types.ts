@@ -179,13 +179,19 @@ export interface ServiceItem {
 
 export interface InvoiceLine {
   id: number;
-  service_item_id: number;
+  service_item_id?: number;
+  procedure_id?: number;
   quantity: number;
   unit_price: number;
   line_total: number;
+  total_price?: number; // Alias for line_total for backward compatibility
   description?: string;
   created_at: string;
-  service_item: ServiceItem;
+  service_item?: ServiceItem;
+  procedure?: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface Invoice {
@@ -203,6 +209,7 @@ export interface Invoice {
   appointment_date?: string;
   doctor_name?: string;
   invoice_lines: InvoiceLine[];
+  payments?: Payment[];
 }
 
 export interface ServiceItemCreate {

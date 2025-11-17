@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Package, UserPlus, FileText, Building2, CreditCard, RefreshCw } from "lucide-react";
+import { Users, Package, FileText, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
@@ -93,42 +93,6 @@ export default function CadastrosPage() {
         hoverColor: "hover:bg-purple-50",
         count: stats.total_supplies,
         label: "itens",
-      },
-      {
-        id: "medicos",
-        title: "Médicos",
-        description: "Cadastro de profissionais médicos",
-        icon: UserPlus,
-        link: "/secretaria/cadastros/medicos",
-        color: "text-teal-600",
-        bgColor: "bg-teal-100",
-        hoverColor: "hover:bg-teal-50",
-        count: stats.total_doctors,
-        label: "profissionais",
-      },
-      {
-        id: "produtos",
-        title: "Produtos",
-        description: "Gestão de produtos e serviços",
-        icon: FileText,
-        link: "/secretaria/cadastros/produtos",
-        color: "text-green-600",
-        bgColor: "bg-green-100",
-        hoverColor: "hover:bg-green-50",
-        count: stats.total_products,
-        label: "produtos",
-      },
-      {
-        id: "formas-pagamento",
-        title: "Formas de Pagamento",
-        description: "Configuração de métodos de pagamento",
-        icon: CreditCard,
-        link: "/secretaria/cadastros/formas-pagamento",
-        color: "text-orange-600",
-        bgColor: "bg-orange-100",
-        hoverColor: "hover:bg-orange-50",
-        count: stats.total_payment_methods,
-        label: "métodos",
       },
     ];
   };
@@ -278,12 +242,6 @@ export default function CadastrosPage() {
               <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-50">
                 <Package className="h-4 w-4 mr-2" />
                 Novo Insumo
-              </Button>
-            </Link>
-            <Link href="/secretaria/cadastros/medicos">
-              <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-50">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Novo Médico
               </Button>
             </Link>
           </div>

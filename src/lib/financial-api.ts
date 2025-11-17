@@ -66,7 +66,7 @@ export const financialApi = {
     if (filters?.start_date) params.append('start_date', filters.start_date);
     if (filters?.end_date) params.append('end_date', filters.end_date);
     
-    const url = `/api/financial/invoices${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `/api/v1/financial/invoices${params.toString() ? `?${params.toString()}` : ''}`;
     return api.get<Invoice[]>(url);
   },
 
@@ -75,8 +75,8 @@ export const financialApi = {
    */
   getMyInvoices: async (status?: InvoiceStatus): Promise<Invoice[]> => {
     const url = status 
-      ? `/api/financial/invoices/me?status=${status}`
-      : `/api/financial/invoices/me`;
+      ? `/api/v1/financial/invoices/me?status=${status}`
+      : `/api/v1/financial/invoices/me`;
     return api.get<Invoice[]>(url);
   },
 
@@ -84,7 +84,7 @@ export const financialApi = {
    * Get a specific invoice by ID
    */
   getInvoice: async (id: number): Promise<Invoice> => {
-    return api.get<Invoice>(`/api/financial/invoices/${id}`);
+    return api.get<Invoice>(`/api/v1/financial/invoices/${id}`);
   },
 
   /**

@@ -22,10 +22,18 @@ import {
   Clock,
   AlertCircle,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface HelpArticle {
   id: number;
@@ -34,7 +42,7 @@ interface HelpArticle {
   category: string;
   tags: string[];
   views?: number;
-  helpful?: number;
+  helpful_count?: number;
   created_at: string;
 }
 
@@ -62,121 +70,125 @@ export default function PatientHelpPage() {
     description: "",
     priority: "medium" as SupportTicket["priority"],
   });
+  const [submittingTicket, setSubmittingTicket] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
 
   // Load help articles and tickets
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        
-        // Load help articles (mock data for now - replace with actual API call)
-        // TODO: Replace with actual API endpoint when available
-        const mockArticles: HelpArticle[] = [
-          {
-            id: 1,
-            title: "Como agendar uma consulta",
-            content: "Para agendar uma consulta, acesse a seção de Agendamentos e clique em 'Agendar Consulta'. Selecione o médico, data e horário desejados.",
-            category: "Agendamentos",
-            tags: ["agendamento", "consulta", "médico"],
-            views: 150,
-            helpful: 45,
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: 2,
-            title: "Como acessar meus resultados de exames",
-            content: "Os resultados de exames ficam disponíveis na seção 'Resultados de Exames'. Você receberá uma notificação quando novos resultados estiverem disponíveis.",
-            category: "Exames",
-            tags: ["exames", "resultados", "laboratório"],
-            views: 120,
-            helpful: 38,
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: 3,
-            title: "Como fazer uma consulta virtual",
-            content: "Acesse a seção de Telemedicina e agende uma consulta virtual. Você receberá um link para acessar a videoconferência no horário agendado.",
-            category: "Telemedicina",
-            tags: ["telemedicina", "virtual", "vídeo"],
-            views: 95,
-            helpful: 32,
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: 4,
-            title: "Como visualizar minhas prescrições",
-            content: "Todas as suas prescrições ficam disponíveis na seção 'Prescrições'. Você pode visualizar, baixar em PDF e enviar para farmácias.",
-            category: "Prescrições",
-            tags: ["prescrição", "medicamentos", "farmácia"],
-            views: 88,
-            helpful: 28,
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: 5,
-            title: "Como atualizar meus dados pessoais",
-            content: "Acesse Configurações > Perfil para atualizar seus dados pessoais, informações de contato e foto de perfil.",
-            category: "Perfil",
-            tags: ["perfil", "dados", "configurações"],
-            views: 75,
-            helpful: 25,
-            created_at: new Date().toISOString(),
-          },
-        ];
-        
-        setArticles(mockArticles);
-
-        // Load support tickets
-        try {
-          // TODO: Replace with actual API endpoint when available
-          // const ticketsData = await api.get<SupportTicket[]>("/api/support/tickets");
-          // setTickets(ticketsData);
-          setTickets([]);
-        } catch (error) {
-          console.error("Failed to load tickets:", error);
-          setTickets([]);
-        }
-      } catch (error) {
-        console.error("Failed to load help data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadData();
-  }, []);
+  }, [refreshKey, selectedCategory]);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadData();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      
+      // Load help articles
+      try {
+        const params = new URLSearchParams();
+        if (selectedCategory) params.append('category', selectedCategory);
+        if (searchQuery) params.append('search', searchQuery);
+        const url = `/api/v1/support/articles${params.toString() ? `?${params.toString()}` : ''}`;
+        const articlesData = await api.get<HelpArticle[]>(url);
+        setArticles(articlesData);
+      } catch (error: any) {
+        console.error("Failed to load articles:", error);
+        toast.error("Erro ao carregar artigos", {
+          description: error?.message || error?.detail || "Não foi possível carregar os artigos de ajuda",
+        });
+        setArticles([]);
+      }
+
+      // Load categories
+      try {
+        const categoriesData = await api.get<string[]>("/api/v1/support/articles/categories");
+        setCategories(categoriesData);
+      } catch (error: any) {
+        console.error("Failed to load categories:", error);
+        setCategories([]);
+      }
+
+      // Load support tickets
+      try {
+        const ticketsData = await api.get<SupportTicket[]>("/api/v1/support/tickets");
+        setTickets(ticketsData);
+      } catch (error: any) {
+        console.error("Failed to load tickets:", error);
+        setTickets([]);
+      }
+    } catch (error: any) {
+      console.error("Failed to load help data:", error);
+      toast.error("Erro ao carregar dados", {
+        description: error?.message || error?.detail || "Não foi possível carregar os dados",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCreateTicket = async () => {
+    if (!ticketForm.subject.trim() || !ticketForm.description.trim()) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
     try {
-      // TODO: Replace with actual API call when endpoint is available
-      // await api.post("/api/support/tickets", ticketForm);
+      setSubmittingTicket(true);
+      await api.post<SupportTicket>("/api/v1/support/tickets", ticketForm);
       
-      // For now, show success message
-      alert("Ticket de suporte criado com sucesso! Nossa equipe entrará em contato em breve.");
+      toast.success("Ticket de suporte criado com sucesso!", {
+        description: "Nossa equipe entrará em contato em breve.",
+      });
       setShowTicketForm(false);
       setTicketForm({ subject: "", description: "", priority: "medium" });
       
       // Reload tickets
-      // const ticketsData = await api.get<SupportTicket[]>("/api/support/tickets");
-      // setTickets(ticketsData);
-    } catch (error) {
+      setRefreshKey(prev => prev + 1);
+    } catch (error: any) {
       console.error("Failed to create ticket:", error);
-      alert("Erro ao criar ticket. Tente novamente.");
+      toast.error("Erro ao criar ticket", {
+        description: error?.message || error?.detail || "Não foi possível criar o ticket. Tente novamente.",
+      });
+    } finally {
+      setSubmittingTicket(false);
+    }
+  };
+
+  const handleMarkHelpful = async (articleId: number) => {
+    try {
+      await api.post(`/api/v1/support/articles/${articleId}/helpful`);
+      toast.success("Obrigado pelo feedback!");
+      setRefreshKey(prev => prev + 1);
+    } catch (error: any) {
+      console.error("Failed to mark article as helpful:", error);
+      toast.error("Erro ao registrar feedback", {
+        description: error?.message || error?.detail || "Não foi possível registrar seu feedback",
+      });
     }
   };
 
   const filteredArticles = articles.filter((article) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
+    if (!searchQuery && !selectedCategory) return true;
+    const query = searchQuery?.toLowerCase() || "";
+    const matchesSearch = !query || (
       article.title.toLowerCase().includes(query) ||
       article.content.toLowerCase().includes(query) ||
       article.category.toLowerCase().includes(query) ||
       article.tags.some((tag) => tag.toLowerCase().includes(query))
     );
+    const matchesCategory = !selectedCategory || article.category === selectedCategory;
+    return matchesSearch && matchesCategory;
   });
-
-  const categories = Array.from(new Set(articles.map((a) => a.category)));
 
   const getStatusColor = (status: SupportTicket["status"]) => {
     switch (status) {
@@ -250,9 +262,23 @@ export default function PatientHelpPage() {
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
           {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Central de Ajuda</h1>
-            <p className="text-[#5D737E]">Encontre respostas para suas dúvidas ou entre em contato com nosso suporte</p>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-[#0F4C75] mb-2">Central de Ajuda</h1>
+              <p className="text-[#5D737E]">Encontre respostas para suas dúvidas ou entre em contato com nosso suporte</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setRefreshKey(prev => prev + 1);
+                toast.success('Dados atualizados!');
+              }}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
           </div>
 
           {/* Quick Contact Cards */}
@@ -334,10 +360,10 @@ export default function PatientHelpPage() {
               {/* Categories */}
               <div className="flex flex-wrap gap-2 mb-6">
                 <Button
-                  variant={searchQuery === "" ? "default" : "outline"}
+                  variant={selectedCategory === "" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSearchQuery("")}
-                  className={searchQuery === "" ? "bg-[#0F4C75] text-white" : ""}
+                  onClick={() => setSelectedCategory("")}
+                  className={selectedCategory === "" ? "bg-[#0F4C75] text-white" : ""}
                 >
                   Todos
                 </Button>
@@ -346,8 +372,8 @@ export default function PatientHelpPage() {
                     key={category}
                     variant="outline"
                     size="sm"
-                    onClick={() => setSearchQuery(category)}
-                    className={searchQuery === category ? "bg-[#0F4C75] text-white" : ""}
+                    onClick={() => setSelectedCategory(category)}
+                    className={selectedCategory === category ? "bg-[#0F4C75] text-white" : ""}
                   >
                     {category}
                   </Button>
@@ -386,11 +412,11 @@ export default function PatientHelpPage() {
                           <Badge variant="outline" className="text-xs">
                             {article.category}
                           </Badge>
-                          {article.views && (
-                            <span className="text-xs text-gray-500">
-                              {article.views} visualizações
-                            </span>
-                          )}
+                        {article.views !== undefined && (
+                          <span className="text-xs text-gray-500">
+                            {article.views} visualizações
+                          </span>
+                        )}
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -456,9 +482,9 @@ export default function PatientHelpPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Criado em {new Date(ticket.created_at).toLocaleDateString("pt-BR")}</span>
+                          <span>Criado em {format(parseISO(ticket.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
                           {ticket.updated_at && (
-                            <span>Atualizado em {new Date(ticket.updated_at).toLocaleDateString("pt-BR")}</span>
+                            <span>Atualizado em {format(parseISO(ticket.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
                           )}
                         </div>
                       </CardContent>
@@ -469,45 +495,36 @@ export default function PatientHelpPage() {
             </TabsContent>
           </Tabs>
 
-          {/* Article Detail Modal */}
+          {/* Article Detail Dialog */}
           {selectedArticle && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <Card className="medical-card max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-2xl text-[#0F4C75] mb-2">
-                        {selectedArticle.title}
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{selectedArticle.category}</Badge>
-                        {selectedArticle.views && (
-                          <span className="text-xs text-gray-500">
-                            {selectedArticle.views} visualizações
-                          </span>
-                        )}
-                        {selectedArticle.helpful !== undefined && (
-                          <span className="text-xs text-gray-500">
-                            {selectedArticle.helpful} pessoas acharam útil
-                          </span>
-                        )}
-                      </div>
+            <Dialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl text-[#0F4C75] mb-2">
+                    {selectedArticle.title}
+                  </DialogTitle>
+                  <DialogDescription>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="outline">{selectedArticle.category}</Badge>
+                      {selectedArticle.views !== undefined && (
+                        <span className="text-xs text-gray-500">
+                          {selectedArticle.views} visualizações
+                        </span>
+                      )}
+                      {(selectedArticle as any).helpful_count !== undefined && (
+                        <span className="text-xs text-gray-500">
+                          {(selectedArticle as any).helpful_count} pessoas acharam útil
+                        </span>
+                      )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setSelectedArticle(null)}
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
                   <div className="prose max-w-none">
                     <p className="text-[#5D737E] whitespace-pre-line">{selectedArticle.content}</p>
                   </div>
-                  {selectedArticle.tags.length > 0 && (
-                    <div className="mt-6 pt-6 border-t border-gray-200">
+                  {selectedArticle.tags && selectedArticle.tags.length > 0 && (
+                    <div className="pt-4 border-t border-gray-200">
                       <p className="text-sm font-medium text-[#0F4C75] mb-2">Tags:</p>
                       <div className="flex flex-wrap gap-2">
                         {selectedArticle.tags.map((tag, index) => (
@@ -518,13 +535,14 @@ export default function PatientHelpPage() {
                       </div>
                     </div>
                   )}
-                  <div className="mt-6 pt-6 border-t border-gray-200 flex gap-4">
+                  <DialogFooter className="pt-4 border-t border-gray-200">
                     <Button
                       variant="outline"
                       className="flex-1"
                       onClick={() => {
-                        // TODO: Mark as helpful
-                        alert("Obrigado pelo feedback!");
+                        if (selectedArticle) {
+                          handleMarkHelpful(selectedArticle.id);
+                        }
                       }}
                     >
                       <CheckCircle2 className="h-4 w-4 mr-2" />
@@ -541,93 +559,94 @@ export default function PatientHelpPage() {
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Preciso de Mais Ajuda
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  </DialogFooter>
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
 
-          {/* Create Ticket Modal */}
-          {showTicketForm && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <Card className="medical-card max-w-2xl w-full">
-                <CardHeader>
-                  <CardTitle className="text-2xl text-[#0F4C75]">Criar Ticket de Suporte</CardTitle>
-                  <CardDescription>
-                    Descreva seu problema ou dúvida e nossa equipe entrará em contato
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-[#0F4C75] mb-2 block">
-                      Assunto
-                    </label>
-                    <Input
-                      value={ticketForm.subject}
-                      onChange={(e) =>
-                        setTicketForm({ ...ticketForm, subject: e.target.value })
-                      }
-                      placeholder="Ex: Problema ao agendar consulta"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-[#0F4C75] mb-2 block">
-                      Descrição
-                    </label>
-                    <textarea
-                      value={ticketForm.description}
-                      onChange={(e) =>
-                        setTicketForm({ ...ticketForm, description: e.target.value })
-                      }
-                      placeholder="Descreva detalhadamente seu problema ou dúvida..."
-                      className="w-full min-h-[150px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-[#0F4C75] mb-2 block">
-                      Prioridade
-                    </label>
-                    <select
-                      value={ticketForm.priority}
-                      onChange={(e) =>
-                        setTicketForm({
-                          ...ticketForm,
-                          priority: e.target.value as SupportTicket["priority"],
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F4C75]"
-                      title="Selecione a prioridade do ticket"
-                      aria-label="Prioridade do ticket"
-                    >
-                      <option value="low">Baixa</option>
-                      <option value="medium">Média</option>
-                      <option value="high">Alta</option>
-                      <option value="urgent">Urgente</option>
-                    </select>
-                  </div>
-                  <div className="flex gap-4 pt-4">
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => {
-                        setShowTicketForm(false);
-                        setTicketForm({ subject: "", description: "", priority: "medium" });
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      className="flex-1 bg-[#0F4C75] hover:bg-[#1B9AAA] text-white"
-                      onClick={handleCreateTicket}
-                      disabled={!ticketForm.subject || !ticketForm.description}
-                    >
-                      Enviar Ticket
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+          {/* Create Ticket Dialog */}
+          <Dialog open={showTicketForm} onOpenChange={setShowTicketForm}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-2xl text-[#0F4C75]">Criar Ticket de Suporte</DialogTitle>
+                <DialogDescription>
+                  Descreva seu problema ou dúvida e nossa equipe entrará em contato
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="ticket-subject" className="text-sm font-medium text-[#0F4C75]">
+                    Assunto
+                  </Label>
+                  <Input
+                    id="ticket-subject"
+                    value={ticketForm.subject}
+                    onChange={(e) =>
+                      setTicketForm({ ...ticketForm, subject: e.target.value })
+                    }
+                    placeholder="Ex: Problema ao agendar consulta"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ticket-description" className="text-sm font-medium text-[#0F4C75]">
+                    Descrição
+                  </Label>
+                  <Textarea
+                    id="ticket-description"
+                    value={ticketForm.description}
+                    onChange={(e) =>
+                      setTicketForm({ ...ticketForm, description: e.target.value })
+                    }
+                    placeholder="Descreva detalhadamente seu problema ou dúvida..."
+                    rows={6}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="ticket-priority" className="text-sm font-medium text-[#0F4C75]">
+                    Prioridade
+                  </Label>
+                  <Select
+                    value={ticketForm.priority}
+                    onValueChange={(value) =>
+                      setTicketForm({
+                        ...ticketForm,
+                        priority: value as SupportTicket["priority"],
+                      })
+                    }
+                  >
+                    <SelectTrigger id="ticket-priority">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Baixa</SelectItem>
+                      <SelectItem value="medium">Média</SelectItem>
+                      <SelectItem value="high">Alta</SelectItem>
+                      <SelectItem value="urgent">Urgente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowTicketForm(false);
+                    setTicketForm({ subject: "", description: "", priority: "medium" });
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  className="bg-[#0F4C75] hover:bg-[#1B9AAA] text-white"
+                  onClick={handleCreateTicket}
+                  disabled={!ticketForm.subject.trim() || !ticketForm.description.trim() || submittingTicket}
+                >
+                  {submittingTicket ? "Enviando..." : "Enviar Ticket"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>

@@ -67,24 +67,143 @@ export default function PatientHealthPage() {
   // Helper function to reload all data
   const reloadData = async () => {
     try {
-      const [appts, hist, dashboard] = await Promise.all([
-        api.get<Appt[]>(`/api/appointments/patient-appointments`),
-        api.get<HistoryItem[]>(`/api/clinical/me/history`),
-        api.get<any>(`/api/patient/dashboard`).catch(() => null), // Optional, don't fail if unavailable
+      setLoading(true);
+      const [appts, dashboard, prescriptions, examResults] = await Promise.all([
+        api.get<Appt[]>(`/api/v1/appointments/patient-appointments`),
+        api.get<any>(`/api/v1/patient/dashboard`).catch(() => null), // Optional, don't fail if unavailable
+        api.get<any[]>(`/api/v1/patient/prescriptions`).catch(() => []), // Get prescriptions
+        api.get<any[]>(`/api/v1/patient/exam-results`).catch(() => []), // Get exam results
       ]);
       
       setAppointments(appts);
-      setHistory(hist);
       
       // Extract health summary from dashboard if available
       if (dashboard?.health_summary) {
         setHealthSummary(dashboard.health_summary);
       }
+      
+      // Build history from appointments, prescriptions, and exam results
+      const historyItems: HistoryItem[] = [];
+      
+      // Group data by appointment
+      const appointmentMap = new Map<number, HistoryItem>();
+      
+      appts.forEach(apt => {
+        appointmentMap.set(apt.id, {
+          appointment_id: apt.id,
+          appointment_date: apt.scheduled_datetime,
+          doctor_name: apt.doctor_name,
+          appointment_type: apt.appointment_type,
+          clinical_record: {
+            prescriptions: [],
+            exam_requests: [],
+            diagnoses: [],
+          },
+        });
+      });
+      
+      // Add prescriptions to history
+      prescriptions.forEach((presc: any) => {
+        // Try to find the appointment for this prescription
+        // For now, we'll add it to the most recent appointment or create a generic entry
+        const aptId = presc.appointment_id || appts[0]?.id;
+        if (aptId && appointmentMap.has(aptId)) {
+          const item = appointmentMap.get(aptId)!;
+          if (!item.clinical_record) {
+            item.clinical_record = { prescriptions: [], exam_requests: [], diagnoses: [] };
+          }
+          // Ensure prescriptions array exists
+          if (!item.clinical_record.prescriptions) {
+            item.clinical_record.prescriptions = [];
+          }
+          item.clinical_record.prescriptions.push({
+            id: presc.id,
+            medication_name: presc.medication_name,
+            dosage: presc.dosage,
+            frequency: presc.frequency,
+            duration: presc.duration,
+            instructions: presc.instructions,
+            issued_date: presc.issued_date || new Date().toISOString(),
+            is_active: presc.is_active,
+          });
+        }
+      });
+      
+      // Add exam results to history
+      examResults.forEach((exam: any) => {
+        // Try to find the appointment for this exam
+        const aptId = exam.appointment_id || appts[0]?.id;
+        if (aptId && appointmentMap.has(aptId)) {
+          const item = appointmentMap.get(aptId)!;
+          if (!item.clinical_record) {
+            item.clinical_record = { prescriptions: [], exam_requests: [], diagnoses: [] };
+          }
+          // Ensure exam_requests array exists
+          if (!item.clinical_record.exam_requests) {
+            item.clinical_record.exam_requests = [];
+          }
+          item.clinical_record.exam_requests.push({
+            id: exam.id,
+            exam_type: exam.exam_type,
+            description: exam.description,
+            reason: exam.reason,
+            requested_date: exam.requested_date || new Date().toISOString(),
+            completed: exam.status === 'available',
+            completed_date: exam.completed_date,
+          });
+        }
+      });
+      
+      // Try to fetch clinical records with diagnoses for each appointment
+      // Note: This would require a patient-accessible endpoint for clinical records
+      // For now, we'll use the diagnoses from the dashboard health summary if available
+      // and try to fetch clinical records if possible
+      try {
+        const clinicalRecordsPromises = appts.map(async (apt) => {
+          try {
+            // Try to get clinical record for this appointment
+            // Note: This endpoint might require staff role, so we catch errors
+            const record = await api.get<any>(`/api/v1/clinical/appointments/${apt.id}/clinical-record`).catch(() => null);
+            return { appointmentId: apt.id, record };
+          } catch {
+            return { appointmentId: apt.id, record: null };
+          }
+        });
+        
+        const clinicalRecords = await Promise.all(clinicalRecordsPromises);
+        
+        clinicalRecords.forEach(({ appointmentId, record }) => {
+          if (record && appointmentMap.has(appointmentId)) {
+            const item = appointmentMap.get(appointmentId)!;
+            if (!item.clinical_record) {
+              item.clinical_record = { prescriptions: [], exam_requests: [], diagnoses: [] };
+            }
+            // Add diagnoses from clinical record
+            if (record.diagnoses && Array.isArray(record.diagnoses)) {
+              item.clinical_record.diagnoses = record.diagnoses.map((d: any) => ({
+                id: d.id,
+                cid_code: d.cid_code,
+                description: d.description,
+                type: d.type,
+              }));
+            }
+          }
+        });
+      } catch (error) {
+        // Silently fail if we can't fetch clinical records
+        console.warn("Could not fetch clinical records with diagnoses:", error);
+      }
+      
+      setHistory(Array.from(appointmentMap.values()).sort((a, b) => 
+        new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()
+      ));
     } catch (error: any) {
       console.error("Error loading health data:", error);
       toast.error("Erro ao carregar dados de saúde", {
-        description: error?.message || "Não foi possível carregar suas informações de saúde",
+        description: error?.message || error?.detail || "Não foi possível carregar suas informações de saúde",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -142,26 +261,26 @@ export default function PatientHealthPage() {
 
   const cancelAppt = async (id: number) => {
     try {
-      await api.post(`/api/appointments/${id}/cancel`, {});
+      await api.post(`/api/v1/appointments/${id}/cancel`, {});
       await reloadData();
       toast.success('Consulta cancelada com sucesso!');
     } catch (error: any) {
       console.error("Error cancelling appointment:", error);
       toast.error('Erro ao cancelar consulta', {
-        description: error?.message || 'Não foi possível cancelar a consulta',
+        description: error?.message || error?.detail || 'Não foi possível cancelar a consulta',
       });
     }
   };
 
   const rescheduleAppt = async (id: number, whenISO: string) => {
     try {
-      await api.post(`/api/appointments/${id}/reschedule`, { scheduled_datetime: whenISO });
+      await api.post(`/api/v1/appointments/${id}/reschedule`, { scheduled_datetime: whenISO });
       await reloadData();
       toast.success('Consulta reagendada com sucesso!');
     } catch (error: any) {
       console.error("Error rescheduling appointment:", error);
       toast.error('Erro ao reagendar consulta', {
-        description: error?.message || 'Não foi possível reagendar a consulta',
+        description: error?.message || error?.detail || 'Não foi possível reagendar a consulta',
       });
     }
   };
@@ -202,14 +321,88 @@ export default function PatientHealthPage() {
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
           {/* Modern Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Activity className="h-7 w-7 text-blue-600" />
-              </div>
-              Saúde
-            </h1>
-            <p className="text-muted-foreground text-sm">Resumo da sua saúde, consultas, exames e medicações</p>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Activity className="h-7 w-7 text-blue-600" />
+                </div>
+                Saúde
+              </h1>
+              <p className="text-muted-foreground text-sm">Resumo da sua saúde, consultas, exames e medicações</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  await reloadData();
+                  toast.success('Dados atualizados!');
+                }}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  try {
+                    // Export health summary as CSV
+                    const csvRows = [];
+                    csvRows.push('Tipo,Descrição,Data,Status');
+                    
+                    // Add appointments
+                    appointments.forEach(apt => {
+                      csvRows.push([
+                        'Consulta',
+                        `${apt.doctor_name} - ${apt.appointment_type || 'Consulta'}`,
+                        format(parseISO(apt.scheduled_datetime), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+                        apt.status
+                      ].join(','));
+                    });
+                    
+                    // Add prescriptions
+                    activePrescriptions.forEach(p => {
+                      csvRows.push([
+                        'Prescrição',
+                        p.medication_name,
+                        format(parseISO(p.issued_date), 'dd/MM/yyyy', { locale: ptBR }),
+                        p.is_active ? 'Ativa' : 'Inativa'
+                      ].join(','));
+                    });
+                    
+                    // Add pending exams
+                    pendingExams.forEach(e => {
+                      csvRows.push([
+                        'Exame',
+                        e.exam_type,
+                        format(parseISO(e.requested_date), 'dd/MM/yyyy', { locale: ptBR }),
+                        e.completed ? 'Concluído' : 'Pendente'
+                      ].join(','));
+                    });
+                    
+                    const csvContent = csvRows.join('\n');
+                    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `resumo_saude_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    toast.success('Resumo exportado com sucesso!');
+                  } catch (error: any) {
+                    toast.error('Erro ao exportar resumo', {
+                      description: error?.message || error?.detail || 'Não foi possível exportar o resumo',
+                    });
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </div>
           </div>
 
           {/* Summary cards */}
@@ -426,6 +619,52 @@ Emitido em: ${format(parseISO(p.issued_date), "dd/MM/yyyy", { locale: ptBR })}
               )}
             </CardContent>
           </Card>
+
+          {/* Active Diagnoses/Conditions */}
+          {activeDiagnoses.length > 0 && (
+            <Card className="border-l-4 border-l-green-500 mb-6 bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl text-green-600 flex items-center gap-2">
+                      <div className="p-1.5 bg-green-100 rounded-lg">
+                        <Activity className="h-5 w-5" />
+                      </div>
+                      Condições de Saúde
+                    </CardTitle>
+                    <CardDescription>Diagnósticos e condições monitoradas</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {activeDiagnoses.map(d => (
+                    <div 
+                      key={d.id} 
+                      className="p-3 rounded-lg border border-green-200 bg-green-50/50 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded bg-green-100">
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {d.cid_code ? `${d.cid_code} - ` : ''}{d.description || 'Condição não especificada'}
+                          </div>
+                          {d.type && (
+                            <div className="text-xs text-gray-600 mt-1">Tipo: {d.type}</div>
+                          )}
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="border-green-300 text-green-700">
+                        Ativa
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Pending exams */}
           <Card className="border-l-4 border-l-orange-500 bg-white/80 backdrop-blur-sm">

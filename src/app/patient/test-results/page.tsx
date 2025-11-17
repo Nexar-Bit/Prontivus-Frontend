@@ -29,6 +29,7 @@ import {
   Phone,
   Mail,
   Share2,
+  RefreshCw,
 } from "lucide-react";
 import { format, parseISO, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -117,6 +118,8 @@ export default function TestResultsPage() {
   const [selectedReport, setSelectedReport] = useState<LabReport | null>(null);
   const [reports, setReports] = useState<LabReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'all' | 'pending' | 'completed'>('all');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Helper function to determine status from exam data
   const getExamStatus = (exam: any): 'normal' | 'borderline' | 'abnormal' | 'critical' => {
@@ -162,9 +165,12 @@ export default function TestResultsPage() {
   };
 
   // Helper function to map exam data to TestResult
-  const mapExamToTestResult = (exam: any, appointmentDate: string): TestResult => {
+  const mapExamToTestResult = (exam: any, reportDate: string): TestResult => {
     const status = getExamStatus(exam);
     const parsed = parseExamDescription(exam.description || '');
+    
+    // Use completed_date if available, otherwise use requested_date
+    const resultDate = exam.completed_date || exam.requested_date || reportDate;
     
     return {
       id: String(exam.id),
@@ -174,9 +180,9 @@ export default function TestResultsPage() {
       unit: parsed.unit,
       referenceRange: parsed.referenceRange,
       status,
-      date: exam.completed_date || exam.requested_date || appointmentDate,
+      date: resultDate,
       provider: 'Clínica',
-      notes: exam.description || exam.reason || undefined,
+      notes: exam.description || undefined,
       critical: status === 'critical',
       trend: undefined, // Would need historical data to calculate
       previousValue: undefined,
@@ -190,32 +196,33 @@ export default function TestResultsPage() {
         setLoading(true);
         
         // Fetch exam results from the dedicated endpoint
-        const examResults = await api.get<any[]>(`/api/patient/exam-results`);
+        const examResults = await api.get<any[]>(`/api/v1/patient/exam-results`);
         
         // Group exams by appointment date to create reports
         const reportsMap = new Map<string, LabReport>();
         
         examResults.forEach((exam: any) => {
-          const appointmentDate = exam.appointment_date || exam.requested_date || new Date().toISOString();
-          const reportKey = appointmentDate.split('T')[0]; // Group by date
+          // Use completed_date if available, otherwise use requested_date or appointment_date
+          const reportDate = exam.completed_date || exam.appointment_date || exam.requested_date || new Date().toISOString();
+          const reportKey = reportDate.split('T')[0]; // Group by date
           
           if (!reportsMap.has(reportKey)) {
             reportsMap.set(reportKey, {
               id: `report-${reportKey}`,
-              reportDate: appointmentDate,
+              reportDate: reportDate,
               orderedBy: exam.doctor_name || 'Médico',
               provider: 'Clínica',
               results: [],
               summary: undefined,
               doctorNotes: undefined,
               recommendations: undefined,
-              acknowledged: exam.status === 'available',
+              acknowledged: exam.status === 'available' && exam.completed_date,
               acknowledgedAt: exam.completed_date || undefined,
             });
           }
           
           const report = reportsMap.get(reportKey)!;
-          const testResult = mapExamToTestResult(exam, appointmentDate);
+          const testResult = mapExamToTestResult(exam, reportDate);
           report.results.push(testResult);
         });
         
@@ -240,7 +247,7 @@ export default function TestResultsPage() {
       }
     };
     load();
-  }, []);
+  }, [refreshKey]);
 
   // Get all unique categories
   const categories = useMemo(() => {
@@ -282,11 +289,33 @@ export default function TestResultsPage() {
     });
   }, [reports]);
 
+  // Separate pending and completed reports
+  // A report is pending if it has at least one result with status 'borderline' (which means pending)
+  const pendingReports = useMemo(() => {
+    return reports.filter(report => 
+      report.results.some(r => r.status === 'borderline')
+    );
+  }, [reports]);
+
+  // A report is completed if all results are not pending (not borderline)
+  const completedReports = useMemo(() => {
+    return reports.filter(report => 
+      report.results.every(r => r.status !== 'borderline')
+    );
+  }, [reports]);
+
   // Filter reports
   const filteredReports = useMemo(() => {
     let filtered = [...reports];
 
-    if (searchQuery) {
+    // Apply tab filter
+    if (activeTab === 'pending') {
+      filtered = pendingReports;
+    } else if (activeTab === 'completed') {
+      filtered = completedReports;
+    }
+
+    if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(report =>
         report.summary?.toLowerCase().includes(query) ||
@@ -311,7 +340,7 @@ export default function TestResultsPage() {
     }
 
     return filtered.sort((a, b) => parseISO(b.reportDate).getTime() - parseISO(a.reportDate).getTime());
-  }, [reports, searchQuery, selectedCategory, selectedStatus]);
+  }, [reports, searchQuery, selectedCategory, selectedStatus, activeTab, pendingReports, completedReports]);
 
   const getTrendIcon = (trend?: string) => {
     switch (trend) {
@@ -390,16 +419,88 @@ export default function TestResultsPage() {
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
           {/* Modern Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <TestTube className="h-7 w-7 text-blue-600" />
-              </div>
-              Resultados de Exames
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Acompanhe seus exames laboratoriais e resultados
-            </p>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <TestTube className="h-7 w-7 text-blue-600" />
+                </div>
+                Resultados de Exames
+              </h1>
+              <p className="text-muted-foreground text-sm">
+                Acompanhe seus exames laboratoriais e resultados
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  try {
+                    setLoading(true);
+                    setRefreshKey(prev => prev + 1);
+                    toast.success('Resultados atualizados!');
+                  } catch (error: any) {
+                    toast.error('Erro ao atualizar', {
+                      description: error?.message || error?.detail || 'Não foi possível atualizar os resultados',
+                    });
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const examResults = await api.get<any[]>(`/api/v1/patient/exam-results`);
+                    if (examResults.length === 0) {
+                      toast.info('Nenhum resultado para exportar');
+                      return;
+                    }
+                    
+                    // Create CSV content
+                    const csvRows = [];
+                    csvRows.push('ID,Tipo de Exame,Data Solicitação,Data Conclusão,Status,Médico,Descrição,Anormalidades');
+                    
+                    examResults.forEach((exam: any) => {
+                      csvRows.push([
+                        exam.id,
+                        exam.exam_type || '',
+                        exam.requested_date ? format(parseISO(exam.requested_date), 'dd/MM/yyyy', { locale: ptBR }) : '',
+                        exam.completed_date ? format(parseISO(exam.completed_date), 'dd/MM/yyyy', { locale: ptBR }) : '',
+                        exam.status === 'available' ? 'Disponível' : 'Pendente',
+                        exam.doctor_name || '',
+                        (exam.description || '').replace(/,/g, ';'),
+                        exam.has_abnormalities ? 'Sim' : 'Não'
+                      ].join(','));
+                    });
+                    
+                    const csvContent = csvRows.join('\n');
+                    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `resultados_exames_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    toast.success('Resultados exportados com sucesso!');
+                  } catch (error: any) {
+                    toast.error('Erro ao exportar resultados', {
+                      description: error?.message || error?.detail || 'Não foi possível exportar os resultados',
+                    });
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+            </div>
           </div>
 
           {/* Loading State */}
@@ -425,8 +526,10 @@ export default function TestResultsPage() {
                 <TestTube className="h-4 w-4 text-blue-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{reports.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Relatórios disponíveis</p>
+                <div className="text-2xl font-bold">
+                  {reports.reduce((sum, r) => sum + r.results.length, 0)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">{reports.length} relatório(s)</p>
               </CardContent>
             </Card>
 
@@ -450,13 +553,13 @@ export default function TestResultsPage() {
             <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Atenção
+                  Pendentes
                 </CardTitle>
                 <AlertTriangle className="h-4 w-4 text-orange-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{abnormalResults.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Requerem atenção</p>
+                <div className="text-2xl font-bold">{pendingReports.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">Aguardando resultados</p>
               </CardContent>
             </Card>
 
@@ -547,6 +650,25 @@ export default function TestResultsPage() {
           </Card>
           )}
 
+          {/* Tabs for All/Pending/Completed */}
+          {!loading && (
+          <div className="mb-4">
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'pending' | 'completed')}>
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="all">
+                  Todos ({reports.length})
+                </TabsTrigger>
+                <TabsTrigger value="pending">
+                  Pendentes ({pendingReports.length})
+                </TabsTrigger>
+                <TabsTrigger value="completed">
+                  Concluídos ({completedReports.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          )}
+
           {/* View Toggle */}
           {!loading && (
           <div className="mb-4 flex items-center justify-between">
@@ -556,31 +678,6 @@ export default function TestResultsPage() {
                 <TabsTrigger value="detailed">Detalhado</TabsTrigger>
               </TabsList>
             </Tabs>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={async () => {
-                try {
-                  const examResults = await api.get<any[]>(`/api/patient/exam-results`);
-                  const dataStr = JSON.stringify(examResults, null, 2);
-                  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                  const url = URL.createObjectURL(dataBlob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `resultados_exames_${format(new Date(), 'yyyy-MM-dd')}.json`;
-                  link.click();
-                  URL.revokeObjectURL(url);
-                  toast.success('Resultados exportados com sucesso!');
-                } catch (error: any) {
-                  toast.error('Erro ao exportar resultados', {
-                    description: error?.message || 'Não foi possível exportar os resultados',
-                  });
-                }
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Exportar Todos
-            </Button>
           </div>
           )}
 

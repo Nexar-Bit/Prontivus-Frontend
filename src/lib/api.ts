@@ -96,6 +96,11 @@ async function apiRequest<T>(
     } catch {
       // If response is not JSON, use status text
       errorMessage = response.statusText || errorMessage;
+      
+      // For 404 errors, provide more helpful message
+      if (response.status === 404) {
+        errorMessage = `Not Found: ${endpoint}. The endpoint may not exist or the backend server may need to be restarted.`;
+      }
     }
     
     const error = new Error(errorMessage);

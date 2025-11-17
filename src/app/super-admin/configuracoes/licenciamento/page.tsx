@@ -2,7 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Key, Plus, Search, Edit, Trash2, RefreshCw, Building, Users, Calendar, AlertCircle, CheckCircle2, Copy } from "lucide-react";
+import { 
+  Key, Plus, Search, Edit, Trash2, RefreshCw, Building, Users, Calendar, 
+  AlertCircle, CheckCircle2, Copy, Eye, Loader2, XCircle, PlayCircle
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +35,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -97,19 +102,30 @@ const LICENSE_PLANS = [
   { value: "custom", label: "Customizado" },
 ];
 
+const LICENSE_STATUSES = [
+  { value: "active", label: "Ativa" },
+  { value: "suspended", label: "Suspensa" },
+  { value: "cancelled", label: "Cancelada" },
+  { value: "expired", label: "Expirada" },
+];
+
 export default function LicenciamentoPage() {
   const [loading, setLoading] = useState(true);
   const [licenses, setLicenses] = useState<License[]>([]);
   const [filteredLicenses, setFilteredLicenses] = useState<License[]>([]);
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [showForm, setShowForm] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [editingLicense, setEditingLicense] = useState<License | null>(null);
+  const [selectedLicense, setSelectedLicense] = useState<License | null>(null);
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
     expiring: 0,
+    expired: 0,
   });
   const [formData, setFormData] = useState<LicenseFormData>({
     tenant_id: "",
@@ -128,7 +144,7 @@ export default function LicenciamentoPage() {
   useEffect(() => {
     filterLicenses();
     calculateStats();
-  }, [licenses, searchTerm]);
+  }, [licenses, searchTerm, statusFilter]);
 
   const loadData = async () => {
     try {
@@ -162,11 +178,10 @@ export default function LicenciamentoPage() {
 
   const loadClinics = async () => {
     try {
-      const data = await api.get<Clinic[]>("/api/v1/admin/clinics");
+      const data = await api.get<Clinic[]>("/api/v1/admin/clinics?limit=1000");
       setClinics(data);
     } catch (error: any) {
       console.error("Failed to load clinics:", error);
-      // Don't show error for clinics, it's optional
       setClinics([]);
     }
   };
@@ -181,8 +196,21 @@ export default function LicenciamentoPage() {
           license.activation_key.toLowerCase().includes(searchLower) ||
           license.plan.toLowerCase().includes(searchLower) ||
           license.clinic_name?.toLowerCase().includes(searchLower) ||
-          license.status.toLowerCase().includes(searchLower)
+          license.status.toLowerCase().includes(searchLower) ||
+          license.id.toLowerCase().includes(searchLower)
       );
+    }
+
+    if (statusFilter === "active") {
+      filtered = filtered.filter(l => l.is_active && !l.is_expired);
+    } else if (statusFilter === "expired") {
+      filtered = filtered.filter(l => l.is_expired);
+    } else if (statusFilter === "suspended") {
+      filtered = filtered.filter(l => l.status === "suspended");
+    } else if (statusFilter === "cancelled") {
+      filtered = filtered.filter(l => l.status === "cancelled");
+    } else if (statusFilter === "expiring") {
+      filtered = filtered.filter(l => !l.is_expired && l.days_until_expiry <= 30);
     }
 
     setFilteredLicenses(filtered);
@@ -192,8 +220,9 @@ export default function LicenciamentoPage() {
     const total = licenses.length;
     const active = licenses.filter(l => l.is_active && !l.is_expired).length;
     const expiring = licenses.filter(l => !l.is_expired && l.days_until_expiry <= 30).length;
+    const expired = licenses.filter(l => l.is_expired).length;
     
-    setStats({ total, active, expiring });
+    setStats({ total, active, expiring, expired });
   };
 
   const resetForm = () => {
@@ -230,11 +259,29 @@ export default function LicenciamentoPage() {
     setShowForm(true);
   };
 
+  const openDetailDialog = async (license: License) => {
+    try {
+      const fullLicense = await api.get<License>(`/api/v1/licenses/${license.id}`);
+      setSelectedLicense(fullLicense);
+      setShowDetailDialog(true);
+    } catch (error: any) {
+      console.error("Failed to load license details:", error);
+      toast.error("Erro ao carregar detalhes da licença", {
+        description: error?.message || error?.detail,
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.tenant_id || !formData.plan || !formData.start_at || !formData.end_at) {
       toast.error("Preencha os campos obrigatórios");
+      return;
+    }
+
+    if (new Date(formData.end_at) <= new Date(formData.start_at)) {
+      toast.error("Data de término deve ser posterior à data de início");
       return;
     }
 
@@ -252,11 +299,9 @@ export default function LicenciamentoPage() {
       };
 
       if (editingLicense) {
-        // Update existing license
         await api.put(`/api/v1/licenses/${editingLicense.id}`, licenseData);
         toast.success("Licença atualizada com sucesso!");
       } else {
-        // Create new license
         await api.post("/api/v1/licenses", licenseData);
         toast.success("Licença criada com sucesso!");
       }
@@ -275,7 +320,7 @@ export default function LicenciamentoPage() {
   };
 
   const handleDelete = async (license: License) => {
-    if (!confirm(`Tem certeza que deseja cancelar a licença ${license.activation_key}?`)) {
+    if (!confirm(`Tem certeza que deseja cancelar a licença ${license.activation_key}? Esta ação não pode ser desfeita.`)) {
       return;
     }
 
@@ -287,6 +332,25 @@ export default function LicenciamentoPage() {
       console.error("Failed to delete license:", error);
       toast.error("Erro ao cancelar licença", {
         description: error?.message || error?.detail || "Não foi possível cancelar a licença",
+      });
+    }
+  };
+
+  const handleUpdateStatus = async (license: License, newStatus: string) => {
+    try {
+      await api.put(`/api/v1/licenses/${license.id}`, {
+        status: newStatus,
+      });
+      toast.success("Status da licença atualizado com sucesso!");
+      await loadLicenses();
+      if (selectedLicense && selectedLicense.id === license.id) {
+        const updatedLicense = await api.get<License>(`/api/v1/licenses/${license.id}`);
+        setSelectedLicense(updatedLicense);
+      }
+    } catch (error: any) {
+      console.error("Failed to update status:", error);
+      toast.error("Erro ao atualizar status", {
+        description: error?.message || error?.detail || "Não foi possível atualizar o status",
       });
     }
   };
@@ -306,7 +370,7 @@ export default function LicenciamentoPage() {
 
   const copyActivationKey = (key: string) => {
     navigator.clipboard.writeText(key);
-    toast.success("Chave de ativação copiada!");
+    toast.success("Chave de ativação copiada para a área de transferência!");
   };
 
   const getStatusBadge = (license: License) => {
@@ -315,7 +379,7 @@ export default function LicenciamentoPage() {
     } else if (license.status === "suspended") {
       return <Badge className="bg-yellow-100 text-yellow-800"><AlertCircle className="h-3 w-3 mr-1 inline" />Suspensa</Badge>;
     } else if (license.status === "cancelled") {
-      return <Badge className="bg-gray-100 text-gray-800">Cancelada</Badge>;
+      return <Badge className="bg-gray-100 text-gray-800"><XCircle className="h-3 w-3 mr-1 inline" />Cancelada</Badge>;
     } else if (license.days_until_expiry <= 30) {
       return <Badge className="bg-orange-100 text-orange-800"><AlertCircle className="h-3 w-3 mr-1 inline" />Expirando</Badge>;
     } else if (license.is_active) {
@@ -335,11 +399,11 @@ export default function LicenciamentoPage() {
     return clinic?.name || `Clínica #${tenantId}`;
   };
 
-  if (loading) {
+  if (loading && licenses.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
         </div>
       </div>
     );
@@ -369,7 +433,7 @@ export default function LicenciamentoPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -403,6 +467,17 @@ export default function LicenciamentoPage() {
             <p className="text-xs text-gray-500 mt-1">Requer atenção</p>
           </CardContent>
         </Card>
+        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Licenças Expiradas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600">{stats.expired}</div>
+            <p className="text-xs text-gray-500 mt-1">Vencidas</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -424,6 +499,19 @@ export default function LicenciamentoPage() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Todos os status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Ativas</SelectItem>
+                  <SelectItem value="expired">Expiradas</SelectItem>
+                  <SelectItem value="suspended">Suspensas</SelectItem>
+                  <SelectItem value="cancelled">Canceladas</SelectItem>
+                  <SelectItem value="expiring">Expirando</SelectItem>
+                </SelectContent>
+              </Select>
               <Button className="bg-purple-600 hover:bg-purple-700" onClick={openCreateForm}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Licença
@@ -460,14 +548,15 @@ export default function LicenciamentoPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {license.activation_key.substring(0, 8)}...
+                        <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
+                          {license.activation_key.substring(0, 12)}...
                         </code>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => copyActivationKey(license.activation_key)}
                           className="h-6 w-6 p-0"
+                          title="Copiar chave completa"
                         >
                           <Copy className="h-3 w-3" />
                         </Button>
@@ -515,7 +604,16 @@ export default function LicenciamentoPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => openDetailDialog(license)}
+                          title="Ver detalhes"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => openEditForm(license)}
+                          title="Editar"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -524,6 +622,7 @@ export default function LicenciamentoPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(license)}
+                            title="Cancelar"
                           >
                             <Trash2 className="h-4 w-4 text-red-600" />
                           </Button>
@@ -537,7 +636,7 @@ export default function LicenciamentoPage() {
           ) : (
             <div className="text-center py-12 text-gray-500">
               <Key className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>{searchTerm ? "Nenhuma licença encontrada" : "Nenhuma licença cadastrada"}</p>
+              <p>{searchTerm || statusFilter !== "all" ? "Nenhuma licença encontrada" : "Nenhuma licença cadastrada"}</p>
             </div>
           )}
         </CardContent>
@@ -555,120 +654,304 @@ export default function LicenciamentoPage() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="tenant_id">Clínica *</Label>
-                <Select
-                  value={formData.tenant_id}
-                  onValueChange={(value) => setFormData({ ...formData, tenant_id: value })}
-                  disabled={!!editingLicense}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a clínica" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clinics.map((clinic) => (
-                      <SelectItem key={clinic.id} value={clinic.id.toString()}>
-                        {clinic.name} ({clinic.tax_id})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="plan">Plano *</Label>
-                <Select
-                  value={formData.plan}
-                  onValueChange={(value) => setFormData({ ...formData, plan: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o plano" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LICENSE_PLANS.map((plan) => (
-                      <SelectItem key={plan.value} value={plan.value}>
-                        {plan.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="users_limit">Limite de Usuários *</Label>
-                <Input
-                  id="users_limit"
-                  type="number"
-                  min="1"
-                  max="10000"
-                  required
-                  value={formData.users_limit}
-                  onChange={(e) => setFormData({ ...formData, users_limit: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="units_limit">Limite de Unidades</Label>
-                <Input
-                  id="units_limit"
-                  type="number"
-                  min="1"
-                  value={formData.units_limit}
-                  onChange={(e) => setFormData({ ...formData, units_limit: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="start_at">Data de Início *</Label>
-                <Input
-                  id="start_at"
-                  type="date"
-                  required
-                  value={formData.start_at}
-                  onChange={(e) => setFormData({ ...formData, start_at: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="end_at">Data de Término *</Label>
-                <Input
-                  id="end_at"
-                  type="date"
-                  required
-                  value={formData.end_at}
-                  onChange={(e) => setFormData({ ...formData, end_at: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold mb-3">Módulos Ativos</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {AVAILABLE_MODULES.map((module) => (
-                  <div key={module.value} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`module-${module.value}`}
-                      checked={formData.modules.includes(module.value)}
-                      onCheckedChange={() => toggleModule(module.value)}
-                    />
-                    <Label
-                      htmlFor={`module-${module.value}`}
-                      className="text-sm font-normal cursor-pointer"
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Informações Básicas</TabsTrigger>
+                <TabsTrigger value="limits">Limites</TabsTrigger>
+                <TabsTrigger value="modules">Módulos</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="tenant_id">Clínica *</Label>
+                    <Select
+                      value={formData.tenant_id}
+                      onValueChange={(value) => setFormData({ ...formData, tenant_id: value })}
+                      disabled={!!editingLicense}
+                      required
                     >
-                      {module.label}
-                    </Label>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a clínica" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clinics.map((clinic) => (
+                          <SelectItem key={clinic.id} value={clinic.id.toString()}>
+                            {clinic.name} ({clinic.tax_id})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {editingLicense && (
+                      <p className="text-xs text-gray-500 mt-1">A clínica não pode ser alterada</p>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
+                  <div>
+                    <Label htmlFor="plan">Plano *</Label>
+                    <Select
+                      value={formData.plan}
+                      onValueChange={(value) => setFormData({ ...formData, plan: value })}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o plano" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LICENSE_PLANS.map((plan) => (
+                          <SelectItem key={plan.value} value={plan.value}>
+                            {plan.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="start_at">Data de Início *</Label>
+                    <Input
+                      id="start_at"
+                      type="date"
+                      required
+                      value={formData.start_at}
+                      onChange={(e) => setFormData({ ...formData, start_at: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="end_at">Data de Término *</Label>
+                    <Input
+                      id="end_at"
+                      type="date"
+                      required
+                      value={formData.end_at}
+                      onChange={(e) => setFormData({ ...formData, end_at: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="limits" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="users_limit">Limite de Usuários *</Label>
+                    <Input
+                      id="users_limit"
+                      type="number"
+                      min="1"
+                      max="10000"
+                      required
+                      value={formData.users_limit}
+                      onChange={(e) => setFormData({ ...formData, users_limit: e.target.value })}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Número máximo de usuários permitidos</p>
+                  </div>
+                  <div>
+                    <Label htmlFor="units_limit">Limite de Unidades</Label>
+                    <Input
+                      id="units_limit"
+                      type="number"
+                      min="1"
+                      value={formData.units_limit}
+                      onChange={(e) => setFormData({ ...formData, units_limit: e.target.value })}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Número máximo de unidades/clínicas (opcional)</p>
+                  </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="modules" className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {AVAILABLE_MODULES.map((module) => (
+                    <div key={module.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`module-${module.value}`}
+                        checked={formData.modules.includes(module.value)}
+                        onCheckedChange={() => toggleModule(module.value)}
+                      />
+                      <Label
+                        htmlFor={`module-${module.value}`}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {module.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+            
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                 Cancelar
               </Button>
               <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={saving}>
-                {saving ? "Salvando..." : editingLicense ? "Atualizar" : "Criar"}
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : editingLicense ? "Atualizar" : "Criar"}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* License Detail Dialog */}
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da Licença</DialogTitle>
+            <DialogDescription>
+              Informações completas da licença {selectedLicense?.activation_key.substring(0, 8)}...
+            </DialogDescription>
+          </DialogHeader>
+          {selectedLicense && (
+            <div className="space-y-6">
+              <Tabs defaultValue="info" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="info">Informações</TabsTrigger>
+                  <TabsTrigger value="modules">Módulos</TabsTrigger>
+                  <TabsTrigger value="actions">Ações</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="info" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm text-gray-500">Clínica</Label>
+                      <p className="font-medium">{getClinicName(selectedLicense.tenant_id)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Plano</Label>
+                      <p className="font-medium">{getPlanLabel(selectedLicense.plan)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Chave de Ativação</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <code className="text-xs bg-gray-100 px-2 py-1 rounded font-mono">
+                          {selectedLicense.activation_key}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyActivationKey(selectedLicense.activation_key)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Status</Label>
+                      <div className="mt-1">{getStatusBadge(selectedLicense)}</div>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Limite de Usuários</Label>
+                      <p className="font-medium">{selectedLicense.users_limit}</p>
+                    </div>
+                    {selectedLicense.units_limit && (
+                      <div>
+                        <Label className="text-sm text-gray-500">Limite de Unidades</Label>
+                        <p className="font-medium">{selectedLicense.units_limit}</p>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-sm text-gray-500">Data de Início</Label>
+                      <p className="font-medium">
+                        {format(parseISO(selectedLicense.start_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm text-gray-500">Data de Término</Label>
+                      <p className="font-medium">
+                        {format(parseISO(selectedLicense.end_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                    {!selectedLicense.is_expired && (
+                      <div>
+                        <Label className="text-sm text-gray-500">Dias Restantes</Label>
+                        <p className="font-medium">{selectedLicense.days_until_expiry} dias</p>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="text-sm text-gray-500">Data de Criação</Label>
+                      <p className="font-medium">
+                        {format(parseISO(selectedLicense.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="modules" className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {AVAILABLE_MODULES.map((module) => {
+                      const isActive = selectedLicense.modules?.includes(module.value) || false;
+                      return (
+                        <div
+                          key={module.value}
+                          className={`flex items-center space-x-2 p-2 rounded border ${
+                            isActive ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={isActive}
+                            disabled
+                          />
+                          <Label className="text-sm font-normal">
+                            {module.label}
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="actions" className="space-y-4">
+                  <div className="space-y-3">
+                    <div>
+                      <Label>Alterar Status</Label>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {LICENSE_STATUSES.map((status) => (
+                          <Button
+                            key={status.value}
+                            variant={selectedLicense.status === status.value ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleUpdateStatus(selectedLicense, status.value)}
+                            disabled={selectedLicense.status === status.value || selectedLicense.status === "cancelled"}
+                          >
+                            {status.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Alterar o status da licença pode afetar o acesso da clínica ao sistema.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+              Fechar
+            </Button>
+            {selectedLicense && (
+              <Button
+                className="bg-purple-600 hover:bg-purple-700"
+                onClick={() => {
+                  setShowDetailDialog(false);
+                  openEditForm(selectedLicense);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Editar Licença
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

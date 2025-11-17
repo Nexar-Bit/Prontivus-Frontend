@@ -51,6 +51,15 @@
 	--color-info: oklch(0.62 0.10 240); /* Soft blue */
 }
 
+@keyframes shimmer {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(200%);
+	}
+}
+
 @layer base {
 	:root {
 		--radius: 0.5rem;

@@ -12,7 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { financialApi } from "@/lib/financial-api";
-import { normalizeError } from "@/lib/api";
+import { normalizeError, api } from "@/lib/api";
+import { Invoice as InvoiceType } from "@/lib/types";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -30,43 +31,15 @@ import {
   Filter,
   Search,
   AlertCircle,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface Invoice {
-  id: number;
-  patient_id: number;
-  appointment_id?: number;
-  issue_date: string;
-  due_date?: string;
-  status: "draft" | "pending" | "paid" | "cancelled" | "overdue";
-  total_amount: number;
-  notes?: string;
-  patient_name?: string;
-  appointment_date?: string;
-  invoice_lines?: Array<{
-    id: number;
-    description?: string;
-    quantity: number;
-    unit_price: number;
-    total_price: number;
-    service_item?: {
-      name: string;
-      code?: string;
-    };
-    procedure?: {
-      name: string;
-    };
-  }>;
-  payments?: Array<{
-    id: number;
-    amount: number;
-    method: string;
-    status: string;
-    paid_at?: string;
-    created_at: string;
-  }>;
-}
+// Use Invoice type from types.ts which includes payments
+type Invoice = InvoiceType;
 
 export default function PatientBillingPage() {
   const [loading, setLoading] = useState(true);
@@ -75,10 +48,14 @@ export default function PatientBillingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("all");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
 
   useEffect(() => {
     loadInvoices();
-  }, [statusFilter, dateFilter]);
+    loadPaymentHistory();
+  }, [statusFilter, dateFilter, refreshKey]);
 
   const loadInvoices = async () => {
     try {
@@ -242,13 +219,83 @@ export default function PatientBillingPage() {
     }
   };
 
+  const loadPaymentHistory = async () => {
+    try {
+      // Get all invoices and extract payments
+      const allInvoices = await financialApi.getMyInvoices();
+      const payments: any[] = [];
+      
+      for (const invoice of allInvoices) {
+        if (invoice.payments && invoice.payments.length > 0) {
+          for (const payment of invoice.payments) {
+            payments.push({
+              ...payment,
+              invoice_id: invoice.id,
+              invoice_total: invoice.total_amount,
+            });
+          }
+        }
+      }
+      
+      // Sort by date (most recent first)
+      payments.sort((a, b) => {
+        const dateA = a.paid_at ? parseISO(a.paid_at) : parseISO(a.created_at);
+        const dateB = b.paid_at ? parseISO(b.paid_at) : parseISO(b.created_at);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      setPaymentHistory(payments);
+    } catch (error: any) {
+      console.error("Failed to load payment history:", error);
+      // Don't show error toast, just log it
+    }
+  };
+
   const handleViewInvoice = async (invoiceId: number) => {
     try {
       const invoice = await financialApi.getInvoice(invoiceId);
       setSelectedInvoice(invoice as any);
     } catch (error: any) {
       toast.error("Erro ao carregar detalhes", {
-        description: error.message || "Não foi possível carregar os detalhes da fatura",
+        description: error?.message || error?.detail || "Não foi possível carregar os detalhes da fatura",
+      });
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      const csvRows = [];
+      csvRows.push('ID,Data Emissão,Data Vencimento,Valor,Status,Descrição');
+      
+      filteredInvoices.forEach(inv => {
+        const description = inv.invoice_lines?.[0]?.description || 
+                          inv.invoice_lines?.[0]?.service_item?.name ||
+                          inv.invoice_lines?.[0]?.procedure?.name ||
+                          inv.notes ||
+                          "Fatura";
+        
+        csvRows.push([
+          inv.id,
+          inv.issue_date ? format(parseISO(inv.issue_date), 'dd/MM/yyyy', { locale: ptBR }) : '',
+          inv.due_date ? format(parseISO(inv.due_date), 'dd/MM/yyyy', { locale: ptBR }) : '',
+          Number(inv.total_amount || 0).toFixed(2),
+          inv.status || '',
+          description.replace(/,/g, ';').replace(/\n/g, ' ')
+        ].join(','));
+      });
+      
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `faturas_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success('Faturas exportadas com sucesso!');
+    } catch (error: any) {
+      toast.error('Erro ao exportar faturas', {
+        description: error?.message || error?.detail || 'Não foi possível exportar as faturas',
       });
     }
   };
@@ -265,18 +312,51 @@ export default function PatientBillingPage() {
 
         <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
           {/* Modern Header */}
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Receipt className="h-7 w-7 text-blue-600" />
-              </div>
-              Faturas e Pagamentos
-            </h1>
-            <p className="text-muted-foreground text-sm">Visualize suas faturas e histórico de pagamentos</p>
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Receipt className="h-7 w-7 text-blue-600" />
+                </div>
+                Faturas e Pagamentos
+              </h1>
+              <p className="text-muted-foreground text-sm">Visualize suas faturas e histórico de pagamentos</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setRefreshKey(prev => prev + 1);
+                  toast.success('Dados atualizados!');
+                }}
+                disabled={loading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                disabled={filteredInvoices.length === 0}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPaymentHistory(true)}
+              >
+                <History className="h-4 w-4 mr-2" />
+                Histórico de Pagamentos
+              </Button>
+            </div>
           </div>
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total de Faturas</CardTitle>
@@ -314,6 +394,18 @@ export default function PatientBillingPage() {
                     const status = inv.status?.toLowerCase() || "";
                     return status === "pending" || status === "pendente" || status === "issued" || status === "overdue" || status === "vencido";
                   }).length} fatura(s) pendente(s)
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-l-4 border-l-purple-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Pagamentos</CardTitle>
+                <CreditCard className="h-4 w-4 text-purple-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">{formatCurrency(paymentHistory.reduce((sum, p) => sum + Number(p.amount || 0), 0))}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {paymentHistory.length} pagamento(s) registrado(s)
                 </p>
               </CardContent>
             </Card>
@@ -382,10 +474,6 @@ export default function PatientBillingPage() {
                   </CardTitle>
                   <CardDescription>Lista de todas as suas faturas</CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={loadInvoices} className="border-teal-300 text-teal-700 hover:bg-teal-50">
-                  <Download className="h-4 w-4 mr-2" />
-                  Recarregar
-                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -554,7 +642,7 @@ export default function PatientBillingPage() {
                               {formatCurrency(Number(line.unit_price))}
                             </TableCell>
                             <TableCell className="text-right font-semibold">
-                              {formatCurrency(Number(line.total_price))}
+                              {formatCurrency(Number(line.total_price || line.line_total))}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -624,6 +712,120 @@ export default function PatientBillingPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Payment History Dialog */}
+      <Dialog open={showPaymentHistory} onOpenChange={setShowPaymentHistory}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-purple-600 flex items-center gap-2">
+              <History className="h-6 w-6" />
+              Histórico de Pagamentos
+            </DialogTitle>
+            <DialogDescription>
+              Todos os seus pagamentos registrados
+            </DialogDescription>
+          </DialogHeader>
+          
+          {paymentHistory.length === 0 ? (
+            <div className="text-center py-12">
+              <CreditCard className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 font-medium">Nenhum pagamento registrado</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Fatura #</TableHead>
+                      <TableHead>Método</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Referência</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paymentHistory.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>
+                          {payment.paid_at
+                            ? format(parseISO(payment.paid_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                            : format(parseISO(payment.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="font-medium">#{payment.invoice_id}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{payment.method || "N/A"}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatCurrency(Number(payment.amount || 0))}
+                        </TableCell>
+                        <TableCell>
+                          {payment.status === "completed" ? (
+                            <Badge className="bg-green-100 text-green-700">
+                              <CheckCircle2 className="h-3 w-3 mr-1" />Confirmado
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-yellow-100 text-yellow-700">
+                              <Clock className="h-3 w-3 mr-1" />Pendente
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500">
+                          {payment.reference_number || "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              <div className="flex justify-between items-center pt-4 border-t">
+                <div className="text-sm text-gray-600">
+                  Total: {formatCurrency(paymentHistory.reduce((sum, p) => sum + Number(p.amount || 0), 0))}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    try {
+                      const csvRows = [];
+                      csvRows.push('Data,Fatura,Valor,Método,Status,Referência');
+                      
+                      paymentHistory.forEach(p => {
+                        csvRows.push([
+                          p.paid_at ? format(parseISO(p.paid_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : format(parseISO(p.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+                          p.invoice_id,
+                          Number(p.amount || 0).toFixed(2),
+                          p.method || '',
+                          p.status || '',
+                          p.reference_number || ''
+                        ].join(','));
+                      });
+                      
+                      const csvContent = csvRows.join('\n');
+                      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `pagamentos_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+                      link.click();
+                      URL.revokeObjectURL(url);
+                      toast.success('Histórico de pagamentos exportado!');
+                    } catch (error: any) {
+                      toast.error('Erro ao exportar', {
+                        description: error?.message || 'Não foi possível exportar o histórico',
+                      });
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar CSV
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

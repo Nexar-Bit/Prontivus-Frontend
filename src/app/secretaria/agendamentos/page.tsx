@@ -1,19 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, Plus, Search, Filter, Clock, User, Stethoscope, CheckCircle2, XCircle, AlertCircle, RefreshCw, Edit, Trash2 } from "lucide-react";
+import { CalendarDays, Plus, Search, Filter, Clock, User, Stethoscope, CheckCircle2, XCircle, AlertCircle, RefreshCw, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -32,10 +24,22 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameDay, addDays, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { Calendar, momentLocalizer, View, Event } from "react-big-calendar";
+import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import moment from "moment";
+
+// Configure moment locale
+moment.locale("pt-br");
+const localizer = momentLocalizer(moment);
+
+// Create the DnD Calendar component
+const DnDCalendar = withDragAndDrop(Calendar);
 
 interface Appointment {
   id: number;
@@ -70,6 +74,17 @@ interface AppointmentFormData {
   reason: string;
 }
 
+interface CalendarEvent extends Event {
+  id?: string | number;
+  appointment: Appointment;
+  resource?: {
+    status: string;
+    appointment_type?: string;
+    patient_name: string;
+    doctor_name: string;
+  };
+}
+
 export default function AgendamentosPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -90,6 +105,9 @@ export default function AgendamentosPage() {
     reason: "",
   });
   const [saving, setSaving] = useState(false);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState<View>("month");
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -185,6 +203,24 @@ export default function AgendamentosPage() {
     setFilteredAppointments(filtered);
   };
 
+  const getStatusColor = (status: string): string => {
+    const statusLower = status?.toLowerCase() || "";
+    switch (statusLower) {
+      case "scheduled":
+        return "#10b981"; // green
+      case "checked_in":
+        return "#3b82f6"; // blue
+      case "in_consultation":
+        return "#8b5cf6"; // purple
+      case "completed":
+        return "#6b7280"; // gray
+      case "cancelled":
+        return "#ef4444"; // red
+      default:
+        return "#6b7280";
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const statusLower = status?.toLowerCase() || "";
     switch (statusLower) {
@@ -200,6 +236,83 @@ export default function AgendamentosPage() {
         return <Badge className="bg-red-100 text-red-800"><XCircle className="h-3 w-3 mr-1 inline" />Cancelado</Badge>;
       default:
         return <Badge>{status}</Badge>;
+    }
+  };
+
+  // Convert appointments to calendar events
+  const calendarEvents: CalendarEvent[] = useMemo(() => {
+    return filteredAppointments.map((appointment) => {
+      const start = parseISO(appointment.scheduled_datetime);
+      const end = new Date(start.getTime() + 30 * 60 * 1000); // 30 minutes duration
+
+      const event: CalendarEvent = {
+        id: appointment.id,
+        title: `${appointment.patient_name} - ${appointment.doctor_name}`,
+        start,
+        end,
+        appointment,
+        resource: {
+          status: appointment.status,
+          appointment_type: appointment.appointment_type,
+          patient_name: appointment.patient_name,
+          doctor_name: appointment.doctor_name,
+        },
+      };
+      
+      // Add appointment data directly to event for easier access
+      (event as any).appointmentData = appointment;
+      
+      return event;
+    });
+  }, [filteredAppointments]);
+
+  // Custom event style
+  const eventStyleGetter = (event: any) => {
+    const calEvent = event as CalendarEvent;
+    const color = getStatusColor(calEvent.appointment?.status || "scheduled");
+    const isDraggable = calEvent.appointment?.status?.toLowerCase() !== "cancelled";
+    return {
+      style: {
+        backgroundColor: color,
+        borderColor: color,
+        borderWidth: "0px",
+        borderStyle: "none",
+        color: "white",
+        borderRadius: "4px",
+        padding: "2px 4px",
+        fontSize: "0.875rem",
+        fontWeight: "500",
+        cursor: isDraggable ? "move" : "default",
+      },
+    };
+  };
+
+  // Custom event component
+  const EventComponent = ({ event }: { event: any }) => {
+    const calEvent = event as CalendarEvent;
+    return (
+      <div className="flex flex-col">
+        <div className="font-semibold text-xs truncate">{calEvent.appointment?.patient_name || ""}</div>
+        <div className="text-xs opacity-90 truncate">{calEvent.appointment?.doctor_name || ""}</div>
+        <div className="text-xs opacity-75">
+          {calEvent.appointment?.scheduled_datetime 
+            ? format(parseISO(calEvent.appointment.scheduled_datetime), "HH:mm", { locale: ptBR })
+            : ""}
+        </div>
+      </div>
+    );
+  };
+
+  const handleSelectEvent = (event: any) => {
+    // Don't open edit modal if we're dragging
+    if (isDragging) {
+      return;
+    }
+    
+    const calEvent = event as CalendarEvent;
+    const appointment = calEvent.appointment || (calEvent as any).appointmentData;
+    if (appointment) {
+      handleEditAppointment(appointment);
     }
   };
 
@@ -291,7 +404,6 @@ export default function AgendamentosPage() {
     }
 
     try {
-      // Send status as enum value (cancelled)
       await api.patch(`/api/appointments/${appointmentId}/status`, {
         status: "cancelled",
       });
@@ -315,9 +427,118 @@ export default function AgendamentosPage() {
     });
   };
 
-  const openCreateModal = () => {
+  const openCreateModal = (selectedDate?: Date) => {
     resetForm();
+    if (selectedDate) {
+      // Format the selected date for datetime-local input (YYYY-MM-DDTHH:mm)
+      const formattedDate = format(selectedDate, "yyyy-MM-dd'T'HH:mm");
+      setFormData({
+        patient_id: null,
+        doctor_id: null,
+        scheduled_datetime: formattedDate,
+        appointment_type: "consultation",
+        reason: "",
+      });
+    }
     setShowCreateModal(true);
+  };
+
+  const handleSelectSlot = (slotInfo: { start: Date; end: Date; action: "select" | "click" | "doubleClick" }) => {
+    // Open create modal with the selected date/time pre-filled
+    openCreateModal(slotInfo.start);
+  };
+
+  const handleEventDrop = async (data: any) => {
+    setIsDragging(false);
+    const { event, start } = data;
+    // Convert start to Date if it's a string
+    const startDate = start instanceof Date ? start : new Date(start);
+    const calEvent = event as CalendarEvent;
+    const appointment = calEvent.appointment || (calEvent as any).appointmentData;
+
+    if (!appointment) {
+      console.error("No appointment found in event", event);
+      return;
+    }
+
+    try {
+      // Update the appointment with new date/time
+      const updateData = {
+        scheduled_datetime: startDate.toISOString(),
+        appointment_type: appointment.appointment_type || "consultation",
+        patient_id: appointment.patient_id,
+        doctor_id: appointment.doctor_id,
+      };
+
+      await api.put(`/api/appointments/${appointment.id}`, updateData);
+      toast.success("Agendamento movido com sucesso!");
+      await loadAppointments();
+    } catch (error: any) {
+      console.error("Failed to move appointment:", error);
+      toast.error("Erro ao mover agendamento", {
+        description: error?.message || error?.detail || "Não foi possível mover o agendamento",
+      });
+      // Reload to revert the visual change
+      await loadAppointments();
+    }
+  };
+
+  const handleEventResize = async (data: any) => {
+    const { event, start } = data;
+    // Convert start to Date if it's a string
+    const startDate = start instanceof Date ? start : new Date(start);
+    const calEvent = event as CalendarEvent;
+    const appointment = calEvent.appointment || (calEvent as any).appointmentData;
+
+    if (!appointment) {
+      console.error("No appointment found in event", event);
+      return;
+    }
+
+    try {
+      // Update the appointment with new start time (duration is handled by end time)
+      const updateData = {
+        scheduled_datetime: startDate.toISOString(),
+        appointment_type: appointment.appointment_type || "consultation",
+        patient_id: appointment.patient_id,
+        doctor_id: appointment.doctor_id,
+      };
+
+      await api.put(`/api/appointments/${appointment.id}`, updateData);
+      toast.success("Duração do agendamento atualizada!");
+      await loadAppointments();
+    } catch (error: any) {
+      console.error("Failed to resize appointment:", error);
+      toast.error("Erro ao alterar duração", {
+        description: error?.message || error?.detail || "Não foi possível alterar a duração",
+      });
+      // Reload to revert the visual change
+      await loadAppointments();
+    }
+  };
+
+  const navigateDate = (direction: "prev" | "next") => {
+    if (view === "month") {
+      setCurrentDate(direction === "next" ? addMonths(currentDate, 1) : subMonths(currentDate, 1));
+    } else if (view === "week") {
+      setCurrentDate(direction === "next" ? addDays(currentDate, 7) : addDays(currentDate, -7));
+    } else {
+      setCurrentDate(direction === "next" ? addDays(currentDate, 1) : addDays(currentDate, -1));
+    }
+  };
+
+  const messages = {
+    next: "Próximo",
+    previous: "Anterior",
+    today: "Hoje",
+    month: "Mês",
+    week: "Semana",
+    day: "Dia",
+    agenda: "Agenda",
+    date: "Data",
+    time: "Hora",
+    event: "Evento",
+    noEventsInRange: "Nenhum agendamento neste período",
   };
 
   if (loading) {
@@ -342,34 +563,27 @@ export default function AgendamentosPage() {
             Gerencie todos os agendamentos da clínica
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={loadData}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadData}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+          <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => openCreateModal()}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Agendamento
+          </Button>
+        </div>
       </div>
 
+      {/* Filters */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Lista de Agendamentos</CardTitle>
-              <CardDescription>
-                Visualize e gerencie os agendamentos
-              </CardDescription>
-            </div>
-            <Button className="bg-teal-600 hover:bg-teal-700" onClick={openCreateModal}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Agendamento
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 mb-6">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
@@ -393,83 +607,120 @@ export default function AgendamentosPage() {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
 
-          {filteredAppointments.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Paciente</TableHead>
-                  <TableHead>Médico</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredAppointments.map((appointment) => {
-                  const appointmentDate = parseISO(appointment.scheduled_datetime);
-                  return (
-                    <TableRow key={appointment.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <CalendarDays className="h-4 w-4 text-gray-400" />
-                          <div>
-                            <div className="font-medium">
-                              {format(appointmentDate, "dd/MM/yyyy", { locale: ptBR })}
-                            </div>
-                            <div className="text-sm text-gray-500 flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {format(appointmentDate, "HH:mm", { locale: ptBR })}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-gray-400" />
-                          {appointment.patient_name}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Stethoscope className="h-4 w-4 text-gray-400" />
-                          {appointment.doctor_name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{appointment.appointment_type || "Consulta"}</TableCell>
-                      <TableCell>{getStatusBadge(appointment.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditAppointment(appointment)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          {appointment.status.toLowerCase() !== "cancelled" && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCancelAppointment(appointment.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <CalendarDays className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-              <p>Nenhum agendamento encontrado</p>
+      {/* Calendar View */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Calendário de Agendamentos</CardTitle>
+              <CardDescription>
+                Clique em um horário vago para criar um novo agendamento, clique em um agendamento existente para editá-lo, ou arraste um agendamento para movê-lo
+              </CardDescription>
             </div>
-          )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateDate("prev")}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentDate(new Date())}
+              >
+                Hoje
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateDate("next")}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Select value={view} onValueChange={(v) => setView(v as View)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="month">Mês</SelectItem>
+                  <SelectItem value="week">Semana</SelectItem>
+                  <SelectItem value="day">Dia</SelectItem>
+                  <SelectItem value="agenda">Agenda</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[600px] [&_.rbc-event]:cursor-move [&_.rbc-event-content]:cursor-move">
+            <DndProvider backend={HTML5Backend}>
+              <DnDCalendar
+              localizer={localizer}
+              events={calendarEvents as any}
+              startAccessor={"start" as any}
+              endAccessor={"end" as any}
+              style={{ height: "100%" }}
+              view={view}
+              onView={setView}
+              date={currentDate}
+              onNavigate={setCurrentDate}
+              onSelectEvent={handleSelectEvent as any}
+              onSelectSlot={handleSelectSlot as any}
+              onEventDrop={handleEventDrop as any}
+              onEventResize={handleEventResize as any}
+              selectable
+              resizable
+              draggableAccessor={(event: any) => {
+                const calEvent = event as CalendarEvent;
+                const appointment = calEvent.appointment || (calEvent as any).appointmentData;
+                // Only allow dragging if appointment exists and is not cancelled
+                return !!(appointment && appointment.status?.toLowerCase() !== "cancelled");
+              }}
+              eventPropGetter={eventStyleGetter as any}
+              messages={messages}
+              culture="pt-BR"
+              step={15}
+              timeslots={4}
+              components={{
+                event: EventComponent as any,
+              }}
+              popup
+              />
+            </DndProvider>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Legend */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-green-500"></div>
+              <span className="text-sm">Agendado</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-blue-500"></div>
+              <span className="text-sm">Check-in</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-purple-500"></div>
+              <span className="text-sm">Em Consulta</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-gray-500"></div>
+              <span className="text-sm">Concluído</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-red-500"></div>
+              <span className="text-sm">Cancelado</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -657,6 +908,27 @@ export default function AgendamentosPage() {
                 rows={3}
               />
             </div>
+            {editingAppointment && (
+              <div className="flex items-center justify-between pt-2 border-t">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Status:</span>
+                  {getStatusBadge(editingAppointment.status)}
+                </div>
+                {editingAppointment.status.toLowerCase() !== "cancelled" && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setShowEditModal(false);
+                      handleCancelAppointment(editingAppointment.id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Cancelar Agendamento
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditModal(false)}>

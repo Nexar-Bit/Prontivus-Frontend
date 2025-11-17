@@ -167,10 +167,37 @@ export default function PatientAppointmentsPage() {
   // Helper function to reload appointments
   const reloadAppointments = async () => {
     try {
-      const [appts, doctorsData] = await Promise.all([
-        api.get<any[]>(`/api/appointments/patient-appointments`),
-        api.get<any[]>(`/api/users/doctors`),
-      ]);
+      setLoading(true);
+      
+      // Load appointments first
+      const appts = await api.get<any[]>(`/api/v1/appointments/patient-appointments`);
+      
+      // Try to load doctors, but don't fail if it doesn't work
+      let doctorsData: any[] = [];
+      try {
+        doctorsData = await api.get<any[]>(`/api/v1/users/doctors`);
+      } catch (doctorsError: any) {
+        console.warn("Could not load doctors list:", doctorsError);
+        // Extract unique doctors from appointments
+        const doctorIds = new Set<number>();
+        appts.forEach((apt: any) => {
+          if (apt.doctor_id) {
+            doctorIds.add(apt.doctor_id);
+          }
+        });
+        
+        // Create doctor objects from appointment data
+        doctorsData = appts
+          .filter((apt: any, index: number, self: any[]) => 
+            apt.doctor_id && self.findIndex((a: any) => a.doctor_id === apt.doctor_id) === index
+          )
+          .map((apt: any) => ({
+            id: apt.doctor_id,
+            first_name: apt.doctor_name?.split(' ')[0] || 'Médico',
+            last_name: apt.doctor_name?.split(' ').slice(1).join(' ') || '',
+            specialty: 'Clínico Geral',
+          }));
+      }
       
       // Map doctors
       const doctorsList: Doctor[] = doctorsData.map((d: any) => ({
@@ -187,8 +214,10 @@ export default function PatientAppointmentsPage() {
     } catch (error: any) {
       console.error("Error reloading appointments:", error);
       toast.error("Erro ao carregar agendamentos", {
-        description: error?.message || "Não foi possível carregar os agendamentos",
+        description: error?.message || error?.detail || "Não foi possível carregar os agendamentos",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -220,27 +249,63 @@ export default function PatientAppointmentsPage() {
   const [isBooking, setIsBooking] = useState(false);
   const [expandedPast, setExpandedPast] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [selectedAppointmentForReschedule, setSelectedAppointmentForReschedule] = useState<Appointment | null>(null);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState<Date>(new Date());
+  const [rescheduleTime, setRescheduleTime] = useState<string>('');
+  const [rescheduleTimeSlots, setRescheduleTimeSlots] = useState<Array<{time: string; available: boolean}>>([]);
+  const [loadingRescheduleSlots, setLoadingRescheduleSlots] = useState(false);
+  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Separate upcoming and past appointments
+  // Separate upcoming and past appointments with filters
   const upcomingAppointments = useMemo(() => {
     const now = new Date();
-    return appointments
-      .filter(apt => {
-        const aptDate = parseISO(apt.scheduled_datetime);
-        return isAfter(aptDate, now) && apt.status !== 'cancelled' && apt.status !== 'completed';
-      })
-      .sort((a, b) => parseISO(a.scheduled_datetime).getTime() - parseISO(b.scheduled_datetime).getTime());
-  }, [appointments]);
+    let filtered = appointments.filter(apt => {
+      const aptDate = parseISO(apt.scheduled_datetime);
+      return isAfter(aptDate, now) && apt.status !== 'cancelled' && apt.status !== 'completed';
+    });
+    
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(apt => apt.status === statusFilter);
+    }
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(apt => 
+        `${apt.doctor.first_name} ${apt.doctor.last_name}`.toLowerCase().includes(query) ||
+        apt.doctor.specialty?.toLowerCase().includes(query) ||
+        apt.reason?.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered.sort((a, b) => parseISO(a.scheduled_datetime).getTime() - parseISO(b.scheduled_datetime).getTime());
+  }, [appointments, statusFilter, searchQuery]);
 
   const pastAppointments = useMemo(() => {
     const now = new Date();
-    return appointments
-      .filter(apt => {
-        const aptDate = parseISO(apt.scheduled_datetime);
-        return isBefore(aptDate, now) || apt.status === 'completed' || apt.status === 'cancelled';
-      })
-      .sort((a, b) => parseISO(b.scheduled_datetime).getTime() - parseISO(a.scheduled_datetime).getTime());
-  }, [appointments]);
+    let filtered = appointments.filter(apt => {
+      const aptDate = parseISO(apt.scheduled_datetime);
+      return isBefore(aptDate, now) || apt.status === 'completed' || apt.status === 'cancelled';
+    });
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(apt => 
+        `${apt.doctor.first_name} ${apt.doctor.last_name}`.toLowerCase().includes(query) ||
+        apt.doctor.specialty?.toLowerCase().includes(query) ||
+        apt.reason?.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered.sort((a, b) => parseISO(b.scheduled_datetime).getTime() - parseISO(a.scheduled_datetime).getTime());
+  }, [appointments, searchQuery]);
 
   const [timeSlots, setTimeSlots] = useState<Array<{time: string; available: boolean; datetime?: string}>>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -256,7 +321,7 @@ export default function PatientAppointmentsPage() {
       setLoadingSlots(true);
       try {
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
-        const availability = await api.get<any>(`/api/appointments/doctor/${selectedDoctor.id}/availability?date=${dateStr}`);
+        const availability = await api.get<any>(`/api/v1/appointments/doctor/${selectedDoctor.id}/availability?date=${dateStr}`);
         setTimeSlots(availability.slots || []);
       } catch (error: any) {
         console.error("Error loading time slots:", error);
@@ -281,6 +346,32 @@ export default function PatientAppointmentsPage() {
     
     loadTimeSlots();
   }, [selectedDoctor, selectedDate]);
+
+  // Load time slots for reschedule
+  useEffect(() => {
+    const loadRescheduleSlots = async () => {
+      if (!selectedAppointmentForReschedule || !rescheduleDate) {
+        setRescheduleTimeSlots([]);
+        return;
+      }
+      
+      setLoadingRescheduleSlots(true);
+      try {
+        const dateStr = format(rescheduleDate, 'yyyy-MM-dd');
+        const availability = await api.get<any>(`/api/v1/appointments/doctor/${selectedAppointmentForReschedule.doctor.id}/availability?date=${dateStr}`);
+        setRescheduleTimeSlots(availability.slots || []);
+      } catch (error: any) {
+        console.error("Error loading reschedule time slots:", error);
+        setRescheduleTimeSlots([]);
+      } finally {
+        setLoadingRescheduleSlots(false);
+      }
+    };
+    
+    if (showRescheduleDialog) {
+      loadRescheduleSlots();
+    }
+  }, [selectedAppointmentForReschedule, rescheduleDate, showRescheduleDialog]);
 
   const togglePastExpand = (id: number) => {
     const newExpanded = new Set(expandedPast);
@@ -334,7 +425,7 @@ export default function PatientAppointmentsPage() {
       appointmentDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
       
       // Get patient record
-      const patientData = await api.get<any>(`/api/patients/me`);
+      const patientData = await api.get<any>(`/api/v1/patients/me`);
       
       // Create appointment
       const appointmentData = {
@@ -347,7 +438,7 @@ export default function PatientAppointmentsPage() {
         duration_minutes: 30,
       };
       
-      await api.post(`/api/appointments/patient/book`, appointmentData);
+      await api.post(`/api/v1/appointments/patient/book`, appointmentData);
       
       // Reload appointments
       await reloadAppointments();
@@ -451,15 +542,55 @@ export default function PatientAppointmentsPage() {
                 Gerencie seus agendamentos e consulte com seus médicos
               </p>
             </div>
-            <Button
-              size="lg"
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
-              onClick={() => setShowBookingModal(true)}
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Agendar Consulta
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={reloadAppointments}
+                disabled={loading}
+              >
+                <Loader2 className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Atualizar
+              </Button>
+              <Button
+                size="lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                onClick={() => setShowBookingModal(true)}
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Agendar Consulta
+              </Button>
+            </div>
           </div>
+
+          {/* Filters */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Buscar por médico, especialidade ou motivo..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filtrar por status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Status</SelectItem>
+                    <SelectItem value="scheduled">Agendado</SelectItem>
+                    <SelectItem value="confirmed">Confirmado</SelectItem>
+                    <SelectItem value="completed">Concluído</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -636,25 +767,11 @@ export default function PatientAppointmentsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={async () => {
-                            try {
-                              // Simple reschedule to +7 days same time
-                              const current = parseISO(appointment.scheduled_datetime);
-                              const newDate = addDays(current, 7);
-                              await api.post(`/api/appointments/${appointment.id}/reschedule`, {
-                                scheduled_datetime: newDate.toISOString(),
-                              });
-                              // Reload appointments
-                              await reloadAppointments();
-                              toast.success('Consulta reagendada com sucesso!', {
-                                description: `Nova data: ${format(newDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
-                              });
-                            } catch (error: any) {
-                              console.error("Error rescheduling:", error);
-                              toast.error('Erro ao reagendar consulta', {
-                                description: error?.message || 'Não foi possível reagendar a consulta.',
-                              });
-                            }
+                          onClick={() => {
+                            setSelectedAppointmentForReschedule(appointment);
+                            setRescheduleDate(parseISO(appointment.scheduled_datetime));
+                            setRescheduleTime(format(parseISO(appointment.scheduled_datetime), 'HH:mm'));
+                            setShowRescheduleDialog(true);
                           }}
                         >
                           <CalendarIcon className="h-4 w-4 mr-2" />
@@ -669,14 +786,14 @@ export default function PatientAppointmentsPage() {
                               return;
                             }
                             try {
-                              await api.post(`/api/appointments/${appointment.id}/cancel`, {});
+                              await api.post(`/api/v1/appointments/${appointment.id}/cancel`, {});
                               // Reload appointments
                               await reloadAppointments();
                               toast.success('Consulta cancelada com sucesso!');
                             } catch (error: any) {
                               console.error("Error cancelling:", error);
                               toast.error('Erro ao cancelar consulta', {
-                                description: error?.message || 'Não foi possível cancelar a consulta.',
+                                description: error?.message || error?.detail || 'Não foi possível cancelar a consulta.',
                               });
                             }
                           }}
@@ -778,10 +895,17 @@ export default function PatientAppointmentsPage() {
                           </div>
                         )}
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            <FileText className="h-4 w-4 mr-2" />
-                            Ver Detalhes
-                          </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAppointment(appointment);
+                            setShowDetailsDialog(true);
+                          }}
+                        >
+                          <FileText className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
                           <Button variant="outline" size="sm">
                             <Download className="h-4 w-4 mr-2" />
                             Baixar Receita
@@ -1167,6 +1291,189 @@ export default function PatientAppointmentsPage() {
                   )}
                 </Button>
               </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Appointment Details Dialog */}
+          <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Detalhes da Consulta</DialogTitle>
+                <DialogDescription>
+                  Informações completas sobre a consulta
+                </DialogDescription>
+              </DialogHeader>
+              {selectedAppointment && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Médico</div>
+                      <div className="font-semibold">
+                        Dr(a). {selectedAppointment.doctor.first_name} {selectedAppointment.doctor.last_name}
+                      </div>
+                      <div className="text-sm text-gray-600">{selectedAppointment.doctor.specialty}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Data e Hora</div>
+                      <div className="font-semibold">
+                        {format(parseISO(selectedAppointment.scheduled_datetime), "dd/MM/yyyy", { locale: ptBR })}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {format(parseISO(selectedAppointment.scheduled_datetime), "HH:mm", { locale: ptBR })}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Status</div>
+                      <div>{getStatusBadge(selectedAppointment.status)}</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Tipo</div>
+                      <div>{getAppointmentTypeBadge(selectedAppointment.appointment_type)}</div>
+                    </div>
+                  </div>
+                  {selectedAppointment.reason && (
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Motivo</div>
+                      <div className="p-3 bg-gray-50 rounded-lg">{selectedAppointment.reason}</div>
+                    </div>
+                  )}
+                  {selectedAppointment.notes && (
+                    <div>
+                      <div className="text-sm text-gray-500 mb-1">Observações</div>
+                      <div className="p-3 bg-gray-50 rounded-lg">{selectedAppointment.notes}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Reschedule Dialog */}
+          <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Reagendar Consulta</DialogTitle>
+                <DialogDescription>
+                  Selecione uma nova data e horário para sua consulta
+                </DialogDescription>
+              </DialogHeader>
+              {selectedAppointmentForReschedule && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-sm font-semibold text-blue-900 mb-2">Consulta Atual</div>
+                    <div className="text-sm text-blue-800">
+                      {format(parseISO(selectedAppointmentForReschedule.scheduled_datetime), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </div>
+                    <div className="text-sm text-blue-700 mt-1">
+                      Dr(a). {selectedAppointmentForReschedule.doctor.first_name} {selectedAppointmentForReschedule.doctor.last_name}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm font-medium text-gray-700 mb-2">Nova Data</div>
+                      <Calendar
+                        mode="single"
+                        selected={rescheduleDate}
+                        onSelect={(date) => {
+                          if (date) {
+                            setRescheduleDate(date);
+                            setRescheduleTime('');
+                          }
+                        }}
+                        disabled={(date) => isBefore(date, startOfToday())}
+                        className="rounded-lg border"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-gray-700 mb-2">Novo Horário</div>
+                      {loadingRescheduleSlots ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                          <span className="ml-2 text-sm text-gray-600">Carregando horários...</span>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 gap-2 max-h-[300px] overflow-y-auto">
+                          {rescheduleTimeSlots.filter(slot => slot.available).length === 0 ? (
+                            <div className="col-span-3 text-center py-4 text-sm text-gray-500">
+                              Nenhum horário disponível para esta data
+                            </div>
+                          ) : (
+                            rescheduleTimeSlots.filter(slot => slot.available).map((slot) => (
+                              <Button
+                                key={slot.time}
+                                variant={rescheduleTime === slot.time ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setRescheduleTime(slot.time)}
+                                className={rescheduleTime === slot.time ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                                disabled={!slot.available}
+                              >
+                                {slot.time}
+                              </Button>
+                            ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowRescheduleDialog(false);
+                        setSelectedAppointmentForReschedule(null);
+                        setRescheduleTime('');
+                      }}
+                      disabled={isRescheduling}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        if (!rescheduleDate || !rescheduleTime) {
+                          toast.error('Selecione data e horário');
+                          return;
+                        }
+                        setIsRescheduling(true);
+                        try {
+                          const [hours, minutes] = rescheduleTime.split(':');
+                          const newDateTime = new Date(rescheduleDate);
+                          newDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                          
+                          await api.post(`/api/v1/appointments/${selectedAppointmentForReschedule.id}/reschedule`, {
+                            scheduled_datetime: newDateTime.toISOString(),
+                          });
+                          
+                          await reloadAppointments();
+                          setShowRescheduleDialog(false);
+                          setSelectedAppointmentForReschedule(null);
+                          setRescheduleTime('');
+                          toast.success('Consulta reagendada com sucesso!', {
+                            description: `Nova data: ${format(newDateTime, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+                          });
+                        } catch (error: any) {
+                          console.error("Error rescheduling:", error);
+                          toast.error('Erro ao reagendar consulta', {
+                            description: error?.message || error?.detail || 'Não foi possível reagendar a consulta.',
+                          });
+                        } finally {
+                          setIsRescheduling(false);
+                        }
+                      }}
+                      disabled={isRescheduling || !rescheduleDate || !rescheduleTime}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isRescheduling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Reagendando...
+                        </>
+                      ) : (
+                        'Confirmar Reagendamento'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         </main>
