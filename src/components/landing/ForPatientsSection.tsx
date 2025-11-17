@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   CalendarDays,
@@ -26,6 +27,7 @@ interface ForPatientsSectionProps {
 }
 
 export function ForPatientsSection({ className }: ForPatientsSectionProps) {
+  const router = useRouter();
   const benefits = [
     {
       icon: CalendarDays,
@@ -171,11 +173,7 @@ export function ForPatientsSection({ className }: ForPatientsSectionProps) {
               <Button
                 size="lg"
                 className="bg-[#0F4C75] hover:bg-[#0F4C75]/90 text-white px-8 py-6 h-auto text-lg font-semibold"
-                onClick={() => {
-                  if (typeof window !== "undefined") {
-                    window.location.href = "/login";
-                  }
-                }}
+                onClick={() => router.push("/login")}
               >
                 <Download className="mr-2 h-5 w-5" />
                 Acessar Portal do Paciente
