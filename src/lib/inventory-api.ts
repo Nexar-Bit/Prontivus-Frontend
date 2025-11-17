@@ -108,6 +108,6 @@ export const inventoryApi = {
    * Get stock summary for dashboard
    */
   getStockSummary: async (): Promise<StockSummary> => {
-    return api.get<StockSummary>('/api/dashboard/summary');
+    return api.get<StockSummary>('/api/v1/stock/dashboard/summary');
   },
 };

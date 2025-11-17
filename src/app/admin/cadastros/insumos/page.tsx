@@ -238,17 +238,11 @@ export default function InsumosPage() {
 
   const loadStockSummary = async () => {
     try {
-      const data = await api.get<StockSummary>("/api/v1/dashboard/summary");
+      const data = await api.get<StockSummary>("/api/v1/stock/dashboard/summary");
       setStockSummary(data);
     } catch (error: any) {
-      // Try alternative endpoint path
-      try {
-        const data = await api.get<StockSummary>("/api/v1/stock/dashboard/summary");
-        setStockSummary(data);
-      } catch (e: any) {
-        console.error("Failed to load stock summary:", error);
-        // Non-critical error, continue without summary
-      }
+      console.error("Failed to load stock summary:", error);
+      // Non-critical error, continue without summary
     }
   };
 
