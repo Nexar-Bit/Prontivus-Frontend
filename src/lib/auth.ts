@@ -58,16 +58,46 @@ export interface LoginCredentials {
 // ==================== Token Management ====================
 
 /**
- * Store authentication tokens and user data in localStorage
+ * Set a cookie with the given name, value, and expiration
+ */
+function setCookie(name: string, value: string, days: number = 7): void {
+  if (typeof document === 'undefined') return;
+  
+  const expires = new Date();
+  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+}
+
+/**
+ * Delete a cookie
+ */
+function deleteCookie(name: string): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+}
+
+/**
+ * Store authentication tokens and user data in localStorage and cookies
+ * Cookies are needed for middleware (server-side) access
  */
 export function setAuthData(data: LoginResponse): void {
   if (typeof window === 'undefined') return;
   
+  // Store in localStorage (for client-side access)
   localStorage.setItem(TOKEN_KEY, data.access_token);
   if (data.refresh_token) {
     localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token);
   }
   localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  
+  // Also store in cookies (for middleware/server-side access)
+  // Calculate expiration days from expires_in (seconds)
+  const expirationDays = Math.floor(data.expires_in / (24 * 60 * 60)) || 7;
+  setCookie('clinicore_access_token', data.access_token, expirationDays);
+  setCookie('prontivus_access_token', data.access_token, expirationDays); // For compatibility
+  if (data.refresh_token) {
+    setCookie('clinicore_refresh_token', data.refresh_token, 30); // Refresh tokens last longer
+  }
 }
 
 /**
@@ -104,14 +134,20 @@ export function getStoredUser(): User | null {
 }
 
 /**
- * Clear all authentication data from localStorage
+ * Clear all authentication data from localStorage and cookies
  */
 export function clearAuthData(): void {
   if (typeof window === 'undefined') return;
   
+  // Clear localStorage
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  
+  // Clear cookies
+  deleteCookie('clinicore_access_token');
+  deleteCookie('prontivus_access_token');
+  deleteCookie('clinicore_refresh_token');
 }
 
 /**
@@ -290,6 +326,11 @@ export async function refreshAccessToken(): Promise<string | null> {
 
     const data = await response.json();
     localStorage.setItem(TOKEN_KEY, data.access_token);
+    
+    // Also update cookies
+    const expirationDays = Math.floor((data.expires_in || 604800) / (24 * 60 * 60)) || 7;
+    setCookie('clinicore_access_token', data.access_token, expirationDays);
+    setCookie('prontivus_access_token', data.access_token, expirationDays);
     
     return data.access_token;
   } catch (error) {
