@@ -49,9 +49,12 @@ const ROUTE_ROLES: Record<string, {
 const PUBLIC_ROUTES = [
   '/',
   '/login',
+  '/portal/login',
   '/register',
+  '/portal/register',
   '/forgot-password',
   '/reset-password',
+  '/auth/google/callback',
   '/api/auth',
 ];
 
