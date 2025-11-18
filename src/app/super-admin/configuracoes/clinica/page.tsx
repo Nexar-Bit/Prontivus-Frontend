@@ -291,11 +291,10 @@ export default function ClinicaPage() {
         await api.put(`/api/v1/admin/clinics/${editingClinic.id}`, clinicData);
         toast.success("Clínica atualizada com sucesso!");
       } else {
-        const response = await api.post("/api/v1/admin/clinics", clinicData);
-        const createdClinic = response.data;
+        const createdClinic = await api.post<any>("/api/v1/admin/clinics", clinicData);
         
         // Check if admin user was created
-        if (createdClinic.admin_user) {
+        if (createdClinic?.admin_user) {
           const adminUser = createdClinic.admin_user;
           toast.success("Clínica cadastrada com sucesso!", {
             description: `Usuário AdminClinica criado automaticamente. Username: ${adminUser.username}, Email: ${adminUser.email}, Senha: ${adminUser.password}`,
