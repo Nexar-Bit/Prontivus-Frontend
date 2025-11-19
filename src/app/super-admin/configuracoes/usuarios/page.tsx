@@ -261,12 +261,24 @@ export default function SuperAdminUsersPage() {
     
     try {
       setSaving(true);
-      await adminApi.updateUser(selectedUser.id, {
+      const updateData: any = {
         email: formData.email,
         first_name: formData.first_name,
         last_name: formData.last_name,
         role: formData.role,
-      });
+      };
+      
+      // Only include password if provided
+      if (formData.password && formData.password.trim() !== "") {
+        if (formData.password.length < 8) {
+          toast.error("A senha deve ter pelo menos 8 caracteres");
+          setSaving(false);
+          return;
+        }
+        updateData.password = formData.password;
+      }
+      
+      await adminApi.updateUser(selectedUser.id, updateData);
       
       toast.success("Usuário atualizado com sucesso");
       setIsEditDialogOpen(false);
@@ -779,6 +791,19 @@ export default function SuperAdminUsersPage() {
                   <SelectItem value="patient">Paciente</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label htmlFor="editPassword">Senha (opcional)</Label>
+              <Input
+                id="editPassword"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Deixe em branco para não alterar. Mínimo 8 caracteres"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Deixe em branco se não desejar alterar a senha
+              </p>
             </div>
           </div>
           <DialogFooter>

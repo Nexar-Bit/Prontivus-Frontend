@@ -339,6 +339,16 @@ export default function SettingsPage() {
   const validatePassword = (): boolean => {
     const errors: Record<string, string> = {};
     
+    // Only validate if user is trying to change password (at least one field is filled)
+    const isChangingPassword = passwordForm.currentPassword || passwordForm.newPassword || passwordForm.confirmPassword;
+    
+    if (!isChangingPassword) {
+      // No password change attempted, validation passes
+      setPasswordErrors({});
+      return true;
+    }
+    
+    // If any field is filled, all fields are required
     if (!passwordForm.currentPassword) {
       errors.currentPassword = 'Senha atual é obrigatória';
     }
@@ -403,6 +413,20 @@ export default function SettingsPage() {
   };
 
   const handlePasswordChange = async () => {
+    // Check if user is actually trying to change password
+    const isChangingPassword = passwordForm.currentPassword || passwordForm.newPassword || passwordForm.confirmPassword;
+    
+    if (!isChangingPassword) {
+      // No password change attempted, just clear the form
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+      setPasswordErrors({});
+      return;
+    }
+    
     if (!validatePassword()) {
       toast.error("Por favor, corrija os erros no formulário");
       return;
@@ -1559,9 +1583,12 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold mb-4">Alterar Senha</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Deixe os campos em branco se não desejar alterar a senha. Se preencher qualquer campo, todos serão obrigatórios.
+                  </p>
                   <div className="space-y-4 p-4 rounded-lg bg-gray-50 border border-gray-200">
                     <div>
-                      <Label htmlFor="currentPassword">Senha Atual</Label>
+                      <Label htmlFor="currentPassword">Senha Atual (opcional)</Label>
                       <div className="relative">
                         <Input
                           id="currentPassword"
@@ -1595,7 +1622,7 @@ export default function SettingsPage() {
                     </div>
                     
                     <div>
-                      <Label htmlFor="newPassword">Nova Senha</Label>
+                      <Label htmlFor="newPassword">Nova Senha (opcional)</Label>
                       <Input
                         id="newPassword"
                         type={showPassword ? "text" : "password"}
@@ -1617,7 +1644,7 @@ export default function SettingsPage() {
                     </div>
                     
                     <div>
-                      <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+                      <Label htmlFor="confirmPassword">Confirmar Nova Senha (opcional)</Label>
                       <Input
                         id="confirmPassword"
                         type={showPassword ? "text" : "password"}

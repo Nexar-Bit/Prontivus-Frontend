@@ -1,30 +1,79 @@
-const CACHE_NAME = "prontivus-cache-v1";
+// Version number - change this to force cache clear on next load
+// Using timestamp ensures cache is cleared on every service worker update
+const CACHE_VERSION = "v" + Date.now();
+const CACHE_NAME = `prontivus-cache-${CACHE_VERSION}`;
 const CRITICAL = ["/", "/portal", "/patient/profile", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
-	event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CRITICAL)));
+	// Force activation of new service worker immediately
+	self.skipWaiting();
+	event.waitUntil(
+		caches.keys().then((keys) => {
+			// Delete all old caches first
+			return Promise.all(keys.map((k) => caches.delete(k)));
+		}).then(() => {
+			// Create new cache with fresh version
+			return caches.open(CACHE_NAME).then((cache) => {
+				// Add cache-busting parameters to ensure fresh fetch
+				const criticalWithCacheBust = CRITICAL.map(url => `${url}?t=${Date.now()}`);
+				return Promise.all(criticalWithCacheBust.map(url => {
+					const request = new Request(url, { cache: 'no-store' });
+					return fetch(request).then(res => {
+						if (res.ok) {
+							return cache.put(request, res);
+						}
+					}).catch(() => {
+						// Ignore errors for critical resources
+					});
+				}));
+			});
+		})
+	);
 });
 
 self.addEventListener("activate", (event) => {
 	event.waitUntil(
-		caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+		Promise.all([
+			// Delete all old caches
+			caches.keys().then((keys) => {
+				return Promise.all(keys.map((k) => caches.delete(k)));
+			}),
+			// Take control of all clients immediately
+			clients.claim()
+		])
 	);
 });
 
 self.addEventListener("fetch", (event) => {
 	const { request } = event;
 	if (request.method !== "GET") return;
+	
+	// For navigation requests, always fetch fresh (no cache)
+	if (request.mode === "navigate") {
+		event.respondWith(
+			fetch(request).catch(() => {
+				// Fallback to cache only if network fails
+				return caches.match(request);
+			})
+		);
+		return;
+	}
+	
+	// For other requests, use network-first strategy with cache fallback
 	event.respondWith(
-		caches.match(request).then((cached) =>
-			cached ||
-			fetch(request)
-				.then((res) => {
+		fetch(request)
+			.then((res) => {
+				// Cache successful responses
+				if (res.ok) {
 					const copy = res.clone();
 					caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
-					return res;
-				})
-				.catch(() => cached)
-		)
+				}
+				return res;
+			})
+			.catch(() => {
+				// Fallback to cache if network fails
+				return caches.match(request);
+			})
 	);
 });
 

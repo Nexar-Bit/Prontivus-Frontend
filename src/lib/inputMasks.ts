@@ -33,6 +33,25 @@ export function validateCPF(value: string): boolean {
   return rev === parseInt(cpf.charAt(10));
 }
 
+// CNPJ: 00.000.000/0000-00
+export function maskCNPJ(value: string): string {
+  const digits = onlyDigits(value).slice(0, 14);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+  if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+}
+
+// Automatically detect CPF or CNPJ based on length
+export function maskCPFOrCNPJ(value: string): string {
+  const digits = onlyDigits(value);
+  if (digits.length <= 11) {
+    return maskCPF(value);
+  }
+  return maskCNPJ(value);
+}
+
 // Phone masks
 export function maskPhone(value: string): string {
   const d = onlyDigits(value).slice(0, 11);

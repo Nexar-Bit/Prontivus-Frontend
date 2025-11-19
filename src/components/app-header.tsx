@@ -436,7 +436,7 @@ export function AppHeader({
                   <Settings2 className="mr-3 h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium">Configurações</span>
                 </DropdownMenuItem>
-                {isAdmin() && (
+                {isAdmin() && user?.role_id !== 1 && user?.role_name?.toLowerCase() !== 'superadmin' && (
                   <DropdownMenuItem
                     onClick={() => router.push('/admin/settings')}
                     className="cursor-pointer focus:bg-blue-50 rounded-lg px-3 py-2.5 transition-colors"

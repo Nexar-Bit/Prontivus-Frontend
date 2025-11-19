@@ -39,42 +39,42 @@ const PACIENTE_MENU = [
   {
     title: "Agendamentos",
     icon: CalendarDays,
-    url: "/paciente/agendamentos",
+    url: "/pacient/agendamentos",
   },
   {
     title: "Histórico de Medicações",
     icon: Pill,
-    url: "/paciente/medicacoes",
+    url: "/pacient/medicacoes",
   },
   {
     title: "Resultados Exames",
     icon: FlaskConical,
-    url: "/paciente/exames",
+    url: "/pacient/exames",
   },
   {
     title: "Resumo de Saúde",
     icon: Heart,
-    url: "/paciente/saude",
+    url: "/pacient/saude",
   },
   {
     title: "Notas da Clínica",
     icon: FileText,
-    url: "/paciente/notas",
+    url: "/pacient/notas",
   },
   {
     title: "Mensagens",
     icon: MessageCircle,
-    url: "/paciente/mensagens",
+    url: "/pacient/mensagens",
   },
   {
     title: "Pagamentos",
     icon: CreditCard,
-    url: "/paciente/pagamentos",
+    url: "/pacient/pagamentos",
   },
   {
     title: "Perfil",
     icon: User,
-    url: "/paciente/perfil",
+    url: "/pacient/perfil",
   },
 ];
 
@@ -185,10 +185,10 @@ export function PacienteSidebar() {
       {/* Help Section */}
       <div className="px-3 py-2 border-t border-white/10">
         <Link
-          href="/paciente/ajuda"
+          href="/pacient/ajuda"
           className={cn(
             "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200",
-            pathname === "/paciente/ajuda"
+            pathname === "/pacient/ajuda"
               ? "bg-white text-cyan-700 font-semibold shadow-sm"
               : "text-white/90 hover:text-white hover:bg-white/10"
           )}

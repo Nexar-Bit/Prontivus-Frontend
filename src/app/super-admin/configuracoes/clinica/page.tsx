@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { maskCPFOrCNPJ, maskPhone, onlyDigits } from "@/lib/inputMasks";
 
 interface Clinic {
   id: number;
@@ -233,23 +234,35 @@ export default function ClinicaPage() {
     setShowForm(true);
   };
 
-  const openEditForm = (clinic: Clinic) => {
-    setEditingClinic(clinic);
-    const expirationDate = clinic.expiration_date ? parseISO(clinic.expiration_date).toISOString().split('T')[0] : "";
-    setFormData({
-      name: clinic.name || "",
-      legal_name: clinic.legal_name || "",
-      tax_id: clinic.tax_id || "",
-      address: clinic.address || "",
-      phone: clinic.phone || "",
-      email: clinic.email || "",
-      license_key: clinic.license_key || "",
-      expiration_date: expirationDate,
-      max_users: clinic.max_users?.toString() || "10",
-      active_modules: clinic.active_modules || [],
-      is_active: clinic.is_active ?? true,
-    });
-    setShowForm(true);
+  const openEditForm = async (clinic: Clinic) => {
+    try {
+      // Load full clinic details to ensure we have all fields (phone, address, etc.)
+      const fullClinic = await api.get<Clinic>(`/api/v1/admin/clinics/${clinic.id}`);
+      setEditingClinic(fullClinic);
+      const expirationDate = fullClinic.expiration_date ? parseISO(fullClinic.expiration_date).toISOString().split('T')[0] : "";
+      // Apply masks to tax_id and phone when loading from database
+      const taxIdWithMask = fullClinic.tax_id ? maskCPFOrCNPJ(fullClinic.tax_id) : "";
+      const phoneWithMask = fullClinic.phone ? maskPhone(fullClinic.phone) : "";
+      setFormData({
+        name: fullClinic.name || "",
+        legal_name: fullClinic.legal_name || "",
+        tax_id: taxIdWithMask,
+        address: fullClinic.address || "",
+        phone: phoneWithMask,
+        email: fullClinic.email || "",
+        license_key: fullClinic.license_key || "",
+        expiration_date: expirationDate,
+        max_users: fullClinic.max_users?.toString() || "10",
+        active_modules: fullClinic.active_modules || [],
+        is_active: fullClinic.is_active ?? true,
+      });
+      setShowForm(true);
+    } catch (error: any) {
+      console.error("Failed to load clinic details:", error);
+      toast.error("Erro ao carregar detalhes da clínica", {
+        description: error?.message || error?.detail,
+      });
+    }
   };
 
   const openDetailDialog = async (clinic: Clinic) => {
@@ -280,9 +293,9 @@ export default function ClinicaPage() {
       const clinicData: any = {
         name: formData.name.trim(),
         legal_name: formData.legal_name.trim(),
-        tax_id: formData.tax_id.trim(),
+        tax_id: onlyDigits(formData.tax_id.trim()), // Remove mask before sending
         address: formData.address.trim() || undefined,
-        phone: formData.phone.trim() || undefined,
+        phone: onlyDigits(formData.phone.trim()) || undefined, // Remove mask before sending
         email: formData.email.trim() || undefined,
         license_key: formData.license_key.trim() || undefined,
         expiration_date: formData.expiration_date || undefined,
@@ -292,7 +305,11 @@ export default function ClinicaPage() {
       };
 
       if (editingClinic) {
-        await api.put(`/api/v1/admin/clinics/${editingClinic.id}`, clinicData);
+        const updatedClinic = await api.put<Clinic>(`/api/v1/admin/clinics/${editingClinic.id}`, clinicData);
+        // Update the clinic in the local list immediately
+        setClinics(prevClinics => 
+          prevClinics.map(c => c.id === editingClinic.id ? updatedClinic : c)
+        );
         toast.success("Clínica atualizada com sucesso!");
       } else {
         const createdClinic = await api.post<any>("/api/v1/admin/clinics", clinicData);
@@ -761,9 +778,28 @@ export default function ClinicaPage() {
                     <Input
                       id="tax_id"
                       required
-                      placeholder="00.000.000/0000-00"
+                      placeholder="00.000.000/0000-00 ou 000.000.000-00"
                       value={formData.tax_id}
-                      onChange={(e) => setFormData({ ...formData, tax_id: e.target.value })}
+                      onChange={(e) => {
+                        // Remove all non-digits first, then apply mask
+                        const digits = onlyDigits(e.target.value);
+                        const masked = maskCPFOrCNPJ(digits);
+                        setFormData({ ...formData, tax_id: masked });
+                      }}
+                      onKeyPress={(e) => {
+                        // Only allow numbers and control keys
+                        if (!/[0-9]/.test(e.key) && 
+                            !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const pastedText = e.clipboardData.getData('text');
+                        const digits = onlyDigits(pastedText);
+                        const masked = maskCPFOrCNPJ(digits);
+                        setFormData({ ...formData, tax_id: masked });
+                      }}
                     />
                   </div>
                   <div>
@@ -783,7 +819,26 @@ export default function ClinicaPage() {
                       id="phone"
                       placeholder="(00) 00000-0000"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={(e) => {
+                        // Remove all non-digits first, then apply mask
+                        const digits = onlyDigits(e.target.value);
+                        const masked = maskPhone(digits);
+                        setFormData({ ...formData, phone: masked });
+                      }}
+                      onKeyPress={(e) => {
+                        // Only allow numbers and control keys
+                        if (!/[0-9]/.test(e.key) && 
+                            !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      onPaste={(e) => {
+                        e.preventDefault();
+                        const pastedText = e.clipboardData.getData('text');
+                        const digits = onlyDigits(pastedText);
+                        const masked = maskPhone(digits);
+                        setFormData({ ...formData, phone: masked });
+                      }}
                     />
                   </div>
                   <div>

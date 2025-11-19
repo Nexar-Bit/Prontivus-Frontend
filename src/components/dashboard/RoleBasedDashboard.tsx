@@ -246,9 +246,9 @@ function SecretariaDashboard() {
 
 function PacienteDashboard() {
   const stats = [
-    { title: "Próximos Agendamentos", value: "2", icon: CalendarDays, color: "text-cyan-600", bgColor: "bg-cyan-100", link: "/paciente/agendamentos" },
-    { title: "Exames Pendentes", value: "1", icon: Activity, color: "text-orange-600", bgColor: "bg-orange-100", link: "/paciente/exames" },
-    { title: "Mensagens Não Lidas", value: "3", icon: AlertCircle, color: "text-blue-600", bgColor: "bg-blue-100", link: "/paciente/mensagens" },
+    { title: "Próximos Agendamentos", value: "2", icon: CalendarDays, color: "text-cyan-600", bgColor: "bg-cyan-100", link: "/pacient/agendamentos" },
+    { title: "Exames Pendentes", value: "1", icon: Activity, color: "text-orange-600", bgColor: "bg-orange-100", link: "/pacient/exames" },
+    { title: "Mensagens Não Lidas", value: "3", icon: AlertCircle, color: "text-blue-600", bgColor: "bg-blue-100", link: "/pacient/mensagens" },
   ];
 
   return (

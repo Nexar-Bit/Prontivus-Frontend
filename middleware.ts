@@ -35,7 +35,7 @@ const ROUTE_ROLES: Record<string, {
     roleEnums: ['secretary'],
     redirectTo: '/dashboard',
   },
-  '/paciente': {
+  '/pacient': {
     roleIds: [5],
     roleNames: ['Paciente'],
     roleEnums: ['patient'],

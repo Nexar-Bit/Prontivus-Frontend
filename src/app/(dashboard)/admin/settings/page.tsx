@@ -153,6 +153,14 @@ export default function AdminSettingsPage() {
       return;
     }
     
+    // Check if user is SuperAdmin (role_id === 1 or role_name === 'SuperAdmin')
+    const isSuperAdmin = user?.role_id === 1 || user?.role_name?.toLowerCase() === 'superadmin';
+    if (isSuperAdmin) {
+      // SuperAdmins should use /super-admin/configuracoes/clinica instead
+      router.push("/super-admin/configuracoes/clinica");
+      return;
+    }
+    
     if (isAuthenticated && user?.role !== "admin") {
       router.push("/unauthorized");
       return;

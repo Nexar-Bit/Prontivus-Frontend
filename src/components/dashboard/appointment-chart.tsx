@@ -16,6 +16,8 @@ import {
 import { Line } from 'react-chartjs-2';
 import { appointmentsApi } from "@/lib/appointments-api";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 
 ChartJS.register(
   CategoryScale,
@@ -34,6 +36,7 @@ interface AppointmentChartData {
 }
 
 export function AppointmentChart() {
+  const { user } = useAuth();
   const [chartData, setChartData] = React.useState<{ labels: string[]; scheduled: number[]; completed: number[] } | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -49,10 +52,38 @@ export function AppointmentChart() {
         const startDate = thirtyDaysAgo.toISOString().split('T')[0];
         const endDate = now.toISOString().split('T')[0];
         
-        const appointments = await appointmentsApi.getAll({
-          start_date: startDate,
-          end_date: endDate,
-        });
+        let appointments: any[] = [];
+        
+        // Check user role to use appropriate endpoint
+        const isPatient = user?.role === 'patient' || user?.role_name?.toLowerCase() === 'patient';
+        const isStaff = user?.role === 'admin' || user?.role === 'secretary' || user?.role === 'doctor' ||
+                       user?.role_name?.toLowerCase() === 'admin' || 
+                       user?.role_name?.toLowerCase() === 'secretary' || 
+                       user?.role_name?.toLowerCase() === 'doctor';
+        
+        if (isPatient) {
+          // Use patient-specific endpoint
+          try {
+            appointments = await api.get<any[]>(`/api/v1/appointments/patient-appointments`);
+          } catch (err: any) {
+            // Silently handle permission errors for patients
+            if (err?.status === 403 || err?.response?.status === 403) {
+              console.warn("Patient appointments endpoint not accessible");
+              appointments = [];
+            } else {
+              throw err;
+            }
+          }
+        } else if (isStaff) {
+          // Use staff endpoint
+          appointments = await appointmentsApi.getAll({
+            start_date: startDate,
+            end_date: endDate,
+          });
+        } else {
+          // Unknown role, skip fetching
+          appointments = [];
+        }
         
         // Group by weeks for the last 4 weeks
         const weeks = [];
@@ -95,7 +126,7 @@ export function AppointmentChart() {
     };
 
     fetchData();
-  }, []);
+  }, [user]);
 
   if (loading) {
     return (
