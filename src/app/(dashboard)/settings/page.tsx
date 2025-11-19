@@ -471,73 +471,76 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg text-white shadow-lg">
-              <Settings className="h-6 w-6" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-xl text-white shadow-xl shadow-blue-500/20">
+                <Settings className="h-6 w-6" />
+              </div>
+              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
+                Configurações
+              </h1>
             </div>
-            Configurações
-          </h1>
-          <p className="text-muted-foreground">
-            Gerencie suas configurações e preferências da conta
-          </p>
+            <p className="text-gray-600 text-lg ml-14">
+              Gerencie suas configurações e preferências da conta
+            </p>
+          </div>
+          <Button 
+            onClick={saveSettings} 
+            disabled={saving}
+            size="lg"
+            className="gap-2 shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 transition-all duration-200"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Salvar Alterações
+              </>
+            )}
+          </Button>
         </div>
-        <Button 
-          onClick={saveSettings} 
-          disabled={saving}
-          size="lg"
-          className="gap-2 shrink-0"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4" />
-              Salvar Alterações
-            </>
-          )}
-        </Button>
-      </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-2 h-auto p-1.5 bg-gray-100/80 rounded-lg border border-gray-200">
+        <Tabs defaultValue="profile" className="space-y-8">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 h-auto p-2 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-lg shadow-gray-200/50">
           <TabsTrigger 
             value="profile" 
-            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
           >
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Perfil</span>
           </TabsTrigger>
           <TabsTrigger 
             value="notifications"
-            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
           >
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notificações</span>
           </TabsTrigger>
           <TabsTrigger 
             value="privacy"
-            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
           >
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Privacidade</span>
           </TabsTrigger>
           <TabsTrigger 
             value="appearance"
-            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
           >
             <Palette className="h-4 w-4" />
             <span className="hidden sm:inline">Aparência</span>
           </TabsTrigger>
           <TabsTrigger 
             value="security"
-            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
           >
             <Lock className="h-4 w-4" />
             <span className="hidden sm:inline">Segurança</span>
@@ -546,33 +549,34 @@ export default function SettingsPage() {
 
         {/* Profile Settings */}
         <TabsContent value="profile" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="pb-4">
+          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
+            <div className="h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
+            <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
-                    <User className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
+                    <User className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl text-gray-900">
+                    <CardTitle className="text-2xl font-bold text-gray-900">
                       Informações do Perfil
                     </CardTitle>
-                    <CardDescription className="mt-1 text-sm">
+                    <CardDescription className="mt-1.5 text-base text-gray-600">
                       Atualize suas informações pessoais e dados de contato
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 shadow-sm">
-                  <User className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 shadow-sm px-3 py-1.5">
+                  <User className="h-3.5 w-3.5 mr-1.5" />
                   Perfil
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-8 pb-8">
               {/* Avatar Upload Section */}
-              <div className="flex flex-col items-center gap-4 pb-6 border-b">
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 border-4 border-blue-200 flex items-center justify-center overflow-hidden shadow-lg">
+              <div className="flex flex-col items-center gap-6 pb-8 border-b border-gray-200">
+                <div className="relative group">
+                  <div className="w-36 h-36 rounded-full bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 border-4 border-white flex items-center justify-center overflow-hidden shadow-2xl shadow-blue-500/30 ring-4 ring-blue-100 transition-all duration-300 group-hover:scale-105">
                     {avatarPreview || settings.profile.avatar ? (
                       <img
                         src={avatarPreview || settings.profile.avatar}
@@ -591,7 +595,7 @@ export default function SettingsPage() {
                   {(avatarPreview || settings.profile.avatar) && (
                     <button
                       onClick={handleRemoveAvatar}
-                      className="absolute -top-2 -right-2 p-1.5 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 transition-colors"
+                      className="absolute -top-2 -right-2 p-2 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-110 transition-all duration-200 ring-2 ring-white"
                       type="button"
                       aria-label="Remover avatar"
                       title="Remover avatar"
@@ -600,9 +604,9 @@ export default function SettingsPage() {
                     </button>
                   )}
                 </div>
-                <div className="flex flex-col items-center gap-2">
+                <div className="flex flex-col items-center gap-3">
                   <Label htmlFor="avatar-upload" className="cursor-pointer">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md">
+                    <div className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:scale-105">
                       <Camera className="h-4 w-4" />
                       {avatarPreview || settings.profile.avatar ? 'Alterar Avatar' : 'Adicionar Avatar'}
                     </div>
@@ -623,9 +627,9 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">Nome</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-sm font-semibold text-gray-700">Nome</Label>
                   <Input
                     id="firstName"
                     value={settings.profile.firstName}
@@ -635,14 +639,17 @@ export default function SettingsPage() {
                         setProfileErrors(prev => ({ ...prev, firstName: '' }));
                       }
                     }}
-                    className={profileErrors.firstName ? 'border-red-500' : ''}
+                    className={`h-11 ${profileErrors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} transition-all duration-200`}
                   />
                   {profileErrors.firstName && (
-                    <p className="text-sm text-red-500 mt-1">{profileErrors.firstName}</p>
+                    <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      {profileErrors.firstName}
+                    </p>
                   )}
                 </div>
-                <div>
-                  <Label htmlFor="lastName">Sobrenome</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="text-sm font-semibold text-gray-700">Sobrenome</Label>
                   <Input
                     id="lastName"
                     value={settings.profile.lastName}
@@ -652,16 +659,19 @@ export default function SettingsPage() {
                         setProfileErrors(prev => ({ ...prev, lastName: '' }));
                       }
                     }}
-                    className={profileErrors.lastName ? 'border-red-500' : ''}
+                    className={`h-11 ${profileErrors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} transition-all duration-200`}
                   />
                   {profileErrors.lastName && (
-                    <p className="text-sm text-red-500 mt-1">{profileErrors.lastName}</p>
+                    <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      {profileErrors.lastName}
+                    </p>
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email">E-mail</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-semibold text-gray-700">E-mail</Label>
                   <Input
                     id="email"
                     type="email"
@@ -672,14 +682,17 @@ export default function SettingsPage() {
                         setProfileErrors(prev => ({ ...prev, email: '' }));
                       }
                     }}
-                    className={profileErrors.email ? 'border-red-500' : ''}
+                    className={`h-11 ${profileErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} transition-all duration-200`}
                   />
                   {profileErrors.email && (
-                    <p className="text-sm text-red-500 mt-1">{profileErrors.email}</p>
+                    <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      {profileErrors.email}
+                    </p>
                   )}
                 </div>
-                <div>
-                  <Label htmlFor="phone">Telefone</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">Telefone</Label>
                   <Input
                     id="phone"
                     value={settings.profile.phone}
@@ -689,10 +702,13 @@ export default function SettingsPage() {
                         setProfileErrors(prev => ({ ...prev, phone: '' }));
                       }
                     }}
-                    className={profileErrors.phone ? 'border-red-500' : ''}
+                    className={`h-11 ${profileErrors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} transition-all duration-200`}
                   />
                   {profileErrors.phone && (
-                    <p className="text-sm text-red-500 mt-1">{profileErrors.phone}</p>
+                    <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      {profileErrors.phone}
+                    </p>
                   )}
                 </div>
               </div>
@@ -702,24 +718,25 @@ export default function SettingsPage() {
 
         {/* Notification Settings */}
         <TabsContent value="notifications" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="pb-4">
+          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
+            <div className="h-2 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
+            <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
-                    <Bell className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg shadow-amber-500/30">
+                    <Bell className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl text-gray-900">
+                    <CardTitle className="text-2xl font-bold text-gray-900">
                       Preferências de Notificações
                     </CardTitle>
-                    <CardDescription className="mt-1 text-sm">
+                    <CardDescription className="mt-1.5 text-base text-gray-600">
                       Configure como e quando receber notificações
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  <Bell className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border-amber-200 shadow-sm px-3 py-1.5">
+                  <Bell className="h-3.5 w-3.5 mr-1.5" />
                   Notificações
                 </Badge>
               </div>
@@ -728,14 +745,14 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Canais de Notificação</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Mail className="h-4 w-4 text-blue-600" />
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 hover:shadow-md transition-all duration-200">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
+                        <Mail className="h-5 w-5 text-white" />
                     </div>
                       <div className="flex flex-col">
-                        <Label htmlFor="emailNotifications" className="font-medium">Notificações por E-mail</Label>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <Label htmlFor="emailNotifications" className="font-semibold text-gray-900">Notificações por E-mail</Label>
+                        <p className="text-sm text-gray-600 mt-1">
                           Receba notificações importantes por e-mail
                         </p>
                       </div>
@@ -745,17 +762,18 @@ export default function SettingsPage() {
                       id="emailNotifications"
                       checked={settings.notifications.email}
                       onCheckedChange={(checked) => handleSettingChange('notifications', 'email', checked)}
+                      className="data-[state=checked]:bg-blue-600"
                     />
                   </div>
                     </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Smartphone className="h-4 w-4 text-blue-600" />
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 hover:shadow-md transition-all duration-200">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
+                        <Smartphone className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex flex-col">
-                        <Label htmlFor="pushNotifications" className="font-medium">Notificações Push</Label>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <Label htmlFor="pushNotifications" className="font-semibold text-gray-900">Notificações Push</Label>
+                        <p className="text-sm text-gray-600 mt-1">
                           Receba notificações no navegador mesmo quando o site estiver fechado
                         </p>
                       </div>
@@ -764,6 +782,7 @@ export default function SettingsPage() {
                     <Switch
                       id="pushNotifications"
                       checked={settings.notifications.push}
+                      className="data-[state=checked]:bg-blue-600"
                         onCheckedChange={async (checked) => {
                           handleSettingChange('notifications', 'push', checked);
                           // If enabling, request permission and subscribe
@@ -807,14 +826,14 @@ export default function SettingsPage() {
                     />
                   </div>
                     </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Bell className="h-4 w-4 text-blue-600" />
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 hover:shadow-md transition-all duration-200">
+                    <div className="flex items-center space-x-4">
+                      <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
+                        <Bell className="h-5 w-5 text-white" />
                       </div>
                       <div className="flex flex-col">
-                        <Label htmlFor="smsNotifications" className="font-medium">Notificações SMS</Label>
-                        <p className="text-xs text-muted-foreground mt-0.5">
+                        <Label htmlFor="smsNotifications" className="font-semibold text-gray-900">Notificações SMS</Label>
+                        <p className="text-sm text-gray-600 mt-1">
                           Receba notificações importantes por SMS no seu telefone
                         </p>
                       </div>
@@ -824,6 +843,7 @@ export default function SettingsPage() {
                       id="smsNotifications"
                       checked={settings.notifications.sms}
                       onCheckedChange={(checked) => handleSettingChange('notifications', 'sms', checked)}
+                      className="data-[state=checked]:bg-blue-600"
                     />
                     </div>
                   </div>
@@ -1130,24 +1150,25 @@ export default function SettingsPage() {
 
         {/* Privacy Settings */}
         <TabsContent value="privacy" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-600 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="pb-4">
+          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
+            <div className="h-2 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500"></div>
+            <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
-                    <Shield className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg shadow-green-500/30">
+                    <Shield className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl text-gray-900">
+                    <CardTitle className="text-2xl font-bold text-gray-900">
                       Privacidade e Dados
                     </CardTitle>
-                    <CardDescription className="mt-1 text-sm">
+                    <CardDescription className="mt-1.5 text-base text-gray-600">
                       Gerencie suas configurações de privacidade e compartilhamento de dados
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  <Shield className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200 shadow-sm px-3 py-1.5">
+                  <Shield className="h-3.5 w-3.5 mr-1.5" />
                   Privacidade
                 </Badge>
               </div>
@@ -1172,28 +1193,31 @@ export default function SettingsPage() {
                 </div>
                 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
-                    <Label htmlFor="showOnlineStatus" className="font-medium">Mostrar Status Online</Label>
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 hover:shadow-md transition-all duration-200">
+                    <Label htmlFor="showOnlineStatus" className="font-semibold text-gray-900">Mostrar Status Online</Label>
                     <Switch
                       id="showOnlineStatus"
                       checked={settings.privacy.showOnlineStatus}
                       onCheckedChange={(checked) => handleSettingChange('privacy', 'showOnlineStatus', checked)}
+                      className="data-[state=checked]:bg-green-600"
                     />
                   </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
-                    <Label htmlFor="allowDirectMessages" className="font-medium">Permitir Mensagens Diretas</Label>
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 hover:shadow-md transition-all duration-200">
+                    <Label htmlFor="allowDirectMessages" className="font-semibold text-gray-900">Permitir Mensagens Diretas</Label>
                     <Switch
                       id="allowDirectMessages"
                       checked={settings.privacy.allowDirectMessages}
                       onCheckedChange={(checked) => handleSettingChange('privacy', 'allowDirectMessages', checked)}
+                      className="data-[state=checked]:bg-green-600"
                     />
                   </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
-                    <Label htmlFor="dataSharing" className="font-medium">Permitir Compartilhamento de Dados</Label>
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 hover:shadow-md transition-all duration-200">
+                    <Label htmlFor="dataSharing" className="font-semibold text-gray-900">Permitir Compartilhamento de Dados</Label>
                     <Switch
                       id="dataSharing"
                       checked={settings.privacy.dataSharing}
                       onCheckedChange={(checked) => handleSettingChange('privacy', 'dataSharing', checked)}
+                      className="data-[state=checked]:bg-green-600"
                     />
                   </div>
                 </div>
@@ -1263,24 +1287,25 @@ export default function SettingsPage() {
 
         {/* Appearance Settings */}
         <TabsContent value="appearance" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="pb-4">
+          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
+            <div className="h-2 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500"></div>
+            <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
-                    <Palette className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-lg shadow-purple-500/30">
+                    <Palette className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl text-gray-900">
+                    <CardTitle className="text-2xl font-bold text-gray-900">
                       Aparência e Idioma
                     </CardTitle>
-                    <CardDescription className="mt-1 text-sm">
+                    <CardDescription className="mt-1.5 text-base text-gray-600">
                       Personalize a aparência e idioma da interface
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  <Palette className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-purple-200 shadow-sm px-3 py-1.5">
+                  <Palette className="h-3.5 w-3.5 mr-1.5" />
                   Aparência
                 </Badge>
               </div>
@@ -1384,38 +1409,39 @@ export default function SettingsPage() {
 
         {/* Security Settings */}
         <TabsContent value="security" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-700 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="pb-4">
+          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
+            <div className="h-2 bg-gradient-to-r from-red-600 via-rose-600 to-pink-600"></div>
+            <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
-                    <Lock className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl shadow-lg shadow-red-500/30">
+                    <Lock className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl text-gray-900">
+                    <CardTitle className="text-2xl font-bold text-gray-900">
                       Segurança e Autenticação
                     </CardTitle>
-                    <CardDescription className="mt-1 text-sm">
+                    <CardDescription className="mt-1.5 text-base text-gray-600">
                       Gerencie sua senha e configurações de segurança
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  <Lock className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border-red-200 shadow-sm px-3 py-1.5">
+                  <Lock className="h-3.5 w-3.5 mr-1.5" />
                   Segurança
                 </Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Key className="h-4 w-4 text-blue-600" />
+                <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-red-50/80 to-rose-50/80 border border-red-200/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-2.5 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg shadow-md">
+                      <Key className="h-5 w-5 text-white" />
                     </div>
                   <div>
-                      <Label htmlFor="twoFactorAuth" className="font-medium">Autenticação de Dois Fatores</Label>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <Label htmlFor="twoFactorAuth" className="font-semibold text-gray-900">Autenticação de Dois Fatores</Label>
+                      <p className="text-sm text-gray-600 mt-1">
                       Adicione uma camada extra de segurança à sua conta
                     </p>
                     </div>
@@ -1423,6 +1449,7 @@ export default function SettingsPage() {
                   <Switch
                     id="twoFactorAuth"
                     checked={settings.security.twoFactorAuth}
+                    className="data-[state=checked]:bg-red-600"
                     onCheckedChange={async (checked) => {
                       if (checked) {
                         // Enable 2FA - start setup process
@@ -1460,14 +1487,14 @@ export default function SettingsPage() {
                   />
                 </div>
                 
-                <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <AlertCircle className="h-4 w-4 text-blue-600" />
+                <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-red-50/80 to-rose-50/80 border border-red-200/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-2.5 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg shadow-md">
+                      <AlertCircle className="h-5 w-5 text-white" />
                     </div>
                   <div>
-                      <Label htmlFor="loginAlerts" className="font-medium">Alertas de Login</Label>
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <Label htmlFor="loginAlerts" className="font-semibold text-gray-900">Alertas de Login</Label>
+                      <p className="text-sm text-gray-600 mt-1">
                       Seja notificado quando alguém fizer login na sua conta
                     </p>
                     </div>
@@ -1476,6 +1503,7 @@ export default function SettingsPage() {
                     id="loginAlerts"
                     checked={settings.security.loginAlerts}
                     onCheckedChange={(checked) => handleSettingChange('security', 'loginAlerts', checked)}
+                    className="data-[state=checked]:bg-red-600"
                   />
                 </div>
               </div>
@@ -1764,6 +1792,7 @@ export default function SettingsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

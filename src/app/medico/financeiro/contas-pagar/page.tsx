@@ -127,9 +127,9 @@ export default function ContasPagarPage() {
   const loadPayableDetails = async (payable: Payable) => {
     try {
       setLoadingDetails(true);
-      // For now, use the payable data directly since there's no detail endpoint
-      // When Expense model is created, this can fetch from /api/v1/financial/expenses/{id}
-      setPayableDetail(payable as PayableDetail);
+      // Fetch expense details from API
+      const detail = await api.get<PayableDetail>(`/api/v1/financial/doctor/expenses/${payable.id}`);
+      setPayableDetail(detail);
       setSelectedPayable(payable);
       setShowDetails(true);
     } catch (error: any) {
@@ -207,14 +207,44 @@ export default function ContasPagarPage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      // TODO: When Expense model is created, implement POST/PUT endpoints
-      // For now, just show a message
-      toast.info("Funcionalidade em desenvolvimento", {
-        description: "A criação/edição de despesas estará disponível em breve",
-      });
+      
+      // Validate required fields
+      if (!formData.description.trim()) {
+        toast.error("Descrição é obrigatória");
+        return;
+      }
+      if (!formData.amount || parseFloat(formData.amount) <= 0) {
+        toast.error("Valor deve ser maior que zero");
+        return;
+      }
+      if (!formData.due_date) {
+        toast.error("Data de vencimento é obrigatória");
+        return;
+      }
+      
+      const expenseData = {
+        description: formData.description.trim(),
+        amount: parseFloat(formData.amount),
+        due_date: new Date(formData.due_date).toISOString(),
+        category: formData.category.trim() || undefined,
+        vendor: formData.vendor.trim() || undefined,
+        notes: formData.notes.trim() || undefined,
+      };
+      
+      if (showEditDialog && selectedPayable) {
+        // Update existing expense
+        await api.put(`/api/v1/financial/doctor/expenses/${selectedPayable.id}`, expenseData);
+        toast.success("Despesa atualizada com sucesso");
+      } else {
+        // Create new expense
+        await api.post("/api/v1/financial/doctor/expenses", expenseData);
+        toast.success("Despesa criada com sucesso");
+      }
+      
       setShowCreateDialog(false);
       setShowEditDialog(false);
       setSelectedPayable(null);
+      await loadPayables();
     } catch (error: any) {
       console.error("Failed to save payable:", error);
       toast.error("Erro ao salvar", {
@@ -230,12 +260,11 @@ export default function ContasPagarPage() {
 
     try {
       setDeleting(true);
-      // TODO: When Expense model is created, implement DELETE endpoint
-      toast.info("Funcionalidade em desenvolvimento", {
-        description: "A exclusão de despesas estará disponível em breve",
-      });
+      await api.delete(`/api/v1/financial/doctor/expenses/${selectedPayable.id}`);
+      toast.success("Despesa excluída com sucesso");
       setShowDeleteDialog(false);
       setSelectedPayable(null);
+      await loadPayables();
     } catch (error: any) {
       console.error("Failed to delete payable:", error);
       toast.error("Erro ao excluir", {
@@ -824,15 +853,6 @@ export default function ContasPagarPage() {
                 placeholder="Observações adicionais..."
                 rows={3}
               />
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">Nota:</p>
-                  <p>Esta funcionalidade estará disponível quando o modelo de despesas for implementado no sistema.</p>
-                </div>
-              </div>
             </div>
           </div>
           <DialogFooter>
