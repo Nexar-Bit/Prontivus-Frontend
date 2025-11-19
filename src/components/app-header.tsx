@@ -418,12 +418,8 @@ export function AppHeader({
               <DropdownMenuGroup className="p-2">
                 <DropdownMenuItem
                   onClick={() => {
-                    // Redirect to settings for staff, portal/profile for patients
-                    if (isPatient()) {
-                      router.push('/portal/profile');
-                    } else {
-                      router.push('/settings');
-                    }
+                    // Always redirect to settings page when in dashboard (AppHeader context)
+                    router.push('/settings');
                   }}
                   className="cursor-pointer focus:bg-blue-50 rounded-lg px-3 py-2.5 transition-colors"
                 >

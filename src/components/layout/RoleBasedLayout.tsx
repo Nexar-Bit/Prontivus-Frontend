@@ -7,6 +7,10 @@ import { Navigation } from "./Navigation";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { AppHeader } from "@/components/app-header";
 import { NavigationErrorBoundary } from "./NavigationErrorBoundary";
+import { SuperAdminSidebar } from "@/components/super-admin/SuperAdminSidebar";
+import { SecretarySidebar } from "@/components/secretaria/SecretarySidebar";
+import { DoctorSidebar } from "@/components/medico/DoctorSidebar";
+import { AdminClinicaSidebar } from "@/components/admin/AdminClinicaSidebar";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -112,10 +116,81 @@ export function RoleBasedLayout({
     );
   }
 
+  // Determine which sidebar to use based on user role
+  const getSidebar = () => {
+    if (!user) return <Navigation />;
+    
+    // Check for SuperAdmin
+    const isSuperAdmin = 
+      user.role === 'admin' && 
+      (user.role_id === 1 || user.role_name === 'SuperAdmin');
+    
+    // Check for AdminClinica
+    const isAdminClinica = 
+      user.role === 'admin' && 
+      (user.role_id === 2 || user.role_name === 'AdminClinica');
+    
+    // Check for Doctor
+    const isDoctor = 
+      user.role === 'doctor' && 
+      (user.role_id === 3 || user.role_name === 'Medico');
+    
+    // Check for Secretary
+    const isSecretary = 
+      user.role === 'secretary' && 
+      (user.role_id === 4 || user.role_name === 'Secretaria');
+    
+    if (isSuperAdmin) {
+      return <SuperAdminSidebar />;
+    } else if (isAdminClinica) {
+      return <AdminClinicaSidebar />;
+    } else if (isDoctor) {
+      return <DoctorSidebar />;
+    } else if (isSecretary) {
+      return <SecretarySidebar />;
+    }
+    
+    // Default to Navigation for other roles or fallback
+    return <Navigation />;
+  };
+
+  // Get background gradient based on role
+  const getBackgroundGradient = () => {
+    if (!user) return "bg-gradient-to-br from-blue-50 to-cyan-50";
+    
+    const isSuperAdmin = 
+      user.role === 'admin' && 
+      (user.role_id === 1 || user.role_name === 'SuperAdmin');
+    
+    const isAdminClinica = 
+      user.role === 'admin' && 
+      (user.role_id === 2 || user.role_name === 'AdminClinica');
+    
+    const isDoctor = 
+      user.role === 'doctor' && 
+      (user.role_id === 3 || user.role_name === 'Medico');
+    
+    const isSecretary = 
+      user.role === 'secretary' && 
+      (user.role_id === 4 || user.role_name === 'Secretaria');
+    
+    if (isSuperAdmin) {
+      return "bg-gradient-to-br from-purple-50 to-blue-50";
+    } else if (isAdminClinica) {
+      return "bg-gradient-to-br from-blue-50 to-cyan-50";
+    } else if (isDoctor) {
+      return "bg-gradient-to-br from-green-50 to-emerald-50";
+    } else if (isSecretary) {
+      return "bg-gradient-to-br from-teal-50 to-cyan-50";
+    }
+    
+    return "bg-gradient-to-br from-blue-50 to-cyan-50";
+  };
+
   return (
     <NavigationErrorBoundary>
-      <div className="flex min-h-screen w-full bg-gradient-to-br from-blue-50 to-cyan-50">
-        <Navigation />
+      <div className={`flex min-h-screen w-full ${getBackgroundGradient()}`}>
+        {getSidebar()}
         <main className="flex-1 flex flex-col lg:ml-[240px] transition-all duration-300">
           <AppHeader />
           <div className="px-4 lg:px-6 pt-4">

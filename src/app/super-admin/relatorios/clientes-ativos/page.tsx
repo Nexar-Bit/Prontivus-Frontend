@@ -139,10 +139,82 @@ export default function ClientesAtivosPage() {
 
   const handleExport = async () => {
     try {
-      // For now, just show a message
-      // In the future, this would generate and download a CSV/Excel file
-      toast.info("Exportação em desenvolvimento", {
-        description: "A funcionalidade de exportação será implementada em breve",
+      if (filteredClients.length === 0) {
+        toast.error("Nenhum dado para exportar", {
+          description: "Não há clientes para exportar com os filtros aplicados",
+        });
+        return;
+      }
+
+      // Create CSV content with UTF-8 BOM for Excel compatibility
+      const csvRows: string[] = [];
+      
+      // CSV Header
+      csvRows.push([
+        "ID",
+        "Nome",
+        "Razão Social",
+        "CNPJ/CPF",
+        "Email",
+        "Tipo de Licença",
+        "Status da Licença",
+        "Usuários Ativos",
+        "Limite de Usuários",
+        "Status",
+        "Última Atividade",
+        "Receita (30 dias)",
+        "Data de Criação"
+      ].join(","));
+
+      // CSV Data Rows
+      filteredClients.forEach((client) => {
+        const row = [
+          client.id.toString(),
+          `"${(client.name || "").replace(/"/g, '""')}"`, // Escape quotes
+          `"${(client.legal_name || "").replace(/"/g, '""')}"`,
+          `"${(client.tax_id || "").replace(/"/g, '""')}"`,
+          client.email || "",
+          client.license_type || "N/A",
+          client.license_status || "N/A",
+          client.users.toString(),
+          client.max_users.toString(),
+          client.status || "Ativo",
+          client.last_activity ? formatDate(client.last_activity) : "-",
+          (client.revenue || 0).toFixed(2).replace(".", ","), // Brazilian number format
+          client.created_at ? formatDate(client.created_at) : "-"
+        ];
+        csvRows.push(row.join(","));
+      });
+
+      // Join all rows
+      const csvContent = csvRows.join("\n");
+      
+      // Create blob with UTF-8 BOM for Excel compatibility
+      const blob = new Blob(["\ufeff" + csvContent], { 
+        type: "text/csv;charset=utf-8;" 
+      });
+      
+      // Create download link
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download", 
+        `clientes-ativos-${format(new Date(), "yyyy-MM-dd")}.csv`
+      );
+      link.style.visibility = "hidden";
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      
+      toast.success("Dados exportados com sucesso!", {
+        description: `${filteredClients.length} cliente(s) exportado(s)`,
       });
     } catch (error: any) {
       console.error("Failed to export:", error);

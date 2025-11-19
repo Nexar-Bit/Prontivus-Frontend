@@ -73,9 +73,14 @@ interface TissTemplate {
   name: string;
   description?: string;
   category: string;
+  xml_template?: string;
+  variables?: string[];
   is_default: boolean;
   is_active: boolean;
-  created_at: string;
+  clinic_id?: number;
+  created_by_id?: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface Clinic {
@@ -237,7 +242,8 @@ export default function TISSPage() {
     if (!selectedClinicId) return;
 
     try {
-      const data = await api.get<TissTemplate[]>("/api/v1/financial/templates");
+      // SuperAdmin can load templates for any clinic
+      const data = await api.get<TissTemplate[]>(`/api/v1/financial/admin/${selectedClinicId}/templates`);
       setTemplates(data);
     } catch (error: any) {
       console.error("Failed to load templates:", error);
@@ -838,6 +844,227 @@ export default function TISSPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Template Dialog */}
+      <Dialog open={showTemplateDialog} onOpenChange={setShowTemplateDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedTemplate ? "Editar Template" : "Novo Template TISS"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedTemplate ? "Edite o template XML" : "Crie um novo template XML para geração de documentos TISS"}
+            </DialogDescription>
+          </DialogHeader>
+          <TemplateForm
+            template={selectedTemplate}
+            onSave={async (templateData) => {
+              if (!selectedClinicId) {
+                toast.error("Selecione uma clínica primeiro");
+                return;
+              }
+              
+              try {
+                if (selectedTemplate) {
+                  await api.put(`/api/v1/financial/templates/${selectedTemplate.id}`, templateData);
+                  toast.success("Template atualizado com sucesso!");
+                } else {
+                  // SuperAdmin creates template for selected clinic
+                  await api.post(`/api/v1/financial/admin/${selectedClinicId}/templates`, templateData);
+                  toast.success("Template criado com sucesso!");
+                }
+                setShowTemplateDialog(false);
+                setSelectedTemplate(null);
+                await loadTemplates();
+              } catch (error: any) {
+                console.error("Failed to save template:", error);
+                toast.error(selectedTemplate ? "Erro ao atualizar template" : "Erro ao criar template", {
+                  description: error?.message || error?.detail || "Não foi possível salvar o template",
+                });
+              }
+            }}
+            onCancel={() => {
+              setShowTemplateDialog(false);
+              setSelectedTemplate(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+// Template Form Component
+function TemplateForm({
+  template,
+  onSave,
+  onCancel,
+}: {
+  template: TissTemplate | null;
+  onSave: (data: any) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    name: template?.name || "",
+    description: template?.description || "",
+    category: template?.category || "custom",
+    xml_template: template?.xml_template || "",
+    is_default: template?.is_default || false,
+    is_active: template?.is_active ?? true,
+  });
+
+  // Update form data when template changes
+  useEffect(() => {
+    if (template) {
+      setFormData({
+        name: template.name || "",
+        description: template.description || "",
+        category: template.category || "custom",
+        xml_template: template.xml_template || "",
+        is_default: template.is_default || false,
+        is_active: template.is_active ?? true,
+      });
+    } else {
+      setFormData({
+        name: "",
+        description: "",
+        category: "custom",
+        xml_template: "",
+        is_default: false,
+        is_active: true,
+      });
+    }
+  }, [template]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.xml_template) {
+      toast.error("Preencha os campos obrigatórios (Nome e Template XML)");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await onSave(formData);
+    } catch (error) {
+      // Error is handled in parent component
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const categories = [
+    { value: "consultation", label: "Consulta" },
+    { value: "procedure", label: "Procedimento" },
+    { value: "exam", label: "Exame" },
+    { value: "emergency", label: "Emergência" },
+    { value: "custom", label: "Personalizado" },
+  ];
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="template-name">Nome do Template *</Label>
+          <Input
+            id="template-name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="Nome do template"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="template-category">Categoria *</Label>
+          <Select
+            value={formData.category}
+            onValueChange={(value) => setFormData({ ...formData, category: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione uma categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="template-description">Descrição</Label>
+        <Textarea
+          id="template-description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder="Descrição do template"
+          rows={3}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="template-xml">Template XML *</Label>
+        <Textarea
+          id="template-xml"
+          value={formData.xml_template}
+          onChange={(e) => setFormData({ ...formData, xml_template: e.target.value })}
+          placeholder='<xml>Use {{VARIABLE_NAME}} para variáveis</xml>'
+          rows={15}
+          className="font-mono text-sm"
+          required
+        />
+        <p className="text-xs text-gray-500">
+          Use {"{{VARIABLE_NAME}}"} para definir variáveis que serão substituídas na geração do documento
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="template-active"
+            checked={formData.is_active}
+            onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+          />
+          <Label htmlFor="template-active" className="cursor-pointer">
+            Template Ativo
+          </Label>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="template-default"
+            checked={formData.is_default}
+            onCheckedChange={(checked) => setFormData({ ...formData, is_default: checked })}
+            disabled={!!template} // Can't change default status when editing
+          />
+          <Label htmlFor="template-default" className="cursor-pointer">
+            Template Padrão
+          </Label>
+        </div>
+      </div>
+
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={saving} className="bg-purple-600 hover:bg-purple-700">
+          {saving ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            <>
+              <Save className="mr-2 h-4 w-4" />
+              {template ? "Atualizar" : "Criar"} Template
+            </>
+          )}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

@@ -44,6 +44,10 @@
 	--color-accent: oklch(0.62 0.10 240); /* Soft blue accent */
 	--color-accent-foreground: oklch(0.98 0 0);
 	
+	/* Popover/Dropdown colors */
+	--color-popover: oklch(1 0 0); /* White background for dropdowns */
+	--color-popover-foreground: oklch(0.20 0.02 240); /* Dark text */
+	
 	/* Status colors - healthcare appropriate (softer tones) */
 	--color-success: oklch(0.60 0.12 150); /* Soft green */
 	--color-warning: oklch(0.75 0.10 80); /* Soft amber */

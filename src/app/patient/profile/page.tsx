@@ -528,7 +528,7 @@ export default function PatientProfilePage() {
   const hasEmergencyContact = profile.emergency_contact_name && profile.emergency_contact_phone;
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
       <PatientHeader showSearch={false} notificationCount={0} />
       <PatientMobileNav />
 

@@ -63,18 +63,22 @@ export interface ClinicStats {
 
 export const adminApi = {
   // Users management
-  getUsers: async (params?: { role?: string }): Promise<{
+  getUsers: async (params?: { role?: string; clinic_id?: number }): Promise<{
     id: number;
     username: string;
     email: string;
     first_name: string;
     last_name: string;
     role: 'admin'|'secretary'|'doctor'|'patient';
+    clinic_id?: number;
     clinic_name?: string;
+    is_active?: boolean;
+    is_verified?: boolean;
   }[]> => {
     const searchParams = new URLSearchParams();
     if (params?.role) searchParams.append('role', params.role);
-    const url = `/api/users${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    if (params?.clinic_id) searchParams.append('clinic_id', params.clinic_id.toString());
+    const url = `/api/v1/users${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
     return api.get(url);
   },
 
@@ -85,8 +89,9 @@ export const adminApi = {
     first_name?: string;
     last_name?: string;
     role: 'admin'|'secretary'|'doctor'|'patient';
+    clinic_id?: number;  // Allow SuperAdmin to specify clinic_id
   }) => {
-    return api.post('/api/users', data);
+    return api.post('/api/v1/users', data);
   },
 
   updateUser: async (id: number, data: Partial<{
@@ -97,11 +102,11 @@ export const adminApi = {
     is_active: boolean;
     is_verified: boolean;
   }>) => {
-    return api.patch(`/api/users/${id}`, data);
+    return api.patch(`/api/v1/users/${id}`, data);
   },
 
   deleteUser: async (id: number) => {
-    return api.delete(`/api/users/${id}`);
+    return api.delete(`/api/v1/users/${id}`);
   },
 
   // Clinic management

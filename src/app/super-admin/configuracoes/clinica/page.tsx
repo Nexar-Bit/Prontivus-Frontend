@@ -41,6 +41,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Clinic {
   id: number;
@@ -107,6 +108,9 @@ export default function ClinicaPage() {
   const [editingClinic, setEditingClinic] = useState<Clinic | null>(null);
   const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [clinicToDelete, setClinicToDelete] = useState<Clinic | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState<ClinicFormData>({
     name: "",
     legal_name: "",
@@ -310,28 +314,98 @@ export default function ClinicaPage() {
       await loadData();
     } catch (error: any) {
       console.error("Failed to save clinic:", error);
+      
+      // Extract error message from various possible locations
+      let errorMessage = "Não foi possível salvar a clínica";
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.data?.detail) {
+        if (typeof error.data.detail === 'string') {
+          errorMessage = error.data.detail;
+        } else if (Array.isArray(error.data.detail)) {
+          errorMessage = error.data.detail.map((err: any) => 
+            `${err.loc?.join('.') || 'field'}: ${err.msg}`
+          ).join(', ');
+        }
+      } else if (error?.detail) {
+        errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+      } else if (error?.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      }
+      
       toast.error(editingClinic ? "Erro ao atualizar clínica" : "Erro ao cadastrar clínica", {
-        description: error?.message || error?.detail || "Não foi possível salvar a clínica",
+        description: errorMessage,
+        duration: 5000,
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (clinic: Clinic) => {
-    if (!confirm(`Tem certeza que deseja excluir a clínica "${clinic.name}"? Esta ação não pode ser desfeita.`)) {
-      return;
-    }
+  const handleDelete = (clinic: Clinic) => {
+    setClinicToDelete(clinic);
+    setShowDeleteDialog(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!clinicToDelete) return;
+    
+    // Show loading notification
+    const loadingToast = toast.loading("Excluindo clínica...", {
+      description: "Esta operação pode levar alguns segundos. Por favor, aguarde.",
+      duration: Infinity, // Keep it until we dismiss it
+    });
+    
     try {
-      await api.delete(`/api/v1/admin/clinics/${clinic.id}`);
+      setDeleting(true);
+      const response = await api.delete(`/api/v1/admin/clinics/${clinicToDelete.id}`);
+      
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
+      // Success - remove from local state immediately for better UX
+      const updatedClinics = clinics.filter(c => c.id !== clinicToDelete.id);
+      setClinics(updatedClinics);
+      
+      // Reload stats to get updated counts
+      await loadStats();
+      
       toast.success("Clínica excluída com sucesso!");
-      await loadClinics();
+      
+      // filterClinics will be called automatically by useEffect when clinics changes
+      setClinicToDelete(null);
     } catch (error: any) {
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
       console.error("Failed to delete clinic:", error);
+      // Extract error message from various possible locations
+      let errorMessage = "Não foi possível excluir a clínica";
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.data?.detail) {
+        if (typeof error.data.detail === 'string') {
+          errorMessage = error.data.detail;
+        } else if (Array.isArray(error.data.detail)) {
+          errorMessage = error.data.detail.map((err: any) => 
+            `${err.loc?.join('.') || 'field'}: ${err.msg}`
+          ).join(', ');
+        } else {
+          errorMessage = JSON.stringify(error.data.detail);
+        }
+      } else if (error?.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      }
       toast.error("Erro ao excluir clínica", {
-        description: error?.message || error?.detail || "Não foi possível excluir a clínica",
+        description: errorMessage,
+        duration: 5000,
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -588,10 +662,11 @@ export default function ClinicaPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
+                        <div className="flex items-center justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => openDetailDialog(clinic)}
                             title="Ver detalhes"
                           >
@@ -600,6 +675,7 @@ export default function ClinicaPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => openEditForm(clinic)}
                             title="Editar"
                           >
@@ -608,6 +684,7 @@ export default function ClinicaPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 min-w-[80px]"
                             onClick={() => handleToggleActive(clinic)}
                             title={clinic.is_active ? "Desativar" : "Ativar"}
                           >
@@ -616,6 +693,7 @@ export default function ClinicaPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleDelete(clinic)}
                             title="Excluir"
                           >
@@ -955,6 +1033,24 @@ export default function ClinicaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => {
+          setShowDeleteDialog(open);
+          if (!open) {
+            setClinicToDelete(null);
+          }
+        }}
+        title="Excluir Clínica"
+        description={clinicToDelete ? `Tem certeza que deseja excluir a clínica "${clinicToDelete.name}"? Esta ação não pode ser desfeita.` : ""}
+        confirmText="Sim, excluir"
+        cancelText="Cancelar"
+        onConfirm={confirmDelete}
+        variant="destructive"
+        loading={deleting}
+      />
     </div>
   );
 }

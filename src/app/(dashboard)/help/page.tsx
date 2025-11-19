@@ -12,6 +12,7 @@ import {
   Search,
   Keyboard,
   Settings,
+  Clock,
 } from "lucide-react";
 import { ProntivusLogo } from "@/components/assets";
 import Link from "next/link";
@@ -88,16 +89,23 @@ export default function HelpPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC] py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <ProntivusLogo variant="full" size="lg" />
-          <h1 className="text-4xl font-bold text-[#0F4C75]">Help & Support</h1>
-          <p className="text-lg text-[#5D737E] max-w-2xl mx-auto">
-            Find answers to common questions and learn how to use Prontivus effectively
+    <div className="space-y-6">
+      {/* Modern Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <HelpCircle className="h-7 w-7 text-blue-600" />
+            </div>
+            Ajuda e Suporte
+          </h1>
+          <p className="text-muted-foreground mt-2 text-sm">
+            Encontre respostas para suas dúvidas e aprenda a usar o Prontivus de forma eficiente
           </p>
         </div>
+      </div>
+      
+      <div className="space-y-8">
 
         {/* Quick Links */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -106,16 +114,16 @@ export default function HelpPage() {
             return (
               <Card
                 key={link.title}
-                className="medical-card hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-primary-accent"
+                className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-blue-300 hover:bg-blue-50/50"
               >
                 <CardHeader className="text-center">
-                  <div className="mx-auto w-12 h-12 bg-[#0F4C75]/10 rounded-full flex items-center justify-center mb-3">
-                    <Icon className="h-6 w-6 text-[#0F4C75]" />
+                  <div className="mx-auto w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center mb-3 shadow-sm">
+                    <Icon className="h-6 w-6 text-blue-600" />
                   </div>
-                  <CardTitle className="text-lg text-[#0F4C75]">
+                  <CardTitle className="text-lg text-gray-900">
                     {link.title}
                   </CardTitle>
-                  <CardDescription className="text-sm text-[#5D737E]">
+                  <CardDescription className="text-sm text-gray-600">
                     {link.description}
                   </CardDescription>
                 </CardHeader>
@@ -129,26 +137,26 @@ export default function HelpPage() {
           {helpSections.map((section) => {
             const Icon = section.icon;
             return (
-              <Card key={section.title} className="medical-card">
+              <Card key={section.title} className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#1B9AAA]/10 rounded-lg flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-[#1B9AAA]" />
+                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <Icon className="h-5 w-5 text-blue-600" />
                     </div>
-                    <CardTitle className="text-xl text-[#0F4C75]">
+                    <CardTitle className="text-xl text-gray-900">
                       {section.title}
                     </CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {section.items.map((item, index) => (
                       <li
                         key={index}
-                        className="flex items-start gap-2 text-[#2D3748]"
+                        className="flex items-start gap-3 text-gray-700 hover:text-blue-600 transition-colors"
                       >
-                        <span className="text-[#1B9AAA] mt-1">•</span>
-                        <span>{item}</span>
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
+                        <span className="text-sm">{item}</span>
                       </li>
                     ))}
                   </ul>
@@ -159,84 +167,98 @@ export default function HelpPage() {
         </div>
 
         {/* FAQ Section */}
-        <Card className="medical-card">
+        <Card className="border-l-4 border-l-teal-500">
           <CardHeader>
-            <CardTitle className="text-2xl text-[#0F4C75]">
-              Frequently Asked Questions
-            </CardTitle>
-            <CardDescription>
-              Quick answers to common questions
-            </CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-teal-100 rounded-lg">
+                <HelpCircle className="h-6 w-6 text-teal-600" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl text-gray-900">
+                  Perguntas Frequentes
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Respostas rápidas para dúvidas comuns
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div>
-              <h3 className="font-semibold text-[#0F4C75] mb-2">
-                How do I register a new patient?
+            <div className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <div className="w-2 h-2 bg-teal-500 rounded-full" />
+                Como registro um novo paciente?
               </h3>
-              <p className="text-[#5D737E]">
-                Navigate to <strong>Secretaria → Pacientes</strong> and click
-                the "Novo Paciente" button. Fill in the required information
-                and save.
+              <p className="text-gray-700 text-sm ml-4">
+                Navegue até <strong>Secretaria → Pacientes</strong> e clique no botão "Novo Paciente". 
+                Preencha as informações necessárias e salve.
               </p>
             </div>
-            <div>
-              <h3 className="font-semibold text-[#0F4C75] mb-2">
-                How do I schedule an appointment?
+            <div className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <div className="w-2 h-2 bg-teal-500 rounded-full" />
+                Como agendo uma consulta?
               </h3>
-              <p className="text-[#5D737E]">
-                Go to <strong>Secretaria → Agendamentos</strong>, select
-                "Novo Agendamento", choose the patient and doctor, then select
-                an available time slot.
+              <p className="text-gray-700 text-sm ml-4">
+                Vá para <strong>Secretaria → Agendamentos</strong>, selecione "Novo Agendamento", 
+                escolha o paciente e o médico, depois selecione um horário disponível.
               </p>
             </div>
-            <div>
-              <h3 className="font-semibold text-[#0F4C75] mb-2">
-                Where can I view medical records?
+            <div className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <div className="w-2 h-2 bg-teal-500 rounded-full" />
+                Onde posso visualizar prontuários médicos?
               </h3>
-              <p className="text-[#5D737E]">
-                Open a patient profile from the patients list. All medical
-                records, prescriptions, and test results are organized in tabs
-                for easy access.
+              <p className="text-gray-700 text-sm ml-4">
+                Abra o perfil de um paciente a partir da lista de pacientes. Todos os registros médicos, 
+                prescrições e resultados de exames estão organizados em abas para fácil acesso.
               </p>
             </div>
-            <div>
-              <h3 className="font-semibold text-[#0F4C75] mb-2">
-                How do I create a prescription?
+            <div className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                <div className="w-2 h-2 bg-teal-500 rounded-full" />
+                Como crio uma prescrição?
               </h3>
-              <p className="text-[#5D737E]">
-                During a consultation, use the prescription form to add
-                medications. You can search for medications and add dosage
-                instructions.
+              <p className="text-gray-700 text-sm ml-4">
+                Durante uma consulta, use o formulário de prescrição para adicionar medicamentos. 
+                Você pode buscar medicamentos e adicionar instruções de dosagem.
               </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Contact Support */}
-        <Card className="medical-card border-2 border-[#1B9AAA]">
+        <Card className="border-2 border-blue-300 bg-gradient-to-br from-blue-50 to-cyan-50">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <MessageCircle className="h-6 w-6 text-[#1B9AAA]" />
-              <CardTitle className="text-xl text-[#0F4C75]">
-                Need More Help?
-              </CardTitle>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <MessageCircle className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-xl text-gray-900">
+                  Precisa de Mais Ajuda?
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Entre em contato com nossa equipe de suporte para assistência adicional
+                </CardDescription>
+              </div>
             </div>
-            <CardDescription>
-              Contact our support team for additional assistance
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
-              <Button className="flex-1" variant="default">
-                Email Support
+              <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white" variant="default">
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Email de Suporte
               </Button>
-              <Button className="flex-1" variant="outline">
-                Schedule Call
+              <Button className="flex-1 border-blue-300 text-blue-700 hover:bg-blue-50" variant="outline">
+                <Video className="h-4 w-4 mr-2" />
+                Agendar Chamada
               </Button>
             </div>
-            <p className="text-sm text-[#5D737E]">
-              Support hours: Monday - Friday, 8:00 AM - 6:00 PM
-            </p>
+            <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 p-3 rounded-lg">
+              <Clock className="h-4 w-4 text-blue-600" />
+              <span>Horário de atendimento: Segunda a Sexta, 8:00 - 18:00</span>
+            </div>
           </CardContent>
         </Card>
       </div>

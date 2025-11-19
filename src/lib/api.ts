@@ -103,6 +103,20 @@ async function apiRequest<T>(
       }
     }
     
+    // Handle 403 Forbidden - especially for "Inactive user"
+    if (response.status === 403) {
+      // Check if it's an inactive user error
+      if (errorMessage.toLowerCase().includes('inactive user') || 
+          (errorData?.detail && typeof errorData.detail === 'string' && errorData.detail.toLowerCase().includes('inactive user'))) {
+        clearAuthData();
+        if (typeof window !== 'undefined') {
+          // Show a message before redirecting
+          console.warn('User account is inactive. Redirecting to login...');
+          window.location.href = '/login?error=inactive';
+        }
+      }
+    }
+    
     const error = new Error(errorMessage);
     (error as any).status = response.status;
     (error as any).data = errorData;
@@ -181,8 +195,9 @@ export const api = {
       }
       
       let errorMessage = `HTTP error! status: ${response.status}`;
+      let errorData: any = null;
       try {
-        const errorData = await response.json();
+        errorData = await response.json();
         if (errorData.detail) {
           errorMessage = typeof errorData.detail === 'string' 
             ? errorData.detail 
@@ -192,6 +207,20 @@ export const api = {
         }
       } catch {
         errorMessage = response.statusText || errorMessage;
+      }
+      
+      // Handle 403 Forbidden - especially for "Inactive user"
+      if (response.status === 403) {
+        // Check if it's an inactive user error
+        if (errorMessage.toLowerCase().includes('inactive user') || 
+            (errorData?.detail && typeof errorData.detail === 'string' && errorData.detail.toLowerCase().includes('inactive user'))) {
+          clearAuthData();
+          if (typeof window !== 'undefined') {
+            // Show a message before redirecting
+            console.warn('User account is inactive. Redirecting to login...');
+            window.location.href = '/login?error=inactive';
+          }
+        }
       }
       
       const error = new Error(errorMessage);

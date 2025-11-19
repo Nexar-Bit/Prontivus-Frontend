@@ -8,11 +8,25 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, Stethoscope } from "lucide-react";
 import { MedicalPattern } from "@/components/assets";
 import Image from "next/image";
+import { toast } from "sonner";
 
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
+  const error = searchParams.get('error');
+
+  useEffect(() => {
+    // Show error message if redirected due to inactive account
+    if (error === 'inactive') {
+      toast.error('Conta inativa', {
+        description: 'Sua conta está inativa. Entre em contato com o administrador ou faça login novamente.',
+        duration: 5000,
+      });
+      // Remove error parameter from URL
+      router.replace('/login');
+    }
+  }, [error, router]);
 
   useEffect(() => {
     // If user is already authenticated, redirect them to their intended destination

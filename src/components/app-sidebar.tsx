@@ -109,7 +109,7 @@ const getMenuItemsByRole = (role: string, activeModules: string[]) => {
     {
       title: "Meu Perfil",
       icon: UserRoundCheck,
-      url: "/portal/profile",
+      url: "/patient/profile",
       roles: [ROLES.PATIENT],
       module: null,
     },

@@ -506,38 +506,38 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-2 h-auto p-1 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-2 h-auto p-1.5 bg-gray-100/80 rounded-lg border border-gray-200">
           <TabsTrigger 
             value="profile" 
-            className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
           >
             <User className="h-4 w-4" />
             <span className="hidden sm:inline">Perfil</span>
           </TabsTrigger>
           <TabsTrigger 
             value="notifications"
-            className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
           >
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Notificações</span>
           </TabsTrigger>
           <TabsTrigger 
             value="privacy"
-            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
           >
             <Shield className="h-4 w-4" />
             <span className="hidden sm:inline">Privacidade</span>
           </TabsTrigger>
           <TabsTrigger 
             value="appearance"
-            className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
           >
             <Palette className="h-4 w-4" />
             <span className="hidden sm:inline">Aparência</span>
           </TabsTrigger>
           <TabsTrigger 
             value="security"
-            className="data-[state=active]:bg-blue-700 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
           >
             <Lock className="h-4 w-4" />
             <span className="hidden sm:inline">Segurança</span>
@@ -546,21 +546,23 @@ export default function SettingsPage() {
 
         {/* Profile Settings */}
         <TabsContent value="profile" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
-            <CardHeader>
+          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-blue-600">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                <User className="h-5 w-5" />
-                    </div>
-                Informações do Perfil
-              </CardTitle>
-                  <CardDescription className="mt-2">
-                Atualize suas informações pessoais e dados de contato
-              </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
+                    <User className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-gray-900">
+                      Informações do Perfil
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-sm">
+                      Atualize suas informações pessoais e dados de contato
+                    </CardDescription>
+                  </div>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 shadow-sm">
                   <User className="h-3 w-3 mr-1" />
                   Perfil
                 </Badge>
@@ -700,19 +702,21 @@ export default function SettingsPage() {
 
         {/* Notification Settings */}
         <TabsContent value="notifications" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
-            <CardHeader>
+          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-blue-600">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                <Bell className="h-5 w-5" />
-                    </div>
-                Preferências de Notificações
-              </CardTitle>
-                  <CardDescription className="mt-2">
-                Escolha como deseja ser notificado sobre diferentes atividades
-              </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
+                    <Bell className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-gray-900">
+                      Preferências de Notificações
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-sm">
+                      Configure como e quando receber notificações
+                    </CardDescription>
+                  </div>
                 </div>
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                   <Bell className="h-3 w-3 mr-1" />
@@ -1126,19 +1130,21 @@ export default function SettingsPage() {
 
         {/* Privacy Settings */}
         <TabsContent value="privacy" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-600 hover:shadow-lg transition-shadow">
-            <CardHeader>
+          <Card className="border-l-4 border-l-blue-600 hover:shadow-lg transition-all duration-200 bg-white">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-blue-600">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                <Shield className="h-5 w-5" />
-                    </div>
-                Privacidade e Dados
-              </CardTitle>
-                  <CardDescription className="mt-2">
-                Controle suas configurações de privacidade e preferências de compartilhamento de dados
-              </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-gray-900">
+                      Privacidade e Dados
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-sm">
+                      Gerencie suas configurações de privacidade e compartilhamento de dados
+                    </CardDescription>
+                  </div>
                 </div>
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                   <Shield className="h-3 w-3 mr-1" />
@@ -1257,19 +1263,21 @@ export default function SettingsPage() {
 
         {/* Appearance Settings */}
         <TabsContent value="appearance" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
-            <CardHeader>
+          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-blue-600">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                <Palette className="h-5 w-5" />
-                    </div>
-                Aparência e Idioma
-              </CardTitle>
-                  <CardDescription className="mt-2">
-                Personalize a aparência e o idioma da sua interface
-              </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
+                    <Palette className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-gray-900">
+                      Aparência e Idioma
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-sm">
+                      Personalize a aparência e idioma da interface
+                    </CardDescription>
+                  </div>
                 </div>
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                   <Palette className="h-3 w-3 mr-1" />
@@ -1376,19 +1384,21 @@ export default function SettingsPage() {
 
         {/* Security Settings */}
         <TabsContent value="security" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-700 hover:shadow-lg transition-shadow">
-            <CardHeader>
+          <Card className="border-l-4 border-l-blue-700 hover:shadow-lg transition-all duration-200 bg-white">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-blue-700">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Lock className="h-5 w-5" />
-                    </div>
-                Segurança e Autenticação
-              </CardTitle>
-                  <CardDescription className="mt-2">
-                Gerencie as configurações de segurança e autenticação da sua conta
-              </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
+                    <Lock className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-gray-900">
+                      Segurança e Autenticação
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-sm">
+                      Gerencie sua senha e configurações de segurança
+                    </CardDescription>
+                  </div>
                 </div>
                 <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                   <Lock className="h-3 w-3 mr-1" />

@@ -304,61 +304,69 @@ export default function AdminSettingsPage() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+        <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-sm font-medium text-gray-600">
               Módulos Ativos
             </CardTitle>
-            <Package className="h-4 w-4 text-blue-500" />
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Package className="h-4 w-4 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeModules}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="text-3xl font-bold text-gray-900">{stats.activeModules}</div>
+            <p className="text-xs text-gray-600 mt-1">
               de {stats.totalModules} disponíveis
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
+        <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-sm font-medium text-gray-600">
               Taxa de Utilização
             </CardTitle>
-            <Activity className="h-4 w-4 text-green-500" />
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Activity className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.utilizationRate}%</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="text-3xl font-bold text-gray-900">{stats.utilizationRate}%</div>
+            <p className="text-xs text-gray-600 mt-1">
               módulos em uso
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
+        <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 bg-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-sm font-medium text-gray-600">
               Usuários Máximos
             </CardTitle>
-            <Users className="h-4 w-4 text-purple-500" />
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Users className="h-4 w-4 text-purple-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{settings.maxUsers}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="text-3xl font-bold text-gray-900">{settings.maxUsers}</div>
+            <p className="text-xs text-gray-600 mt-1">
               limite de usuários
             </p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow">
+        <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 bg-white">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardTitle className="text-sm font-medium text-gray-600">
               Módulos Inativos
             </CardTitle>
-            <XCircle className="h-4 w-4 text-orange-500" />
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <XCircle className="h-4 w-4 text-orange-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.inactiveModules}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="text-3xl font-bold text-gray-900">{stats.inactiveModules}</div>
+            <p className="text-xs text-gray-600 mt-1">
               disponíveis para ativação
             </p>
           </CardContent>
@@ -367,17 +375,17 @@ export default function AdminSettingsPage() {
 
       {/* Tabs for Organization */}
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 gap-2 h-auto p-1 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-2 gap-2 h-auto p-1.5 bg-gray-100/80 rounded-lg border border-gray-200">
           <TabsTrigger 
             value="general" 
-            className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
           >
             <Building2 className="h-4 w-4" />
             <span>Informações Gerais</span>
           </TabsTrigger>
           <TabsTrigger 
             value="license" 
-            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2"
+            className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md flex items-center gap-2 rounded-md transition-all"
           >
             <Shield className="h-4 w-4" />
             <span>Licença e Módulos</span>
@@ -386,26 +394,28 @@ export default function AdminSettingsPage() {
 
         {/* General Settings Tab */}
         <TabsContent value="general" className="space-y-6">
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
-        <CardHeader>
+          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-blue-600">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Building2 className="h-5 w-5" />
-                    </div>
-                    Informações da Clínica
-                  </CardTitle>
-                  <CardDescription className="mt-2">
-                    Configure as informações básicas da clínica
-                  </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
+                    <Building2 className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-gray-900">
+                      Informações da Clínica
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-sm">
+                      Configure as informações básicas da clínica
+                    </CardDescription>
+                  </div>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 shadow-sm">
                   <Building2 className="h-3 w-3 mr-1" />
                   Geral
                 </Badge>
               </div>
-        </CardHeader>
+            </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -487,23 +497,25 @@ export default function AdminSettingsPage() {
 
         {/* License and Modules Tab */}
         <TabsContent value="license" className="space-y-6">
-      {/* License Settings */}
-          <Card className="border-l-4 border-l-blue-700 hover:shadow-lg transition-shadow">
-        <CardHeader>
+          {/* License Settings */}
+          <Card className="border-l-4 border-l-blue-700 hover:shadow-lg transition-all duration-200 bg-white">
+            <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-blue-700">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-            <Lock className="h-5 w-5" />
-                    </div>
-                    Configurações de Licença
-          </CardTitle>
-                  <CardDescription className="mt-2">
-                    Gerencie informações de licenciamento do sistema
-          </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg shadow-sm">
+                    <Key className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-gray-900">
+                      Configurações de Licença
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-sm">
+                      Gerencie informações de licenciamento do sistema
+                    </CardDescription>
+                  </div>
                 </div>
-                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                  <Shield className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 shadow-sm">
+                  <Key className="h-3 w-3 mr-1" />
                   Licença
                 </Badge>
               </div>

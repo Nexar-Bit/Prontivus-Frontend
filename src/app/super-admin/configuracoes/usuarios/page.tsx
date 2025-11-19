@@ -51,6 +51,7 @@ import { toast } from "sonner";
 import { adminApi } from "@/lib/admin-api";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface User {
   id: number;
@@ -84,6 +85,8 @@ export default function SuperAdminUsersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<number | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -122,21 +125,17 @@ export default function SuperAdminUsersPage() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      let data: User[] = [];
+      const params: { role?: string; clinic_id?: number } = {};
       
-      if (selectedClinicId === "all") {
-        // For SuperAdmin, we might need to get all users
-        // For now, we'll use the admin API which returns users from current clinic
-        // You may need to create a SuperAdmin-specific endpoint
-        const params = roleFilter !== 'all' ? { role: roleFilter } : undefined;
-        data = await adminApi.getUsers(params) as User[];
-      } else {
-        // Filter by clinic - you may need to add clinic_id filter to the API
-        const params = roleFilter !== 'all' ? { role: roleFilter } : undefined;
-        const allUsers = await adminApi.getUsers(params) as User[];
-        data = allUsers.filter(u => u.clinic_id === selectedClinicId);
+      if (roleFilter !== 'all') {
+        params.role = roleFilter;
       }
       
+      if (selectedClinicId !== "all") {
+        params.clinic_id = selectedClinicId;
+      }
+      
+      const data = await adminApi.getUsers(Object.keys(params).length > 0 ? params : undefined) as User[];
       setUsers(data);
     } catch (e) {
       console.error(e);
@@ -200,8 +199,8 @@ export default function SuperAdminUsersPage() {
 
     try {
       setSaving(true);
-      // Use registration endpoint which accepts clinic_id
-      await api.post('/api/v1/auth/register', {
+      // Use admin users endpoint which accepts clinic_id
+      await adminApi.createUser({
         username: formData.username,
         email: formData.email,
         password: formData.password,
@@ -217,7 +216,27 @@ export default function SuperAdminUsersPage() {
       await loadUsers();
     } catch (error: any) {
       console.error("Failed to create user:", error);
-      toast.error(error.response?.data?.detail || "Falha ao criar usuário");
+      // Extract error message from various possible locations
+      let errorMessage = "Falha ao criar usuário";
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.data?.detail) {
+        if (typeof error.data.detail === 'string') {
+          errorMessage = error.data.detail;
+        } else if (Array.isArray(error.data.detail)) {
+          errorMessage = error.data.detail.map((err: any) => 
+            `${err.loc?.join('.') || 'field'}: ${err.msg}`
+          ).join(', ');
+        }
+      } else if (error?.response?.data?.detail) {
+        errorMessage = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      }
+      toast.error("Falha ao criar usuário", {
+        description: errorMessage,
+        duration: 5000,
+      });
     } finally {
       setSaving(false);
     }
@@ -262,13 +281,33 @@ export default function SuperAdminUsersPage() {
     }
   };
 
-  const handleDeleteUser = async (userId: number) => {
-    if (!confirm("Tem certeza que deseja excluir este usuário?")) return;
+  const handleDeleteUser = (userId: number) => {
+    setUserToDelete(userId);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    // Show loading notification
+    const loadingToast = toast.loading("Excluindo usuário...", {
+      description: "Esta operação pode levar alguns segundos. Por favor, aguarde.",
+      duration: Infinity, // Keep it until we dismiss it
+    });
+    
     try {
-      await adminApi.deleteUser(userId);
-      setUsers(prev => prev.filter(u => u.id !== userId));
+      await adminApi.deleteUser(userToDelete);
+      
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
+      setUsers(prev => prev.filter(u => u.id !== userToDelete));
       toast.success("Usuário excluído com sucesso");
+      setUserToDelete(null);
     } catch (e: any) {
+      // Dismiss loading toast
+      toast.dismiss(loadingToast);
+      
       toast.error("Erro ao excluir usuário", { description: e?.message });
     }
   };
@@ -648,14 +687,18 @@ export default function SuperAdminUsersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleEditUser(user)}
+                            title="Editar"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleToggleActive(user.id)}
+                            title={user.is_active ? "Desativar" : "Ativar"}
                           >
                             {user.is_active ? (
                               <UserX className="h-4 w-4 text-red-500" />
@@ -666,7 +709,9 @@ export default function SuperAdminUsersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-8 w-8 p-0"
                             onClick={() => handleDeleteUser(user.id)}
+                            title="Excluir"
                           >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
@@ -757,6 +802,18 @@ export default function SuperAdminUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Excluir Usuário"
+        description="Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita."
+        confirmText="Sim, excluir"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteUser}
+        variant="destructive"
+      />
     </div>
   );
 }
