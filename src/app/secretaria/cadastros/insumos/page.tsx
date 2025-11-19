@@ -198,7 +198,7 @@ export default function InsumosPage() {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const data = await api.get<Product[]>("/api/v1/products");
+      const data = await api.get<Product[]>("/api/v1/stock/products");
       setProducts(data);
     } catch (error: any) {
       console.error("Failed to load products:", error);
@@ -345,7 +345,7 @@ export default function InsumosPage() {
     setSelectedProduct(product);
     try {
       const movements = await api.get<StockMovement[]>(
-        `/api/v1/stock-movements?product_id=${product.id}&limit=50`
+        `/api/v1/stock/stock-movements?product_id=${product.id}&limit=50`
       );
       setProductMovements(movements);
       setShowHistoryDialog(true);
@@ -384,10 +384,10 @@ export default function InsumosPage() {
       }
 
       if (editingProduct) {
-        await api.put(`/api/v1/products/${editingProduct.id}`, productData);
+        await api.put(`/api/v1/stock/products/${editingProduct.id}`, productData);
         toast.success("Insumo atualizado com sucesso!");
       } else {
-        await api.post("/api/v1/products", productData);
+        await api.post("/api/v1/stock/products", productData);
         toast.success("Insumo cadastrado com sucesso!");
       }
 
@@ -437,7 +437,7 @@ export default function InsumosPage() {
         movementData.total_cost = unitCost * parseInt(movementFormData.quantity);
       }
 
-      await api.post("/api/v1/stock-movements", movementData);
+      await api.post("/api/v1/stock/stock-movements", movementData);
       toast.success(
         movementFormData.type === "in" 
           ? "Entrada de estoque registrada com sucesso!" 
@@ -476,7 +476,7 @@ export default function InsumosPage() {
         reference_number: adjustmentFormData.reference_number.trim() || undefined,
       };
 
-      await api.post("/api/v1/stock-movements/adjustment", adjustmentData);
+      await api.post("/api/v1/stock/stock-movements/adjustment", adjustmentData);
       toast.success("Estoque ajustado com sucesso!");
 
       setShowAdjustmentForm(false);
@@ -506,7 +506,7 @@ export default function InsumosPage() {
 
     try {
       setDeleting(true);
-      await api.delete(`/api/v1/products/${productToDelete.id}`);
+      await api.delete(`/api/v1/stock/products/${productToDelete.id}`);
       toast.success("Insumo excluído com sucesso!");
       await loadData();
       setProductToDelete(null);

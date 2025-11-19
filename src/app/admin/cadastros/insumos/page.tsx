@@ -144,7 +144,7 @@ interface StockAdjustmentFormData {
   reference_number: string;
 }
 
-export default function InsumosPage() {
+function InsumosPage() {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -226,7 +226,7 @@ export default function InsumosPage() {
       }
       
       const queryString = params.toString();
-      const url = `/api/v1/products${queryString ? `?${queryString}` : ""}`;
+      const url = `/api/v1/stock/products${queryString ? `?${queryString}` : ""}`;
       const data = await api.get<Product[]>(url);
       setProducts(data);
     } catch (error: any) {
@@ -358,12 +358,12 @@ export default function InsumosPage() {
         is_active: productFormData.is_active,
       };
 
-        if (editingProduct) {
-        await api.put(`/api/v1/products/${editingProduct.id}`, productData);
-          toast.success("Insumo atualizado com sucesso!");
-        } else {
-        await api.post("/api/v1/products", productData);
-          toast.success("Insumo cadastrado com sucesso!");
+      if (editingProduct) {
+        await api.put(`/api/v1/stock/products/${editingProduct.id}`, productData);
+        toast.success("Insumo atualizado com sucesso!");
+      } else {
+        await api.post("/api/v1/stock/products", productData);
+        toast.success("Insumo cadastrado com sucesso!");
       }
 
       setShowProductForm(false);
@@ -389,7 +389,7 @@ export default function InsumosPage() {
 
     try {
       setDeleting(true);
-      await api.delete(`/api/v1/products/${productToDelete.id}`);
+      await api.delete(`/api/v1/stock/products/${productToDelete.id}`);
       toast.success("Insumo excluído com sucesso!");
       await loadProducts();
       setProductToDelete(null);
@@ -405,7 +405,7 @@ export default function InsumosPage() {
 
   const handleToggleActive = async (product: Product) => {
     try {
-      await api.put(`/api/v1/products/${product.id}`, {
+      await api.put(`/api/v1/stock/products/${product.id}`, {
         is_active: !product.is_active,
       });
       toast.success(`Insumo ${!product.is_active ? 'ativado' : 'desativado'} com sucesso!`);
@@ -471,7 +471,7 @@ export default function InsumosPage() {
         }
       }
 
-      await api.post("/api/v1/stock-movements", movementData);
+      await api.post("/api/v1/stock/stock-movements", movementData);
       toast.success("Movimentação registrada com sucesso!");
       setShowMovementForm(false);
       await loadData();
@@ -517,7 +517,7 @@ export default function InsumosPage() {
         reference_number: adjustmentData.reference_number.trim() || undefined,
       };
 
-      await api.post("/api/v1/stock-movements/adjustment", adjustmentPayload);
+      await api.post("/api/v1/stock/stock-movements/adjustment", adjustmentPayload);
       toast.success("Ajuste de estoque realizado com sucesso!");
       setShowAdjustmentDialog(false);
       await loadData();
@@ -534,7 +534,7 @@ export default function InsumosPage() {
   const loadStockHistory = async (product: Product) => {
     try {
       setSelectedProduct(product);
-      const data = await api.get<StockMovement[]>(`/api/v1/stock-movements?product_id=${product.id}&limit=50`);
+      const data = await api.get<StockMovement[]>(`/api/v1/stock/stock-movements?product_id=${product.id}&limit=50`);
       setStockMovements(data);
       setShowHistoryDialog(true);
     } catch (error: any) {
@@ -837,7 +837,7 @@ export default function InsumosPage() {
                     ))}
                   </SelectContent>
                 </Select>
-            </div>
+              </div>
               <div>
                 <Label htmlFor="supplier">Fornecedor</Label>
                 <Input
@@ -864,7 +864,7 @@ export default function InsumosPage() {
                   value={productFormData.unit_of_measure}
                   onChange={(e) => setProductFormData({ ...productFormData, unit_of_measure: e.target.value })}
                 />
-            </div>
+              </div>
               <div>
                 <Label htmlFor="min_stock">Estoque Mínimo</Label>
                 <Input
@@ -996,12 +996,12 @@ export default function InsumosPage() {
                     ))}
                   </SelectContent>
                 </Select>
-            </div>
-            <div>
+              </div>
+              <div>
                 <Label htmlFor="movement_unit_cost">Custo Unitário</Label>
-              <Input
+                <Input
                   id="movement_unit_cost"
-                type="text"
+                  type="text"
                   placeholder="R$ 0,00"
                   value={movementFormData.unit_cost}
                   onChange={(e) => setMovementFormData({ ...movementFormData, unit_cost: e.target.value })}
@@ -1196,3 +1196,5 @@ export default function InsumosPage() {
     </div>
   );
 }
+
+export default InsumosPage;

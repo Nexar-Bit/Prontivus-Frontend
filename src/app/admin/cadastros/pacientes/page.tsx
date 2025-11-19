@@ -37,6 +37,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { onlyDigits, validateCPF, validatePhone } from "@/lib/inputMasks";
 
 interface Patient {
   id: number;
@@ -217,17 +218,74 @@ export default function PacientesPage() {
     try {
       setSaving(true);
 
+      // Validate and clean CPF
+      let cleanedCpf: string | undefined = undefined;
+      if (formData.cpf && formData.cpf.trim()) {
+        const cpfDigits = onlyDigits(formData.cpf.trim());
+        if (cpfDigits.length === 11) {
+          if (!validateCPF(cpfDigits)) {
+            toast.error("CPF inválido. Verifique os dígitos informados.");
+            setSaving(false);
+            return;
+          }
+          cleanedCpf = cpfDigits;
+        } else if (cpfDigits.length > 0) {
+          toast.error("CPF deve ter 11 dígitos.");
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Validate and clean phone
+      let cleanedPhone: string | undefined = undefined;
+      if (formData.phone && formData.phone.trim()) {
+        const phoneDigits = onlyDigits(formData.phone.trim());
+        if (phoneDigits.length >= 10 && phoneDigits.length <= 11) {
+          // Add country code for Brazil if not present
+          if (!phoneDigits.startsWith('55')) {
+            cleanedPhone = `+55${phoneDigits}`;
+          } else if (phoneDigits.startsWith('55')) {
+            cleanedPhone = `+${phoneDigits}`;
+          } else {
+            cleanedPhone = phoneDigits;
+          }
+        } else if (phoneDigits.length > 0) {
+          toast.error("Telefone deve ter 10 ou 11 dígitos.");
+          setSaving(false);
+          return;
+        }
+      }
+
+      // Validate and clean emergency contact phone
+      let cleanedEmergencyPhone: string | undefined = undefined;
+      if (formData.emergency_contact_phone && formData.emergency_contact_phone.trim()) {
+        const emergencyPhoneDigits = onlyDigits(formData.emergency_contact_phone.trim());
+        if (emergencyPhoneDigits.length >= 10 && emergencyPhoneDigits.length <= 11) {
+          if (!emergencyPhoneDigits.startsWith('55')) {
+            cleanedEmergencyPhone = `+55${emergencyPhoneDigits}`;
+          } else if (emergencyPhoneDigits.startsWith('55')) {
+            cleanedEmergencyPhone = `+${emergencyPhoneDigits}`;
+          } else {
+            cleanedEmergencyPhone = emergencyPhoneDigits;
+          }
+        } else if (emergencyPhoneDigits.length > 0) {
+          toast.error("Telefone de emergência deve ter 10 ou 11 dígitos.");
+          setSaving(false);
+          return;
+        }
+      }
+
       const patientData: any = {
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
         date_of_birth: formData.date_of_birth,
         gender: formData.gender || undefined,
-        cpf: formData.cpf.trim() || undefined,
-        phone: formData.phone.trim() || undefined,
+        cpf: cleanedCpf,
+        phone: cleanedPhone,
         email: formData.email.trim() || undefined,
         address: formData.address.trim() || undefined,
         emergency_contact_name: formData.emergency_contact_name.trim() || undefined,
-        emergency_contact_phone: formData.emergency_contact_phone.trim() || undefined,
+        emergency_contact_phone: cleanedEmergencyPhone,
         emergency_contact_relationship: formData.emergency_contact_relationship.trim() || undefined,
         allergies: formData.allergies.trim() || undefined,
         active_problems: formData.active_problems.trim() || undefined,

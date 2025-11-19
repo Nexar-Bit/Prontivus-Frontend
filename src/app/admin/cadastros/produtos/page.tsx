@@ -193,7 +193,7 @@ export default function ProdutosPage() {
       }
       
       const queryString = params.toString();
-      const url = `/api/v1/products${queryString ? `?${queryString}` : ""}`;
+      const url = `/api/v1/stock/products${queryString ? `?${queryString}` : ""}`;
       const data = await api.get<Product[]>(url);
       setProducts(data);
     } catch (error: any) {
@@ -316,10 +316,10 @@ export default function ProdutosPage() {
       };
 
       if (editingProduct) {
-        await api.put(`/api/v1/products/${editingProduct.id}`, productData);
+        await api.put(`/api/v1/stock/products/${editingProduct.id}`, productData);
         toast.success("Produto atualizado com sucesso!");
       } else {
-        await api.post("/api/v1/products", productData);
+        await api.post("/api/v1/stock/products", productData);
         toast.success("Produto cadastrado com sucesso!");
       }
 
@@ -350,7 +350,7 @@ export default function ProdutosPage() {
 
     try {
       setDeleting(true);
-      await api.delete(`/api/v1/products/${productToDelete.id}`);
+      await api.delete(`/api/v1/stock/products/${productToDelete.id}`);
       toast.success("Produto excluído com sucesso!");
       await loadProducts();
       setProductToDelete(null);
@@ -366,7 +366,7 @@ export default function ProdutosPage() {
 
   const handleToggleActive = async (product: Product) => {
     try {
-      await api.put(`/api/v1/products/${product.id}`, {
+      await api.put(`/api/v1/stock/products/${product.id}`, {
         is_active: !product.is_active,
       });
       toast.success(`Produto ${!product.is_active ? 'ativado' : 'desativado'} com sucesso!`);
@@ -432,7 +432,7 @@ export default function ProdutosPage() {
         }
       }
 
-      await api.post("/api/v1/stock-movements", movementData);
+      await api.post("/api/v1/stock/stock-movements", movementData);
       toast.success("Movimentação registrada com sucesso!");
       setShowMovementForm(false);
       await loadProducts();
@@ -478,7 +478,7 @@ export default function ProdutosPage() {
         reference_number: adjustmentData.reference_number.trim() || undefined,
       };
 
-      await api.post("/api/v1/stock-movements/adjustment", adjustmentPayload);
+      await api.post("/api/v1/stock/stock-movements/adjustment", adjustmentPayload);
       toast.success("Ajuste de estoque realizado com sucesso!");
       setShowAdjustmentDialog(false);
       await loadProducts();
@@ -495,7 +495,7 @@ export default function ProdutosPage() {
   const loadStockHistory = async (product: Product) => {
     try {
       setSelectedProduct(product);
-      const data = await api.get<StockMovement[]>(`/api/v1/stock-movements?product_id=${product.id}&limit=50`);
+      const data = await api.get<StockMovement[]>(`/api/v1/stock/stock-movements?product_id=${product.id}&limit=50`);
       setStockMovements(data);
       setShowHistoryDialog(true);
     } catch (error: any) {

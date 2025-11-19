@@ -26,7 +26,7 @@ export const inventoryApi = {
     if (filters?.low_stock !== undefined) params.append('low_stock', filters.low_stock.toString());
     if (filters?.search) params.append('search', filters.search);
     
-    const url = `/api/products${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `/api/v1/stock/products${params.toString() ? `?${params.toString()}` : ''}`;
     return api.get<Product[]>(url);
   },
 
@@ -34,28 +34,28 @@ export const inventoryApi = {
    * Get a specific product with movements
    */
   getProduct: async (id: number): Promise<Product> => {
-    return api.get<Product>(`/api/products/${id}`);
+    return api.get<Product>(`/api/v1/stock/products/${id}`);
   },
 
   /**
    * Create a new product
    */
   createProduct: async (data: ProductCreate): Promise<Product> => {
-    return api.post<Product>('/api/products', data);
+    return api.post<Product>('/api/v1/stock/products', data);
   },
 
   /**
    * Update a product
    */
   updateProduct: async (id: number, data: ProductUpdate): Promise<Product> => {
-    return api.put<Product>(`/api/products/${id}`, data);
+    return api.put<Product>(`/api/v1/stock/products/${id}`, data);
   },
 
   /**
-   * Delete a product (soft delete)
+   * Delete a product (hard delete)
    */
   deleteProduct: async (id: number): Promise<void> => {
-    return api.delete(`/api/products/${id}`);
+    return api.delete(`/api/v1/stock/products/${id}`);
   },
 
   // ==================== Stock Movements ====================
@@ -77,7 +77,7 @@ export const inventoryApi = {
     if (filters?.end_date) params.append('end_date', filters.end_date);
     if (filters?.limit) params.append('limit', filters.limit.toString());
     
-    const url = `/api/stock-movements${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `/api/v1/stock/stock-movements${params.toString() ? `?${params.toString()}` : ''}`;
     return api.get<StockMovement[]>(url);
   },
 
@@ -85,21 +85,21 @@ export const inventoryApi = {
    * Create a stock movement
    */
   createStockMovement: async (data: StockMovementCreate): Promise<StockMovement> => {
-    return api.post<StockMovement>('/api/stock-movements', data);
+    return api.post<StockMovement>('/api/v1/stock/stock-movements', data);
   },
 
   /**
    * Adjust stock for a product
    */
   adjustStock: async (data: StockAdjustmentCreate): Promise<StockAdjustmentResponse> => {
-    return api.post<StockAdjustmentResponse>('/api/stock-movements/adjustment', data);
+    return api.post<StockAdjustmentResponse>('/api/v1/stock/stock-movements/adjustment', data);
   },
 
   /**
    * Get low stock products
    */
   getLowStockProducts: async (): Promise<LowStockProduct[]> => {
-    return api.get<LowStockProduct[]>('/api/stock-movements/low-stock');
+    return api.get<LowStockProduct[]>('/api/v1/stock/stock-movements/low-stock');
   },
 
   // ==================== Dashboard/Summary ====================

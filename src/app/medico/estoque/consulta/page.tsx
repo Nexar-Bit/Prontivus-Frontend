@@ -132,7 +132,7 @@ export default function EstoqueConsultaPage() {
         params.append("search", searchTerm.trim());
       }
       
-      const data = await api.get<StockItem[]>(`/api/v1/products?${params.toString()}`);
+      const data = await api.get<StockItem[]>(`/api/v1/stock/products?${params.toString()}`);
       setStock(data);
     } catch (error: any) {
       console.error("Failed to load stock:", error);
@@ -158,7 +158,7 @@ export default function EstoqueConsultaPage() {
 
   const loadLowStock = async () => {
     try {
-      const data = await api.get<LowStockProduct[]>("/api/v1/stock-movements/low-stock");
+      const data = await api.get<LowStockProduct[]>("/api/v1/stock/stock-movements/low-stock");
       setLowStockItems(data);
     } catch (error: any) {
       console.error("Failed to load low stock:", error);
@@ -169,7 +169,7 @@ export default function EstoqueConsultaPage() {
   const loadProductDetails = async (product: StockItem) => {
     try {
       setLoadingDetails(true);
-      const data = await api.get<ProductDetail>(`/api/v1/products/${product.id}`);
+      const data = await api.get<ProductDetail>(`/api/v1/stock/products/${product.id}`);
       setProductDetail(data);
       setSelectedProduct(product);
       setShowDetails(true);
