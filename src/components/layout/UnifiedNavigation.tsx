@@ -40,15 +40,15 @@ export function UnifiedNavigation({ className }: { className?: string }) {
     const roleId = user.role_id;
     switch (roleId) {
       case 1: // SuperAdmin
-        return { sidebar: "bg-purple-700", accent: "text-purple-700" };
+        return { sidebar: "bg-blue-700", accent: "text-blue-700" };
       case 2: // AdminClinica
         return { sidebar: "bg-blue-700", accent: "text-blue-700" };
       case 3: // Medico
-        return { sidebar: "bg-green-700", accent: "text-green-700" };
+        return { sidebar: "bg-blue-700", accent: "text-blue-700" };
       case 4: // Secretaria
-        return { sidebar: "bg-teal-700", accent: "text-teal-700" };
+        return { sidebar: "bg-blue-700", accent: "text-blue-700" };
       case 5: // Paciente
-        return { sidebar: "bg-cyan-700", accent: "text-cyan-700" };
+        return { sidebar: "bg-blue-700", accent: "text-blue-700" };
       default:
         return { sidebar: "bg-blue-700", accent: "text-blue-700" };
     }

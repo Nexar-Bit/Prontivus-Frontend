@@ -753,7 +753,7 @@ export default function ClinicaPage() {
               
               <TabsContent value="basic" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="name">Nome *</Label>
                     <Input
                       id="name"
@@ -762,7 +762,7 @@ export default function ClinicaPage() {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="legal_name">Razão Social *</Label>
                     <Input
                       id="legal_name"
@@ -773,7 +773,7 @@ export default function ClinicaPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="tax_id">CNPJ/CPF *</Label>
                     <Input
                       id="tax_id"
@@ -802,7 +802,7 @@ export default function ClinicaPage() {
                       }}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="email">E-mail</Label>
                     <Input
                       id="email"
@@ -813,7 +813,7 @@ export default function ClinicaPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="phone">Telefone</Label>
                     <Input
                       id="phone"
@@ -841,7 +841,7 @@ export default function ClinicaPage() {
                       }}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="address">Endereço</Label>
                     <Input
                       id="address"

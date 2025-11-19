@@ -807,7 +807,7 @@ export default function PacientesPage() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="first_name">Nome *</Label>
                 <Input
                   id="first_name"
@@ -816,7 +816,7 @@ export default function PacientesPage() {
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="last_name">Sobrenome *</Label>
                 <Input
                   id="last_name"
@@ -827,7 +827,7 @@ export default function PacientesPage() {
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="date_of_birth">Data de Nascimento *</Label>
                 <Input
                   id="date_of_birth"
@@ -837,7 +837,7 @@ export default function PacientesPage() {
                   onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="gender">Sexo</Label>
                 <Select
                   value={formData.gender}
@@ -854,7 +854,7 @@ export default function PacientesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="blood_type">Tipo Sanguíneo</Label>
                 <Select
                   value={formData.blood_type}
@@ -877,7 +877,7 @@ export default function PacientesPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="cpf">CPF</Label>
                 <Input
                   id="cpf"
@@ -886,7 +886,7 @@ export default function PacientesPage() {
                   onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="phone">Telefone</Label>
                 <Input
                   id="phone"
@@ -897,7 +897,7 @@ export default function PacientesPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="email">E-mail</Label>
                 <Input
                   id="email"
@@ -906,7 +906,7 @@ export default function PacientesPage() {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="address">Endereço</Label>
                 <Input
                   id="address"
@@ -918,7 +918,7 @@ export default function PacientesPage() {
             <div className="border-t pt-4">
               <h3 className="text-sm font-semibold mb-3">Contato de Emergência</h3>
               <div className="grid grid-cols-3 gap-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="emergency_contact_name">Nome</Label>
                   <Input
                     id="emergency_contact_name"
@@ -926,7 +926,7 @@ export default function PacientesPage() {
                     onChange={(e) => setFormData({ ...formData, emergency_contact_name: e.target.value })}
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="emergency_contact_phone">Telefone</Label>
                   <Input
                     id="emergency_contact_phone"
@@ -935,7 +935,7 @@ export default function PacientesPage() {
                     onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="emergency_contact_relationship">Parentesco</Label>
                   <Input
                     id="emergency_contact_relationship"
@@ -949,7 +949,7 @@ export default function PacientesPage() {
             <div className="border-t pt-4">
               <h3 className="text-sm font-semibold mb-3">Informações Médicas</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="allergies">Alergias</Label>
                   <Textarea
                     id="allergies"
@@ -959,7 +959,7 @@ export default function PacientesPage() {
                     rows={3}
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="active_problems">Problemas Ativos</Label>
                   <Textarea
                     id="active_problems"
@@ -971,7 +971,7 @@ export default function PacientesPage() {
                 </div>
               </div>
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="notes">Observações</Label>
               <Textarea
                 id="notes"

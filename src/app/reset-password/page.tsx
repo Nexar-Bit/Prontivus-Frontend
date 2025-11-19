@@ -210,7 +210,7 @@ function ResetPasswordForm() {
                         value={formData.password}
                         onChange={handleInputChange}
                         placeholder="Mínimo 8 caracteres"
-                        className="h-11 pl-10 pr-10 border-gray-300 focus:border-purple-600 focus:ring-purple-600 transition-colors"
+                        className="pl-10 pr-10 focus:border-purple-600 focus:ring-purple-600"
                       />
                       <button
                         type="button"
@@ -241,7 +241,7 @@ function ResetPasswordForm() {
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
                         placeholder="Confirme sua senha"
-                        className="h-11 pl-10 pr-10 border-gray-300 focus:border-purple-600 focus:ring-purple-600 transition-colors"
+                        className="pl-10 pr-10 focus:border-purple-600 focus:ring-purple-600"
                       />
                       <button
                         type="button"

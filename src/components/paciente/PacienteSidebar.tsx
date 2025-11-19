@@ -130,18 +130,18 @@ export function PacienteSidebar() {
         className={cn(
           "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative group",
           active
-            ? "bg-white text-cyan-700 font-semibold shadow-sm"
+            ? "bg-white text-blue-700 font-semibold shadow-sm"
             : "text-white/90 hover:text-white hover:bg-white/10"
         )}
         onClick={() => setIsMobileMenuOpen(false)}
       >
         {active && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-cyan-600 rounded-r-full" />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full" />
         )}
         <Icon
           className={cn(
             "h-5 w-5 shrink-0 transition-colors",
-            active ? "text-cyan-700" : "text-white/90 group-hover:text-white"
+            active ? "text-blue-700" : "text-white/90 group-hover:text-white"
           )}
         />
         <span className="text-sm font-medium">{item.title}</span>
@@ -164,9 +164,9 @@ export function PacienteSidebar() {
           />
         </Link>
         <div className="mt-4 px-2">
-          <div className="flex items-center gap-2 px-3 py-2 bg-cyan-600/30 rounded-lg border border-cyan-400/30">
-            <Heart className="h-4 w-4 text-cyan-200" />
-            <span className="text-xs font-semibold text-cyan-100 uppercase tracking-wider">
+          <div className="flex items-center gap-2 px-3 py-2 bg-blue-600/30 rounded-lg border border-blue-400/30">
+            <Heart className="h-4 w-4 text-blue-200" />
+            <span className="text-xs font-semibold text-blue-100 uppercase tracking-wider">
               Paciente
             </span>
           </div>
@@ -189,7 +189,7 @@ export function PacienteSidebar() {
           className={cn(
             "flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200",
             pathname === "/pacient/ajuda"
-              ? "bg-white text-cyan-700 font-semibold shadow-sm"
+              ? "bg-white text-blue-700 font-semibold shadow-sm"
               : "text-white/90 hover:text-white hover:bg-white/10"
           )}
           onClick={() => setIsMobileMenuOpen(false)}
@@ -202,9 +202,9 @@ export function PacienteSidebar() {
       {/* User Profile Footer */}
       <div className="px-4 py-4 border-t border-white/10 bg-white/5">
         <div className="flex items-center gap-3 mb-3">
-          <Avatar className="h-10 w-10 border-2 border-cyan-300/30">
+          <Avatar className="h-10 w-10 border-2 border-blue-300/30">
             <AvatarImage src={avatarUrl || undefined} alt={user.username} />
-            <AvatarFallback className="bg-cyan-400/20 text-cyan-200 border-cyan-300/30 font-semibold">
+            <AvatarFallback className="bg-blue-400/20 text-blue-200 border-blue-300/30 font-semibold">
               {avatarUrl ? (
                 <UserRound className="h-5 w-5" />
               ) : (
@@ -268,7 +268,7 @@ export function PacienteSidebar() {
     <>
       <button
         onClick={() => setIsMobileMenuOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-cyan-700 text-white rounded-lg shadow-lg"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-blue-700 text-white rounded-lg shadow-lg"
         aria-label="Open menu"
       >
         <Menu className="h-6 w-6" />
@@ -280,7 +280,7 @@ export function PacienteSidebar() {
             className="lg:hidden fixed inset-0 bg-black/50 z-40"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] bg-cyan-700 shadow-2xl transform transition-transform duration-300 ease-in-out">
+          <div className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] bg-blue-700 shadow-2xl transform transition-transform duration-300 ease-in-out">
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <Image
                 src={"/Logo/Logotipo em Fundo Transparente.png"}
@@ -308,7 +308,7 @@ export function PacienteSidebar() {
   return (
     <>
       <MobileSidebar />
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-[240px] bg-cyan-700 z-30">
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-[240px] bg-blue-700 z-30">
         <SidebarContent />
       </aside>
     </>

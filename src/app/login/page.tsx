@@ -196,7 +196,7 @@ function LoginForm() {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="seu.email@exemplo.com"
-                    className="h-11 border-gray-300 focus:border-purple-600 focus:ring-purple-600 transition-colors"
+                    className="focus:border-purple-600 focus:ring-purple-600"
                   />
                 </div>
 
@@ -213,7 +213,7 @@ function LoginForm() {
                       value={formData.password}
                       onChange={handleInputChange}
                       placeholder="Digite sua senha"
-                      className="h-11 border-gray-300 focus:border-purple-600 focus:ring-purple-600 transition-colors pr-10"
+                      className="focus:border-purple-600 focus:ring-purple-600 pr-10"
                     />
                     <button
                       type="button"

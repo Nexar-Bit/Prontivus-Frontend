@@ -176,9 +176,19 @@ function getRedirectUrl(pathname: string): string {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Create response
+  const response = NextResponse.next();
+
+  // Add cache-control headers to prevent caching of HTML pages
+  if (!pathname.startsWith('/_next/') && !pathname.startsWith('/api/')) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+
   // Allow public routes
   if (isPublicRoute(pathname)) {
-    return NextResponse.next();
+    return response;
   }
 
   // Check authentication
@@ -188,7 +198,9 @@ export function middleware(request: NextRequest) {
   if (!user) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    redirectResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return redirectResponse;
   }
 
   // Check route access
@@ -197,10 +209,12 @@ export function middleware(request: NextRequest) {
     const url = new URL(redirectUrl, request.url);
     url.searchParams.set('error', 'access_denied');
     url.searchParams.set('from', pathname);
-    return NextResponse.redirect(url);
+    const redirectResponse = NextResponse.redirect(url);
+    redirectResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return redirectResponse;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 /**

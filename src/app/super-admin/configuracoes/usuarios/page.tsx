@@ -407,7 +407,7 @@ export default function SuperAdminUsersPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="clinic_id">Clínica *</Label>
                 <Select
                   value={formData.clinic_id.toString()}
@@ -426,7 +426,7 @@ export default function SuperAdminUsersPage() {
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="firstName">Nome</Label>
                   <Input
                     id="firstName"
@@ -435,7 +435,7 @@ export default function SuperAdminUsersPage() {
                     placeholder="Nome"
                   />
                 </div>
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="lastName">Sobrenome</Label>
                   <Input
                     id="lastName"
@@ -445,7 +445,7 @@ export default function SuperAdminUsersPage() {
                   />
                 </div>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
                   id="email"
@@ -455,7 +455,7 @@ export default function SuperAdminUsersPage() {
                   placeholder="email@exemplo.com"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="username">Username *</Label>
                 <Input
                   id="username"
@@ -464,7 +464,7 @@ export default function SuperAdminUsersPage() {
                   placeholder="username"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="password">Senha *</Label>
                 <Input
                   id="password"
@@ -474,7 +474,7 @@ export default function SuperAdminUsersPage() {
                   placeholder="Mínimo 8 caracteres"
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="role">Função *</Label>
                 <Select
                   value={formData.role}

@@ -57,28 +57,28 @@ const sectionColors = {
     badge: "bg-blue-100 text-blue-700",
   },
   health: {
-    hover: "hover:bg-teal-50/50 hover:text-teal-600",
-    active: "bg-teal-600 text-white",
-    icon: "text-teal-500",
-    badge: "bg-teal-100 text-teal-700",
+    hover: "hover:bg-blue-50/50 hover:text-blue-600",
+    active: "bg-blue-600 text-white",
+    icon: "text-blue-500",
+    badge: "bg-blue-100 text-blue-700",
   },
   communication: {
-    hover: "hover:bg-green-50/50 hover:text-green-600",
-    active: "bg-green-600 text-white",
-    icon: "text-green-500",
-    badge: "bg-green-100 text-green-700",
+    hover: "hover:bg-blue-50/50 hover:text-blue-600",
+    active: "bg-blue-600 text-white",
+    icon: "text-blue-500",
+    badge: "bg-blue-100 text-blue-700",
   },
   services: {
-    hover: "hover:bg-purple-50/50 hover:text-purple-600",
-    active: "bg-purple-600 text-white",
-    icon: "text-purple-500",
-    badge: "bg-purple-100 text-purple-700",
+    hover: "hover:bg-blue-50/50 hover:text-blue-600",
+    active: "bg-blue-600 text-white",
+    icon: "text-blue-500",
+    badge: "bg-blue-100 text-blue-700",
   },
   settings: {
-    hover: "hover:bg-gray-50 hover:text-gray-700",
-    active: "bg-gray-700 text-white",
-    icon: "text-gray-500",
-    badge: "bg-gray-100 text-gray-700",
+    hover: "hover:bg-blue-50/50 hover:text-blue-600",
+    active: "bg-blue-600 text-white",
+    icon: "text-blue-500",
+    badge: "bg-blue-100 text-blue-700",
   },
 };
 
@@ -151,10 +151,10 @@ export function PatientSidebar({ className, items }: PatientSidebarProps) {
                   <h3 className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                     <div className={cn(
                       "h-0.5 w-4 rounded-full",
-                      section === "health" && "bg-teal-500",
-                      section === "communication" && "bg-green-500",
-                      section === "services" && "bg-purple-500",
-                      section === "settings" && "bg-gray-500",
+                      section === "health" && "bg-blue-500",
+                      section === "communication" && "bg-blue-500",
+                      section === "services" && "bg-blue-500",
+                      section === "settings" && "bg-blue-500",
                       section === "main" && "bg-blue-500"
                     )} />
                     {sectionLabels[section] || section}

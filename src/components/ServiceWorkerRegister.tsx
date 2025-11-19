@@ -1,56 +1,77 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 export default function ServiceWorkerRegister() {
+	const pathname = usePathname();
+	
 	useEffect(() => {
 		if (typeof window === "undefined") return;
 		
-		// Clear browser cache on startup
-		const clearCache = async () => {
+		// Clear cache on page navigation (without reload)
+		const clearCacheOnNavigation = async () => {
 			try {
-				// Clear all service worker caches (they will be recreated)
+				// Clear service worker caches silently when navigating to a new page
 				if ("caches" in window) {
 					const cacheNames = await caches.keys();
-					await Promise.all(cacheNames.map((name) => caches.delete(name)));
-				}
-
-				// Unregister all old service workers
-				if ("serviceWorker" in navigator) {
-					const registrations = await navigator.serviceWorker.getRegistrations();
-					await Promise.all(registrations.map((registration) => registration.unregister()));
-				}
-
-				// Clear HTTP cache by adding cache-busting parameter to critical resources
-				// This forces browser to fetch fresh versions
-				if ("serviceWorker" in navigator) {
-					// Register new service worker with cache-busting
-					const swUrl = `/sw.js?t=${Date.now()}`;
-					const registration = await navigator.serviceWorker.register(swUrl);
-					
-					// Check for updates immediately
-					registration.update();
-					
-					// Listen for updates
-					registration.addEventListener("updatefound", () => {
-						const newWorker = registration.installing;
-						if (newWorker) {
-							newWorker.addEventListener("statechange", () => {
-								if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-									// New service worker available, reload page
-									window.location.reload();
-								}
-							});
+					// Delete all caches except very recent ones (within last minute)
+					const now = Date.now();
+					const oldCaches = cacheNames.filter(name => {
+						// Extract timestamp from cache name if possible
+						const match = name.match(/v(\d+)/);
+						if (match) {
+							const cacheTime = parseInt(match[1]);
+							return (now - cacheTime) > 60000; // Older than 1 minute
 						}
+						return true; // Delete if we can't determine age
 					});
+					await Promise.all(oldCaches.map((name) => caches.delete(name)));
 				}
 			} catch (error) {
-				console.error("Error clearing cache:", error);
+				// Silently fail - don't interrupt user experience
+				console.debug("Cache clear on navigation:", error);
 			}
 		};
 
-		clearCache();
+		// Clear cache when pathname changes (new page)
+		clearCacheOnNavigation();
+	}, [pathname]);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		
+		// Register service worker on initial load only
+		let updateInterval: NodeJS.Timeout | null = null;
+		
+		const registerServiceWorker = async () => {
+			try {
+				if ("serviceWorker" in navigator) {
+					const swUrl = `/sw.js?t=${Date.now()}`;
+					const registration = await navigator.serviceWorker.register(swUrl, {
+						updateViaCache: 'none',
+					});
+					
+					// Check for updates periodically (every 5 minutes), but don't force reload
+					updateInterval = setInterval(() => {
+						registration.update();
+					}, 5 * 60 * 1000);
+				}
+			} catch (error) {
+				console.debug("Service worker registration:", error);
+			}
+		};
+
+		registerServiceWorker();
+		
+		// Cleanup interval on unmount
+		return () => {
+			if (updateInterval) {
+				clearInterval(updateInterval);
+			}
+		};
 	}, []);
+
 	return null;
 }
 

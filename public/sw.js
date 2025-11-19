@@ -12,23 +12,18 @@ self.addEventListener("install", (event) => {
 			// Delete all old caches first
 			return Promise.all(keys.map((k) => caches.delete(k)));
 		}).then(() => {
-			// Create new cache with fresh version
-			return caches.open(CACHE_NAME).then((cache) => {
-				// Add cache-busting parameters to ensure fresh fetch
-				const criticalWithCacheBust = CRITICAL.map(url => `${url}?t=${Date.now()}`);
-				return Promise.all(criticalWithCacheBust.map(url => {
-					const request = new Request(url, { cache: 'no-store' });
-					return fetch(request).then(res => {
-						if (res.ok) {
-							return cache.put(request, res);
-						}
-					}).catch(() => {
-						// Ignore errors for critical resources
-					});
-				}));
-			});
+			// Don't pre-cache HTML pages - always fetch fresh
+			// Only cache static assets if needed
+			return Promise.resolve();
 		})
 	);
+});
+
+// Listen for skip waiting message
+self.addEventListener("message", (event) => {
+	if (event.data && event.data.type === "SKIP_WAITING") {
+		self.skipWaiting();
+	}
 });
 
 self.addEventListener("activate", (event) => {
@@ -38,7 +33,7 @@ self.addEventListener("activate", (event) => {
 			caches.keys().then((keys) => {
 				return Promise.all(keys.map((k) => caches.delete(k)));
 			}),
-			// Take control of all clients immediately
+			// Take control of all clients immediately (but don't force reload)
 			clients.claim()
 		])
 	);
@@ -48,10 +43,45 @@ self.addEventListener("fetch", (event) => {
 	const { request } = event;
 	if (request.method !== "GET") return;
 	
-	// For navigation requests, always fetch fresh (no cache)
-	if (request.mode === "navigate") {
+	const url = new URL(request.url);
+	
+	// For navigation requests (HTML pages), always fetch fresh (no cache)
+	if (request.mode === "navigate" || request.destination === "document") {
 		event.respondWith(
-			fetch(request).catch(() => {
+			fetch(request, {
+				cache: 'no-store',
+				headers: {
+					'Cache-Control': 'no-cache',
+					'Pragma': 'no-cache',
+				}
+			}).catch(() => {
+				// Fallback to cache only if network completely fails
+				return caches.match(request);
+			})
+		);
+		return;
+	}
+	
+	// For HTML files, never cache
+	if (url.pathname.endsWith('.html') || request.headers.get('accept')?.includes('text/html')) {
+		event.respondWith(
+			fetch(request, {
+				cache: 'no-store',
+				headers: {
+					'Cache-Control': 'no-cache',
+					'Pragma': 'no-cache',
+				}
+			})
+		);
+		return;
+	}
+	
+	// For API requests, use network-first with no cache
+	if (url.pathname.startsWith('/api/')) {
+		event.respondWith(
+			fetch(request, {
+				cache: 'no-store',
+			}).catch(() => {
 				// Fallback to cache only if network fails
 				return caches.match(request);
 			})
@@ -59,12 +89,14 @@ self.addEventListener("fetch", (event) => {
 		return;
 	}
 	
-	// For other requests, use network-first strategy with cache fallback
+	// For other requests (static assets), use network-first strategy with cache fallback
 	event.respondWith(
-		fetch(request)
+		fetch(request, {
+			cache: 'no-cache',
+		})
 			.then((res) => {
-				// Cache successful responses
-				if (res.ok) {
+				// Only cache static assets (images, fonts, etc.)
+				if (res.ok && (request.destination === 'image' || request.destination === 'font' || request.destination === 'style')) {
 					const copy = res.clone();
 					caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {});
 				}

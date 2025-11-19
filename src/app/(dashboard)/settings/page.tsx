@@ -663,7 +663,7 @@ export default function SettingsPage() {
                         setProfileErrors(prev => ({ ...prev, firstName: '' }));
                       }
                     }}
-                    className={`h-11 ${profileErrors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} transition-all duration-200`}
+                    className={profileErrors.firstName ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}
                   />
                   {profileErrors.firstName && (
                     <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
@@ -683,7 +683,7 @@ export default function SettingsPage() {
                         setProfileErrors(prev => ({ ...prev, lastName: '' }));
                       }
                     }}
-                    className={`h-11 ${profileErrors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} transition-all duration-200`}
+                    className={profileErrors.lastName ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}
                   />
                   {profileErrors.lastName && (
                     <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
@@ -706,7 +706,7 @@ export default function SettingsPage() {
                         setProfileErrors(prev => ({ ...prev, email: '' }));
                       }
                     }}
-                    className={`h-11 ${profileErrors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} transition-all duration-200`}
+                    className={profileErrors.email ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}
                   />
                   {profileErrors.email && (
                     <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
@@ -726,7 +726,7 @@ export default function SettingsPage() {
                         setProfileErrors(prev => ({ ...prev, phone: '' }));
                       }
                     }}
-                    className={`h-11 ${profileErrors.phone ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'} transition-all duration-200`}
+                    className={profileErrors.phone ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'}
                   />
                   {profileErrors.phone && (
                     <p className="text-sm text-red-500 mt-1.5 flex items-center gap-1">
