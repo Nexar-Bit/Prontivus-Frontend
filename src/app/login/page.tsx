@@ -154,7 +154,7 @@ function LoginForm() {
       <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white via-gray-50 to-blue-50/30 relative overflow-hidden">
         {/* Decorative background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl"></div>
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"></div>
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"></div>
         </div>
 
@@ -196,7 +196,7 @@ function LoginForm() {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="seu.email@exemplo.com"
-                    className="focus:border-purple-600 focus:ring-purple-600"
+                    className="focus:border-blue-600 focus:ring-blue-600"
                   />
                 </div>
 
@@ -232,7 +232,7 @@ function LoginForm() {
                 <div className="flex items-center justify-end">
                   <Link
                     href="/forgot-password"
-                    className="text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors"
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                   >
                     Esqueceu a senha?
                   </Link>
@@ -240,7 +240,7 @@ function LoginForm() {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-11 bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200" 
+                  className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200" 
                   disabled={loading}
                 >
                   {loading ? (
@@ -310,7 +310,7 @@ function LoginForm() {
                   Não tem uma conta?{" "}
                   <Link 
                     href="/register" 
-                    className="font-semibold text-purple-600 hover:text-purple-700 transition-colors"
+                    className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                   >
                     Cadastre-se
                   </Link>
@@ -327,7 +327,7 @@ function LoginForm() {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: "url('/resource image/prontivus (2).jpg')" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-pink-500/20 to-purple-600/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-blue-500/20 to-blue-600/20"></div>
       </div>
     </div>
   );

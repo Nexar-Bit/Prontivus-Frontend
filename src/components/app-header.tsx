@@ -116,7 +116,7 @@ export function AppHeader({
     if (isAdmin()) return "text-red-500";
     if (isSecretary()) return "text-blue-500";
     if (isDoctor()) return "text-green-500";
-    if (isPatient()) return "text-purple-500";
+    if (isPatient()) return "text-blue-500";
     return "text-gray-500";
   };
 

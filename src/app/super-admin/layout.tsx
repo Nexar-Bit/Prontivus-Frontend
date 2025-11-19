@@ -33,10 +33,10 @@ export default function SuperAdminLayout({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-blue-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-purple-700 font-medium">Carregando...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-blue-700 font-medium">Carregando...</p>
         </div>
       </div>
     );
@@ -53,8 +53,8 @@ export default function SuperAdminLayout({
 
   if (!isSuperAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-50 to-blue-50">
-        <div className="text-center max-w-md p-8 bg-white rounded-lg shadow-lg border border-purple-200">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-blue-50">
+        <div className="text-center max-w-md p-8 bg-white rounded-lg shadow-lg border border-blue-200">
           <div className="mb-4">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
               <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +69,7 @@ export default function SuperAdminLayout({
           </p>
           <button
             onClick={() => router.push("/dashboard")}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Voltar ao Dashboard
           </button>
@@ -79,7 +79,7 @@ export default function SuperAdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-gradient-to-br from-purple-50 to-blue-50">
+    <div className="flex min-h-screen w-full bg-gradient-to-br from-blue-50 to-blue-50">
       <SuperAdminSidebar />
       <main className="flex-1 flex flex-col lg:ml-[240px] transition-all duration-300">
         <AppHeader />

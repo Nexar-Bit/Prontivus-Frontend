@@ -60,6 +60,8 @@ interface License {
   created_at: string;
   updated_at?: string;
   clinic_name?: string;
+  ai_token_limit?: number | null;
+  ai_enabled?: boolean;
 }
 
 interface LicenseFormData {
@@ -91,6 +93,7 @@ const AVAILABLE_MODULES = [
   { value: "mobile", label: "Mobile" },
   { value: "telemed", label: "Telemedicina" },
   { value: "api", label: "API" },
+  { value: "ai", label: "Inteligência Artificial" },
   { value: "reports", label: "Relatórios" },
   { value: "backup", label: "Backup" },
   { value: "integration", label: "Integração" },
@@ -247,20 +250,27 @@ export default function LicenciamentoPage() {
     setShowForm(true);
   };
 
-  const openEditForm = (license: License) => {
-    setEditingLicense(license);
-    const startDate = license.start_at ? parseISO(license.start_at).toISOString().split('T')[0] : "";
-    const endDate = license.end_at ? parseISO(license.end_at).toISOString().split('T')[0] : "";
-    setFormData({
-      tenant_id: license.tenant_id.toString(),
-      plan: license.plan || "basic",
-      modules: license.modules || [],
-      users_limit: license.users_limit?.toString() || "10",
-      units_limit: license.units_limit?.toString() || "",
-      start_at: startDate,
-      end_at: endDate,
-    });
-    setShowForm(true);
+  const openEditForm = async (license: License) => {
+    // Fetch full license details to get AI fields
+    try {
+      const fullLicense = await api.get<License>(`/api/v1/licenses/${license.id}`);
+      setEditingLicense(fullLicense);
+      const startDate = fullLicense.start_at ? parseISO(fullLicense.start_at).toISOString().split('T')[0] : "";
+      const endDate = fullLicense.end_at ? parseISO(fullLicense.end_at).toISOString().split('T')[0] : "";
+      setFormData({
+        tenant_id: fullLicense.tenant_id.toString(),
+        plan: fullLicense.plan || "basic",
+        modules: fullLicense.modules || [],
+        users_limit: fullLicense.users_limit?.toString() || "10",
+        units_limit: fullLicense.units_limit?.toString() || "",
+        start_at: startDate,
+        end_at: endDate,
+      });
+      setShowForm(true);
+    } catch (error: any) {
+      console.error("Failed to load license details:", error);
+      toast.error("Erro ao carregar detalhes da licença");
+    }
   };
 
   const openDetailDialog = async (license: License) => {
@@ -292,6 +302,20 @@ export default function LicenciamentoPage() {
     try {
       setSaving(true);
 
+      // Calculate AI token limit based on plan if not explicitly set
+      const getTokenLimitByPlan = (plan: string): number | null => {
+        const limits: Record<string, number> = {
+          basic: 10_000,
+          professional: 100_000,
+          enterprise: 1_000_000,
+          custom: -1, // Unlimited
+        };
+        return limits[plan.toLowerCase()] ?? null;
+      };
+
+      const hasAIModule = formData.modules.includes("ai") || formData.modules.includes("api");
+      const aiTokenLimit = getTokenLimitByPlan(formData.plan);
+
       const licenseData: any = {
         tenant_id: parseInt(formData.tenant_id),
         plan: formData.plan,
@@ -300,6 +324,8 @@ export default function LicenciamentoPage() {
         units_limit: formData.units_limit ? parseInt(formData.units_limit) : undefined,
         start_at: new Date(formData.start_at).toISOString(),
         end_at: new Date(formData.end_at).toISOString(),
+        ai_enabled: hasAIModule,
+        ai_token_limit: hasAIModule ? aiTokenLimit : null,
       };
 
       if (editingLicense) {
@@ -414,7 +440,7 @@ export default function LicenciamentoPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         </div>
       </div>
     );
@@ -425,7 +451,7 @@ export default function LicenciamentoPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Key className="h-8 w-8 text-purple-600" />
+            <Key className="h-8 w-8 text-blue-600" />
             Gestão de Licenciamento
           </h1>
           <p className="text-gray-600 mt-2">
@@ -445,14 +471,14 @@ export default function LicenciamentoPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600">
               Total de Licenças
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-600">{stats.total}</div>
+            <div className="text-3xl font-bold text-blue-600">{stats.total}</div>
             <p className="text-xs text-gray-500 mt-1">Clínicas licenciadas</p>
           </CardContent>
         </Card>
@@ -523,7 +549,7 @@ export default function LicenciamentoPage() {
                   <SelectItem value="expiring">Expirando</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="bg-purple-600 hover:bg-purple-700" onClick={openCreateForm}>
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={openCreateForm}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Licença
               </Button>
@@ -673,8 +699,8 @@ export default function LicenciamentoPage() {
               </TabsList>
               
               <TabsContent value="basic" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="tenant_id">Clínica *</Label>
                     <Select
                       value={formData.tenant_id}
@@ -697,7 +723,7 @@ export default function LicenciamentoPage() {
                       <p className="text-xs text-gray-500 mt-1">A clínica não pode ser alterada</p>
                     )}
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="plan">Plano *</Label>
                     <Select
                       value={formData.plan}
@@ -717,8 +743,8 @@ export default function LicenciamentoPage() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="start_at">Data de Início *</Label>
                     <Input
                       id="start_at"
@@ -728,7 +754,7 @@ export default function LicenciamentoPage() {
                       onChange={(e) => setFormData({ ...formData, start_at: e.target.value })}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="end_at">Data de Término *</Label>
                     <Input
                       id="end_at"
@@ -742,8 +768,8 @@ export default function LicenciamentoPage() {
               </TabsContent>
               
               <TabsContent value="limits" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="users_limit">Limite de Usuários *</Label>
                     <Input
                       id="users_limit"
@@ -756,7 +782,7 @@ export default function LicenciamentoPage() {
                     />
                     <p className="text-xs text-gray-500 mt-1">Número máximo de usuários permitidos</p>
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="units_limit">Limite de Unidades</Label>
                     <Input
                       id="units_limit"
@@ -795,7 +821,7 @@ export default function LicenciamentoPage() {
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={saving}>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={saving}>
                 {saving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -952,7 +978,7 @@ export default function LicenciamentoPage() {
             </Button>
             {selectedLicense && (
               <Button
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
                   setShowDetailDialog(false);
                   openEditForm(selectedLicense);

@@ -243,7 +243,7 @@ export default function ClientesAtivosPage() {
   const getLicenseBadge = (licenseType: string) => {
     const badgeMap: Record<string, { label: string; className: string }> = {
       basic: { label: "Básico", className: "bg-blue-100 text-blue-800" },
-      professional: { label: "Profissional", className: "bg-purple-100 text-purple-800" },
+      professional: { label: "Profissional", className: "bg-blue-100 text-blue-800" },
       enterprise: { label: "Enterprise", className: "bg-green-100 text-green-800" },
       custom: { label: "Customizado", className: "bg-gray-100 text-gray-800" },
     };
@@ -260,7 +260,7 @@ export default function ClientesAtivosPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
       </div>
     );
@@ -271,7 +271,7 @@ export default function ClientesAtivosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Users className="h-8 w-8 text-purple-600" />
+            <Users className="h-8 w-8 text-blue-600" />
             Clientes Ativos
           </h1>
           <p className="text-gray-600 mt-2">
@@ -292,14 +292,14 @@ export default function ClientesAtivosPage() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-600">
                 Total de Clientes
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-purple-600">{stats.total_clients}</div>
+              <div className="text-3xl font-bold text-blue-600">{stats.total_clients}</div>
               <p className="text-xs text-gray-500 mt-1">Clínicas cadastradas</p>
             </CardContent>
           </Card>
@@ -364,7 +364,7 @@ export default function ClientesAtivosPage() {
                 />
               </div>
               <Button
-                className="bg-purple-600 hover:bg-purple-700 gap-2"
+                className="bg-blue-600 hover:bg-blue-700 gap-2"
                 onClick={handleExport}
               >
                 <Download className="h-4 w-4" />

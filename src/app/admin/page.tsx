@@ -28,8 +28,8 @@ export default function AdminDashboard() {
       title: "Produtos Ativos",
       value: "0",
       icon: ShoppingCart,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
       link: "/admin/cadastros/produtos",
     },
     {
@@ -62,7 +62,7 @@ export default function AdminDashboard() {
       description: "Consultas, exames e procedimentos",
       icon: ShoppingCart,
       link: "/admin/cadastros/produtos",
-      color: "bg-purple-600 hover:bg-purple-700",
+      color: "bg-blue-600 hover:bg-blue-700"
     },
     {
       title: "Relatórios",

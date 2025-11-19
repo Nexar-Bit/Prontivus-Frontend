@@ -53,7 +53,12 @@ interface AIConfig {
     documents_processed: number;
     suggestions_generated: number;
     approval_rate: number;
+    total_tokens?: number;
+    tokens_this_month?: number;
   };
+  token_limit?: number;
+  token_limit_type?: "limited" | "unlimited";
+  tokens_remaining?: number;
 }
 
 interface AIStats {
@@ -80,12 +85,19 @@ const AI_MODELS: Record<string, string[]> = {
   azure: ["gpt-4", "gpt-35-turbo"],
 };
 
+interface Clinic {
+  id: number;
+  name: string;
+}
+
 export default function IAPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [config, setConfig] = useState<AIConfig | null>(null);
   const [stats, setStats] = useState<AIStats | null>(null);
+  const [selectedClinicId, setSelectedClinicId] = useState<number | null>(null);
+  const [clinics, setClinics] = useState<Clinic[]>([]);
   const [formData, setFormData] = useState<AIConfig>({
     enabled: false,
     provider: "openai",
@@ -126,6 +138,13 @@ export default function IAPage() {
   }, []);
 
   useEffect(() => {
+    if (selectedClinicId) {
+      loadConfig();
+      loadStats();
+    }
+  }, [selectedClinicId]);
+
+  useEffect(() => {
     // Check if formData has changed from config
     if (config) {
       const changed = JSON.stringify(formData) !== JSON.stringify(config);
@@ -136,10 +155,13 @@ export default function IAPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      await Promise.all([
-        loadConfig(),
-        loadStats(),
-      ]);
+      await loadClinics();
+      if (selectedClinicId) {
+        await Promise.all([
+          loadConfig(),
+          loadStats(),
+        ]);
+      }
     } catch (error: any) {
       console.error("Failed to load data:", error);
       toast.error("Erro ao carregar dados", {
@@ -150,9 +172,23 @@ export default function IAPage() {
     }
   };
 
-  const loadConfig = async () => {
+  const loadClinics = async () => {
     try {
-      const data = await api.get<AIConfig>("/api/v1/ai-config");
+      const data = await api.get<Clinic[]>("/api/v1/admin/clinics?limit=1000");
+      setClinics(data);
+      if (data.length > 0 && !selectedClinicId) {
+        setSelectedClinicId(data[0].id);
+      }
+    } catch (error: any) {
+      console.error("Failed to load clinics:", error);
+    }
+  };
+
+  const loadConfig = async () => {
+    if (!selectedClinicId) return;
+    
+    try {
+      const data = await api.get<AIConfig>(`/api/v1/ai-config?clinic_id=${selectedClinicId}`);
       setConfig(data);
       setFormData(data);
       setConnectionStatus("unknown");
@@ -164,9 +200,16 @@ export default function IAPage() {
           description: "O servidor pode precisar ser reiniciado. Verifique se o backend está rodando.",
         });
       } else if (error?.status === 403) {
-        toast.error("Acesso negado", {
-          description: "Você precisa de permissões de SuperAdmin para acessar esta página.",
-        });
+        const errorMsg = error?.detail || error?.message || "";
+        if (errorMsg.includes("AI module is not enabled")) {
+          toast.error("Módulo de IA não habilitado", {
+            description: "Habilite o módulo 'Inteligência Artificial' na licença da clínica primeiro.",
+          });
+        } else {
+          toast.error("Acesso negado", {
+            description: errorMsg || "Você precisa de permissões de SuperAdmin para acessar esta página.",
+          });
+        }
       } else {
         toast.error("Erro ao carregar configuração de IA", {
           description: error?.message || error?.detail || "Não foi possível carregar a configuração",
@@ -176,8 +219,10 @@ export default function IAPage() {
   };
 
   const loadStats = async () => {
+    if (!selectedClinicId) return;
+    
     try {
-      const data = await api.get<AIStats>("/api/v1/ai-config/stats");
+      const data = await api.get<AIStats>(`/api/v1/ai-config/stats?clinic_id=${selectedClinicId}`);
       setStats(data);
       
       // Update formData with stats
@@ -191,7 +236,16 @@ export default function IAPage() {
       }));
     } catch (error: any) {
       console.error("Failed to load AI stats:", error);
-      setStats(null);
+      // Set default stats if error (but don't show toast for stats - it's optional)
+      setStats({
+        documents_processed: 0,
+        suggestions_generated: 0,
+        approval_rate: 0,
+        total_requests: 0,
+        successful_requests: 0,
+        failed_requests: 0,
+        average_response_time_ms: 0,
+      });
     }
   };
 
@@ -201,9 +255,17 @@ export default function IAPage() {
       return;
     }
 
+    if (!selectedClinicId) {
+      toast.error("Selecione uma clínica");
+      return;
+    }
+
     try {
       setSaving(true);
-      const result = await api.put<{ message: string; config: AIConfig }>("/api/v1/ai-config", formData);
+      const result = await api.put<{ message: string; config: AIConfig }>(
+        `/api/v1/ai-config?clinic_id=${selectedClinicId}`,
+        formData
+      );
       setConfig(result.config || formData);
       setHasChanges(false);
       toast.success("Configuração de IA salva com sucesso!");
@@ -232,13 +294,18 @@ export default function IAPage() {
       setTesting(true);
       setConnectionStatus("unknown");
       
+      if (!selectedClinicId) {
+        toast.error("Selecione uma clínica");
+        return;
+      }
+
       const result = await api.post<{ 
         success: boolean; 
         message: string; 
         provider: string; 
         model: string; 
         response_time_ms: number 
-      }>("/api/v1/ai-config/test-connection", {
+      }>(`/api/v1/ai-config/test-connection?clinic_id=${selectedClinicId}`, {
         provider: formData.provider,
         model: formData.model,
         api_key: formData.api_key,
@@ -306,7 +373,7 @@ export default function IAPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         </div>
       </div>
     );
@@ -317,13 +384,30 @@ export default function IAPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Sparkles className="h-8 w-8 text-purple-600" />
+            <Sparkles className="h-8 w-8 text-blue-600" />
             Integração de Inteligência Artificial
           </h1>
           <p className="text-gray-600 mt-2">
             Configure e gerencie recursos de IA do sistema
           </p>
         </div>
+        {clinics.length > 0 && (
+          <div className="flex items-center gap-4">
+            <Label htmlFor="clinic-select">Clínica:</Label>
+            <Select value={selectedClinicId?.toString()} onValueChange={(value) => setSelectedClinicId(parseInt(value))}>
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Selecione uma clínica" />
+              </SelectTrigger>
+              <SelectContent>
+                {clinics.map((clinic) => (
+                  <SelectItem key={clinic.id} value={clinic.id.toString()}>
+                    {clinic.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -343,7 +427,7 @@ export default function IAPage() {
             <span>Há alterações não salvas</span>
             <Button
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-blue-600 hover:bg-blue-700"
               onClick={saveConfig}
               disabled={saving}
             >
@@ -365,8 +449,8 @@ export default function IAPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
                 <Brain className="h-4 w-4" />
@@ -374,8 +458,8 @@ export default function IAPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-purple-600">
-                {stats.documents_processed.toLocaleString()}
+              <div className="text-3xl font-bold text-blue-600">
+                {(stats.documents_processed || 0).toLocaleString()}
               </div>
               <p className="text-xs text-gray-500 mt-1">Documentos processados</p>
             </CardContent>
@@ -389,7 +473,7 @@ export default function IAPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-blue-600">
-                {stats.suggestions_generated.toLocaleString()}
+                {(stats.suggestions_generated || 0).toLocaleString()}
               </div>
               <p className="text-xs text-gray-500 mt-1">Total de sugestões</p>
             </CardContent>
@@ -403,11 +487,31 @@ export default function IAPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-green-600">
-                {(stats.approval_rate * 100).toFixed(0)}%
+                {((stats.approval_rate || 0) * 100).toFixed(0)}%
               </div>
               <p className="text-xs text-gray-500 mt-1">Sugestões aceitas</p>
             </CardContent>
           </Card>
+          {config && config.token_limit !== undefined && (
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Tokens (Mensal)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-600">
+                  {config.tokens_remaining === -1 ? "∞" : (config.tokens_remaining ?? 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {config.token_limit_type === "unlimited" 
+                    ? "Ilimitado" 
+                    : `${(config.usage_stats?.tokens_this_month || 0).toLocaleString()} / ${(config.token_limit || 0).toLocaleString()} usados`}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 
@@ -575,7 +679,7 @@ export default function IAPage() {
 
                   <div className="pt-4 border-t space-y-3">
                     <Button
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="w-full bg-blue-600 hover:bg-blue-700"
                       onClick={testConnection}
                       disabled={testing || !formData.api_key || !formData.provider}
                     >
@@ -583,7 +687,7 @@ export default function IAPage() {
                       {testing ? "Testando..." : "Testar Conexão"}
                     </Button>
                     <Button
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="w-full bg-blue-600 hover:bg-blue-700"
                       onClick={saveConfig}
                       disabled={saving}
                     >
@@ -634,16 +738,16 @@ export default function IAPage() {
                   >
                     <div className="flex items-center gap-2 mb-2">
                       {key === "clinical_analysis" && (
-                        <Brain className="h-5 w-5 text-purple-600" />
+                        <Brain className="h-5 w-5 text-blue-600" />
                       )}
                       {key === "diagnosis_suggestions" && (
-                        <Zap className="h-5 w-5 text-purple-600" />
+                        <Zap className="h-5 w-5 text-blue-600" />
                       )}
                       {key === "predictive_analysis" && (
-                        <BarChart3 className="h-5 w-5 text-purple-600" />
+                        <BarChart3 className="h-5 w-5 text-blue-600" />
                       )}
                       {key === "virtual_assistant" && (
-                        <Sparkles className="h-5 w-5 text-purple-600" />
+                        <Sparkles className="h-5 w-5 text-blue-600" />
                       )}
                       <h3 className="font-semibold flex-1">
                         {key === "clinical_analysis" && "Análise de Prontuários"}
@@ -694,42 +798,42 @@ export default function IAPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <div className="text-2xl font-bold text-gray-900">
-                      {stats.total_requests.toLocaleString()}
+                      {(stats.total_requests || 0).toLocaleString()}
                     </div>
                     <div className="text-sm text-gray-600">Total de Requisições</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-green-600">
-                      {stats.successful_requests.toLocaleString()}
+                      {(stats.successful_requests || 0).toLocaleString()}
                     </div>
                     <div className="text-sm text-gray-600">Requisições Bem-sucedidas</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-red-600">
-                      {stats.failed_requests.toLocaleString()}
+                      {(stats.failed_requests || 0).toLocaleString()}
                     </div>
                     <div className="text-sm text-gray-600">Requisições Falhadas</div>
                   </div>
                   <div>
                     <div className="text-2xl font-bold text-blue-600">
-                      {stats.average_response_time_ms}ms
+                      {(stats.average_response_time_ms || 0)}ms
                     </div>
                     <div className="text-sm text-gray-600">Tempo Médio de Resposta</div>
                   </div>
                 </div>
-                {stats.total_requests > 0 && (
+                {(stats.total_requests || 0) > 0 && (
                   <div className="mt-6 pt-6 border-t">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Taxa de Sucesso</span>
                       <span className="text-sm font-bold text-green-600">
-                        {((stats.successful_requests / stats.total_requests) * 100).toFixed(1)}%
+                        {stats.total_requests ? ((stats.successful_requests / stats.total_requests) * 100).toFixed(1) : 0}%
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-green-600 h-2 rounded-full transition-all"
                         style={{
-                          width: `${(stats.successful_requests / stats.total_requests) * 100}%`,
+                          width: `${stats.total_requests ? (stats.successful_requests / stats.total_requests) * 100 : 0}%`,
                         } as React.CSSProperties}
                       />
                     </div>

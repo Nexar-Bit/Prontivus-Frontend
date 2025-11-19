@@ -491,7 +491,7 @@ export default function ClinicaPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         </div>
       </div>
     );
@@ -502,7 +502,7 @@ export default function ClinicaPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Building className="h-8 w-8 text-purple-600" />
+            <Building className="h-8 w-8 text-blue-600" />
             Gestão de Clínicas
           </h1>
           <p className="text-gray-600 mt-2">
@@ -523,14 +523,14 @@ export default function ClinicaPage() {
       {/* Stats Cards */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                Total de Clínicas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-600">{stats.total_clinics}</div>
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600">
+              Total de Clínicas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-600">{stats.total_clinics}</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
@@ -607,7 +607,7 @@ export default function ClinicaPage() {
                   <SelectItem value="expiring">Expirando</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="bg-purple-600 hover:bg-purple-700" onClick={openCreateForm}>
+              <Button className="bg-blue-600 hover:bg-blue-700" onClick={openCreateForm}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Clínica
               </Button>
@@ -922,7 +922,7 @@ export default function ClinicaPage() {
               <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-purple-600 hover:bg-purple-700" disabled={saving}>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={saving}>
                 {saving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1075,7 +1075,7 @@ export default function ClinicaPage() {
             </Button>
             {selectedClinic && (
               <Button
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-blue-600 hover:bg-blue-700"
                 onClick={() => {
                   setShowDetailDialog(false);
                   openEditForm(selectedClinic);

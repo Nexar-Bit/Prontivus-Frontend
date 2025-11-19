@@ -316,7 +316,7 @@ export default function FiscalPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         </div>
       </div>
     );
@@ -327,7 +327,7 @@ export default function FiscalPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Receipt className="h-8 w-8 text-purple-600" />
+            <Receipt className="h-8 w-8 text-blue-600" />
             Integração Fiscal
           </h1>
           <p className="text-gray-600 mt-2">
@@ -353,7 +353,7 @@ export default function FiscalPage() {
             <span>Há alterações não salvas</span>
             <Button
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-blue-600 hover:bg-blue-700"
               onClick={saveConfig}
               disabled={saving}
             >
@@ -575,7 +575,7 @@ export default function FiscalPage() {
                     </div>
                     <div className="pt-2 border-t space-y-3">
                       <Button
-                        className="w-full bg-purple-600 hover:bg-purple-700"
+                        className="w-full bg-blue-600 hover:bg-blue-700"
                         onClick={testConnection}
                         disabled={testing || !formData.provider}
                       >
@@ -583,7 +583,7 @@ export default function FiscalPage() {
                         {testing ? "Testando..." : "Testar Conexão"}
                       </Button>
                       <Button
-                        className="w-full bg-purple-600 hover:bg-purple-700"
+                        className="w-full bg-blue-600 hover:bg-blue-700"
                         onClick={saveConfig}
                         disabled={saving}
                       >
@@ -696,14 +696,14 @@ export default function FiscalPage() {
           {/* Stats */}
           {stats && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium text-gray-600">
                     Total de Documentos
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-purple-600">{stats.total_documents}</div>
+                  <div className="text-3xl font-bold text-blue-600">{stats.total_documents}</div>
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">

@@ -28,8 +28,8 @@ export default function SuperAdminDashboard() {
       title: "Clientes Ativos",
       value: "3",
       icon: Users,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
+      color: "text-blue-600",
+      bgColor: "bg-blue-100",
       link: "/super-admin/relatorios/clientes-ativos",
     },
     {
@@ -61,7 +61,7 @@ export default function SuperAdminDashboard() {
       description: "Ativar/desativar módulos",
       icon: Activity,
       link: "/super-admin/configuracoes/modulos",
-      color: "bg-purple-600 hover:bg-purple-700",
+      color: "bg-blue-600 hover:bg-blue-700",
     },
     {
       title: "Integrações",
@@ -76,7 +76,7 @@ export default function SuperAdminDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <ShieldCheck className="h-8 w-8 text-purple-600" />
+          <ShieldCheck className="h-8 w-8 text-blue-600" />
           Super Administrador
         </h1>
         <p className="text-gray-600 mt-2">
@@ -133,7 +133,7 @@ export default function SuperAdminDashboard() {
               const Icon = action.icon;
               return (
                 <Link key={index} href={action.link}>
-                  <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-purple-300">
+                  <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-blue-300">
                     <CardContent className="p-6">
                       <div className={`w-12 h-12 ${action.color} rounded-lg flex items-center justify-center mb-4`}>
                         <Icon className="h-6 w-6 text-white" />

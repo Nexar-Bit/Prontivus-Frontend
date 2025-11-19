@@ -157,7 +157,7 @@ export default function SuperAdminUsersPage() {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return "bg-purple-100 text-purple-800 border-purple-200";
+      case 'admin': return "bg-blue-100 text-blue-800 border-blue-200";
       case 'secretary': return "bg-blue-100 text-blue-800 border-blue-200";
       case 'doctor': return "bg-green-100 text-green-800 border-green-200";
       case 'patient': return "bg-gray-100 text-gray-800 border-gray-200";
@@ -382,8 +382,8 @@ export default function SuperAdminUsersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Users className="h-7 w-7 text-purple-600" />
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Users className="h-7 w-7 text-blue-600" />
             </div>
             Gerenciar Usuários
           </h1>
@@ -393,7 +393,7 @@ export default function SuperAdminUsersPage() {
         </div>
         <Button 
           onClick={() => setIsCreateDialogOpen(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white"
+          className="bg-blue-600 hover:bg-blue-700 text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Novo Usuário
@@ -499,7 +499,7 @@ export default function SuperAdminUsersPage() {
               }}>
                 Cancelar
               </Button>
-              <Button onClick={handleCreateUser} disabled={saving} className="bg-purple-600 hover:bg-purple-700">
+              <Button onClick={handleCreateUser} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -564,12 +564,12 @@ export default function SuperAdminUsersPage() {
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total de Usuários
             </CardTitle>
-            <Users className="h-4 w-4 text-purple-500" />
+            <Users className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
@@ -591,7 +591,7 @@ export default function SuperAdminUsersPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Administradores
             </CardTitle>
-            <Shield className="h-4 w-4 text-purple-500" />
+            <Shield className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.byRole.admin}</div>
@@ -814,7 +814,7 @@ export default function SuperAdminUsersPage() {
             }}>
               Cancelar
             </Button>
-            <Button onClick={handleUpdateUser} disabled={saving} className="bg-purple-600 hover:bg-purple-700">
+            <Button onClick={handleUpdateUser} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

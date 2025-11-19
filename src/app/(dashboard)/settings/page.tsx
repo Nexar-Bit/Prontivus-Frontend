@@ -501,7 +501,7 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-xl text-white shadow-xl shadow-blue-500/20">
+              <div className="p-3 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-xl text-white shadow-xl shadow-blue-500/20">
                 <Settings className="h-6 w-6" />
               </div>
               <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
@@ -574,7 +574,7 @@ export default function SettingsPage() {
         {/* Profile Settings */}
         <TabsContent value="profile" className="space-y-6">
           <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600"></div>
+            <div className="h-2 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800"></div>
             <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -600,7 +600,7 @@ export default function SettingsPage() {
               {/* Avatar Upload Section */}
               <div className="flex flex-col items-center gap-6 pb-8 border-b border-gray-200">
                 <div className="relative group">
-                  <div className="w-36 h-36 rounded-full bg-gradient-to-br from-blue-400 via-indigo-500 to-purple-600 border-4 border-white flex items-center justify-center overflow-hidden shadow-2xl shadow-blue-500/30 ring-4 ring-blue-100 transition-all duration-300 group-hover:scale-105">
+                  <div className="w-36 h-36 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 border-4 border-white flex items-center justify-center overflow-hidden shadow-2xl shadow-blue-500/30 ring-4 ring-blue-100 transition-all duration-300 group-hover:scale-105">
                     {avatarPreview || settings.profile.avatar ? (
                       <img
                         src={avatarPreview || settings.profile.avatar}
@@ -1312,11 +1312,11 @@ export default function SettingsPage() {
         {/* Appearance Settings */}
         <TabsContent value="appearance" className="space-y-6">
           <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500"></div>
+            <div className="h-2 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700"></div>
             <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-lg shadow-purple-500/30">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
                     <Palette className="h-6 w-6 text-white" />
                   </div>
                   <div>
@@ -1328,7 +1328,7 @@ export default function SettingsPage() {
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-purple-200 shadow-sm px-3 py-1.5">
+                <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-blue-50 text-blue-700 border-blue-200 shadow-sm px-3 py-1.5">
                   <Palette className="h-3.5 w-3.5 mr-1.5" />
                   Aparência
                 </Badge>

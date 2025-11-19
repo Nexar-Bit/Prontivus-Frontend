@@ -122,7 +122,7 @@ function ResetPasswordForm() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-4" />
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-gray-600">Verificando token...</p>
         </div>
       </div>
@@ -135,7 +135,7 @@ function ResetPasswordForm() {
       <div className="flex-1 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-white via-gray-50 to-blue-50/30 relative overflow-hidden">
         {/* Decorative background elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500/5 rounded-full blur-3xl"></div>
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"></div>
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl"></div>
         </div>
 
@@ -183,7 +183,7 @@ function ResetPasswordForm() {
                   </div>
                   <Button
                     onClick={() => router.push("/login")}
-                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    className="w-full bg-blue-600 hover:bg-blue-700"
                   >
                     Ir para o login
                   </Button>
@@ -210,7 +210,7 @@ function ResetPasswordForm() {
                         value={formData.password}
                         onChange={handleInputChange}
                         placeholder="Mínimo 8 caracteres"
-                        className="pl-10 pr-10 focus:border-purple-600 focus:ring-purple-600"
+                        className="pl-10 pr-10 focus:border-blue-600 focus:ring-blue-600"
                       />
                       <button
                         type="button"
@@ -241,7 +241,7 @@ function ResetPasswordForm() {
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
                         placeholder="Confirme sua senha"
-                        className="pl-10 pr-10 focus:border-purple-600 focus:ring-purple-600"
+                        className="pl-10 pr-10 focus:border-blue-600 focus:ring-blue-600"
                       />
                       <button
                         type="button"
@@ -259,7 +259,7 @@ function ResetPasswordForm() {
 
                   <Button 
                     type="submit" 
-                    className="w-full h-11 bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200" 
+                    className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200" 
                     disabled={loading || !token}
                   >
                     {loading ? (
@@ -278,7 +278,7 @@ function ResetPasswordForm() {
                 <div className="mt-6 pt-6 border-t border-gray-200 text-center">
                   <Link 
                     href="/login" 
-                    className="inline-flex items-center text-sm text-gray-600 hover:text-purple-600 transition-colors"
+                    className="inline-flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Voltar para o login
@@ -296,7 +296,7 @@ function ResetPasswordForm() {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: "url('/resource image/prontivus (2).jpg')" }}
         />
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-pink-500/20 to-purple-600/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-blue-500/20 to-blue-600/20"></div>
       </div>
     </div>
   );
@@ -306,7 +306,7 @@ function ResetPasswordPageContent() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     }>
       <ResetPasswordForm />
