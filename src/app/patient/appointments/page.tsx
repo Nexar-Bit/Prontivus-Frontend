@@ -45,6 +45,7 @@ import { PatientMobileNav } from "@/components/patient/Navigation/PatientMobileN
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Types
 interface Doctor {
@@ -782,6 +783,7 @@ export default function PatientAppointmentsPage() {
                           size="sm"
                           className="text-red-600 hover:text-red-700"
                           onClick={async () => {
+                            // Note: This will be replaced with modal confirmation
                             if (!confirm('Tem certeza que deseja cancelar esta consulta?')) {
                               return;
                             }

@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { 
   Plus, Search, Edit, Trash2, Eye, 
   Building2, Users, AlertTriangle,
@@ -71,6 +72,9 @@ export default function AdminClinicsPage() {
   const [editForm, setEditForm] = useState<ClinicUpdate>({});
   const [licenseForm, setLicenseForm] = useState<ClinicLicenseUpdate>({});
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [clinicToDelete, setClinicToDelete] = useState<Clinic | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -184,19 +188,28 @@ export default function AdminClinicsPage() {
     }
   };
 
-  const handleDeleteClinic = async (clinic: Clinic) => {
-    if (!confirm(`Tem certeza que deseja desativar ${clinic.name}?`)) return;
-    
+  const handleDeleteClinic = (clinic: Clinic) => {
+    setClinicToDelete(clinic);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteClinic = async () => {
+    if (!clinicToDelete) return;
+
     try {
-      await adminApi.deleteClinic(clinic.id);
-      setClinics(clinics.map(c => c.id === clinic.id ? { ...c, is_active: false } : c));
-      toast.success("Clínica desativada com sucesso");
+      setDeleting(true);
+      await adminApi.deleteClinic(clinicToDelete.id);
+      toast.success("Clínica desativada com sucesso!");
       await loadData();
+      setClinicToDelete(null);
     } catch (error: any) {
       console.error("Failed to delete clinic:", error);
       toast.error(error.response?.data?.detail || "Falha ao desativar clínica");
+    } finally {
+      setDeleting(false);
     }
   };
+
 
   const openEditDialog = (clinic: Clinic) => {
     setSelectedClinic(clinic);
@@ -860,6 +873,19 @@ export default function AdminClinicsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Desativar Clínica"
+        description={clinicToDelete ? `Tem certeza que deseja desativar ${clinicToDelete.name}?` : ""}
+        confirmText="Desativar"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={confirmDeleteClinic}
+      />
     </div>
   );
 }

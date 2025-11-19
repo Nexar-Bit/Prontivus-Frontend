@@ -44,6 +44,7 @@ import { Button } from "@/components/ui/button";
 import { getUserSettings } from "@/lib/settings-api";
 import { getUserMenu, MenuGroup, MenuItem as MenuItemType } from "@/lib/menu-api";
 import { getIconFromName } from "@/lib/icon-mapper";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   PatientProfileIcon,
   StethoscopeIcon,
@@ -464,6 +465,8 @@ export function AppSidebar() {
   const [menuGroups, setMenuGroups] = React.useState<MenuGroup[]>([]);
   const [menuLoading, setMenuLoading] = React.useState(true);
   const [useApiMenu, setUseApiMenu] = React.useState(true);
+  const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
 
   // Load user menu from API
   React.useEffect(() => {
@@ -840,28 +843,40 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => {
-            if (confirm('Deseja sair da aplicação?')) {
-              (async () => {
-                try {
-                  if (typeof window !== 'undefined') {
-                    localStorage.removeItem('prontivus_access_token');
-                    localStorage.removeItem('refresh_token');
-                  }
-                  await logout();
-                  router.push('/login');
-                } catch (e) {
-                  router.push('/login');
-                }
-              })();
-            }
-          }}
+          onClick={() => setShowLogoutDialog(true)}
           className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Sair
         </Button>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        open={showLogoutDialog}
+        onOpenChange={setShowLogoutDialog}
+        title="Confirmar Saída"
+        description="Tem certeza que deseja sair da aplicação? Você precisará fazer login novamente para acessar o sistema."
+        confirmText="Sair"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={loggingOut}
+        onConfirm={async () => {
+          try {
+            setLoggingOut(true);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('prontivus_access_token');
+              localStorage.removeItem('refresh_token');
+            }
+            await logout();
+            router.push('/login');
+          } catch (e) {
+            router.push('/login');
+          } finally {
+            setLoggingOut(false);
+          }
+        }}
+      />
     </div>
   );
 

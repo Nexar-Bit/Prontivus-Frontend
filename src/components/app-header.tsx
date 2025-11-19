@@ -31,6 +31,7 @@ import { NotificationDropdown } from "@/components/notifications/notification-dr
 import { getUserSettings } from "@/lib/settings-api";
 import { useOperationProgress } from "@/contexts/OperationProgressContext";
 import { Loader2 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface AppHeaderProps {
   pageTitle?: string;
@@ -58,6 +59,8 @@ export function AppHeader({
   const { getRoleDisplayName, isAdmin, isSecretary, isDoctor, isPatient } = usePermissions();
   const router = useRouter();
   const pathname = usePathname();
+  const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = React.useState(false);
@@ -461,22 +464,7 @@ export function AppHeader({
               {/* Logout */}
               <div className="p-2">
               <DropdownMenuItem
-                onClick={() => {
-                  if (confirm('Deseja sair da aplicação?')) {
-                    (async () => {
-                      try {
-                        if (typeof window !== 'undefined') {
-                          localStorage.removeItem('prontivus_access_token');
-                          localStorage.removeItem('refresh_token');
-                        }
-                        await logout();
-                        router.push('/login');
-                      } catch (e) {
-                        router.push('/login');
-                      }
-                    })();
-                  }
-                }}
+                onClick={() => setShowLogoutDialog(true)}
                   className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-700 rounded-lg px-3 py-2.5 transition-colors"
               >
                   <LogOut className="mr-3 h-4 w-4" />
@@ -487,6 +475,33 @@ export function AppHeader({
           </DropdownMenu>
         </div>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        open={showLogoutDialog}
+        onOpenChange={setShowLogoutDialog}
+        title="Confirmar Saída"
+        description="Tem certeza que deseja sair da aplicação? Você precisará fazer login novamente para acessar o sistema."
+        confirmText="Sair"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={loggingOut}
+        onConfirm={async () => {
+          try {
+            setLoggingOut(true);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('prontivus_access_token');
+              localStorage.removeItem('refresh_token');
+            }
+            await logout();
+            router.push('/login');
+          } catch (e) {
+            router.push('/login');
+          } finally {
+            setLoggingOut(false);
+          }
+        }}
+      />
     </header>
   );
 }

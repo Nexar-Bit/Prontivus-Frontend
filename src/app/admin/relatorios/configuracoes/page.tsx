@@ -114,6 +114,7 @@ export default function RelatoriosConfigPage() {
   };
 
   const handleReset = () => {
+    // Note: This confirm is for resetting settings, not delete - keeping it for now
     if (!confirm("Tem certeza que deseja restaurar as configurações padrão? Todas as alterações não salvas serão perdidas.")) {
       return;
     }

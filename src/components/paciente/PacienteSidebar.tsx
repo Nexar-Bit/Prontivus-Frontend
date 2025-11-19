@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { getUserSettings } from "@/lib/settings-api";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Patient menu structure - Simplified and organized
 const PACIENTE_MENU = [
@@ -83,6 +84,8 @@ export function PacienteSidebar() {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+  const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
 
   // Load user avatar
   React.useEffect(() => {
@@ -223,28 +226,40 @@ export function PacienteSidebar() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => {
-            if (confirm('Deseja sair da aplicação?')) {
-              (async () => {
-                try {
-                  if (typeof window !== 'undefined') {
-                    localStorage.removeItem('prontivus_access_token');
-                    localStorage.removeItem('refresh_token');
-                  }
-                  await logout();
-                  router.push('/login');
-                } catch (e) {
-                  router.push('/login');
-                }
-              })();
-            }
-          }}
+          onClick={() => setShowLogoutDialog(true)}
           className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Sair
         </Button>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        open={showLogoutDialog}
+        onOpenChange={setShowLogoutDialog}
+        title="Confirmar Saída"
+        description="Tem certeza que deseja sair da aplicação? Você precisará fazer login novamente para acessar o sistema."
+        confirmText="Sair"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={loggingOut}
+        onConfirm={async () => {
+          try {
+            setLoggingOut(true);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('prontivus_access_token');
+              localStorage.removeItem('refresh_token');
+            }
+            await logout();
+            router.push('/login');
+          } catch (e) {
+            router.push('/login');
+          } finally {
+            setLoggingOut(false);
+          }
+        }}
+      />
     </div>
   );
 

@@ -14,6 +14,7 @@ import { getUserSettings } from "@/lib/settings-api";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getRoleLandingPage } from "@/lib/route-protection";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /**
  * Unified Navigation Component
@@ -29,6 +30,8 @@ export function UnifiedNavigation({ className }: { className?: string }) {
   const [menuGroups, setMenuGroups] = React.useState<MenuGroup[]>([]);
   const [menuLoading, setMenuLoading] = React.useState(true);
   const [openGroups, setOpenGroups] = React.useState<Record<number, boolean>>({});
+  const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
 
   // Get role-specific styling
   const getRoleStyles = () => {
@@ -124,18 +127,23 @@ export function UnifiedNavigation({ className }: { className?: string }) {
   };
 
   const handleLogout = async () => {
-    if (confirm('Deseja sair da aplicação?')) {
-      try {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('prontivus_access_token');
-          localStorage.removeItem('clinicore_access_token');
-          localStorage.removeItem('refresh_token');
-        }
-        await logout();
-        router.push('/login');
-      } catch (e) {
-        router.push('/login');
+    setShowLogoutDialog(true);
+  };
+
+  const confirmLogout = async () => {
+    try {
+      setLoggingOut(true);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('prontivus_access_token');
+        localStorage.removeItem('clinicore_access_token');
+        localStorage.removeItem('refresh_token');
       }
+      await logout();
+      router.push('/login');
+    } catch (e) {
+      router.push('/login');
+    } finally {
+      setLoggingOut(false);
     }
   };
 
@@ -264,7 +272,7 @@ export function UnifiedNavigation({ className }: { className?: string }) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleLogout}
+          onClick={() => setShowLogoutDialog(true)}
           className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10"
         >
           <LogOut className="h-4 w-4 mr-2" />
@@ -321,6 +329,19 @@ export function UnifiedNavigation({ className }: { className?: string }) {
       <aside className={cn("hidden lg:flex flex-col fixed left-0 top-0 h-full w-[240px] z-30", roleStyles.sidebar, className)}>
         <SidebarContent />
       </aside>
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        open={showLogoutDialog}
+        onOpenChange={setShowLogoutDialog}
+        title="Confirmar Saída"
+        description="Tem certeza que deseja sair da aplicação? Você precisará fazer login novamente para acessar o sistema."
+        confirmText="Sair"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={loggingOut}
+        onConfirm={confirmLogout}
+      />
     </>
   );
 }

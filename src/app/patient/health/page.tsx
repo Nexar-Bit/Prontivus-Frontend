@@ -510,6 +510,7 @@ export default function PatientHealthPage() {
                       variant="outline"
                       size="sm"
                       onClick={async () => {
+                        // Note: This will be replaced with modal confirmation
                         if (!confirm('Deseja reagendar esta consulta para daqui a 7 dias?')) {
                           return;
                         }
@@ -524,6 +525,7 @@ export default function PatientHealthPage() {
                       size="sm"
                       className="text-red-600 hover:text-red-700"
                       onClick={async () => {
+                        // Note: This will be replaced with modal confirmation
                         if (!confirm('Tem certeza que deseja cancelar esta consulta?')) {
                           return;
                         }

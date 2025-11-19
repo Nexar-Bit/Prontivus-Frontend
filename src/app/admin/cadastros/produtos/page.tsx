@@ -33,6 +33,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Product categories matching backend enum
 const PRODUCT_CATEGORIES = [
@@ -335,20 +336,31 @@ export default function ProdutosPage() {
     }
   };
 
-  const handleDeleteProduct = async (product: Product) => {
-    if (!confirm(`Tem certeza que deseja excluir o produto "${product.name}"?`)) {
-      return;
-    }
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteProduct = (product: Product) => {
+    setProductToDelete(product);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
 
     try {
-      await api.delete(`/api/v1/products/${product.id}`);
+      setDeleting(true);
+      await api.delete(`/api/v1/products/${productToDelete.id}`);
       toast.success("Produto excluído com sucesso!");
       await loadProducts();
+      setProductToDelete(null);
     } catch (error: any) {
       console.error("Failed to delete product:", error);
       toast.error("Erro ao excluir produto", {
         description: error?.message || error?.detail || "Não foi possível excluir o produto",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -1091,6 +1103,19 @@ export default function ProdutosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Excluir Produto"
+        description={productToDelete ? `Tem certeza que deseja excluir o produto "${productToDelete.name}"? Esta ação não pode ser desfeita.` : ""}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={confirmDeleteProduct}
+      />
     </div>
   );
 }

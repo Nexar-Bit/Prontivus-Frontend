@@ -36,6 +36,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Doctor {
   id: number;
@@ -85,6 +86,9 @@ export default function MedicosPage() {
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
+  const [deleting, setDeleting] = useState(false);
   
   const [formData, setFormData] = useState<DoctorFormData>({
     username: "",
@@ -355,20 +359,27 @@ export default function MedicosPage() {
     }
   };
 
-  const handleDelete = async (doctor: Doctor) => {
-    if (!confirm(`Tem certeza que deseja excluir o médico ${doctor.first_name} ${doctor.last_name}? Esta ação desativará o médico.`)) {
-      return;
-    }
+  const handleDelete = (doctor: Doctor) => {
+    setDoctorToDelete(doctor);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!doctorToDelete) return;
 
     try {
-      await api.delete(`/api/users/${doctor.id}`);
+      setDeleting(true);
+      await api.delete(`/api/users/${doctorToDelete.id}`);
       toast.success("Médico excluído com sucesso!");
       await loadDoctors();
+      setDoctorToDelete(null);
     } catch (error: any) {
       console.error("Failed to delete doctor:", error);
       toast.error("Erro ao excluir médico", {
         description: error?.message || error?.detail || "Não foi possível excluir o médico",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -969,6 +980,19 @@ export default function MedicosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Excluir Médico"
+        description={doctorToDelete ? `Tem certeza que deseja excluir o médico ${doctorToDelete.first_name} ${doctorToDelete.last_name}? Esta ação desativará o médico.` : ""}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

@@ -39,6 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -116,6 +117,9 @@ export default function LicenciamentoPage() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [licenseToDelete, setLicenseToDelete] = useState<License | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [editingLicense, setEditingLicense] = useState<License | null>(null);
@@ -319,20 +323,27 @@ export default function LicenciamentoPage() {
     }
   };
 
-  const handleDelete = async (license: License) => {
-    if (!confirm(`Tem certeza que deseja cancelar a licença ${license.activation_key}? Esta ação não pode ser desfeita.`)) {
-      return;
-    }
+  const handleDelete = (license: License) => {
+    setLicenseToDelete(license);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!licenseToDelete) return;
 
     try {
-      await api.delete(`/api/v1/licenses/${license.id}`);
+      setDeleting(true);
+      await api.delete(`/api/v1/licenses/${licenseToDelete.id}`);
       toast.success("Licença cancelada com sucesso!");
       await loadLicenses();
+      setLicenseToDelete(null);
     } catch (error: any) {
       console.error("Failed to delete license:", error);
       toast.error("Erro ao cancelar licença", {
         description: error?.message || error?.detail || "Não foi possível cancelar a licença",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -954,6 +965,19 @@ export default function LicenciamentoPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Cancelar Licença"
+        description={licenseToDelete ? `Tem certeza que deseja cancelar a licença ${licenseToDelete.activation_key}? Esta ação não pode ser desfeita.` : ""}
+        confirmText="Cancelar Licença"
+        cancelText="Manter Licença"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

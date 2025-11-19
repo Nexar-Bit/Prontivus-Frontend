@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type PatientProfile = {
   id: number;
@@ -66,6 +67,9 @@ export default function PatientNotesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Helper function to reload all data
   const reloadData = async () => {
@@ -204,15 +208,23 @@ export default function PatientNotesPage() {
     }
   };
 
-  const deleteNote = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta nota?')) {
-      return;
-    }
+  const deleteNote = (id: string) => {
+    setNoteToDelete(id);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteNote = async () => {
+    if (!noteToDelete) return;
+
     try {
-      const next = notes.filter(n => n.id !== id);
+      setDeleting(true);
+      const next = notes.filter(n => n.id !== noteToDelete);
       await saveNotes(next);
+      setNoteToDelete(null);
     } catch (error) {
       // Error already handled in saveNotes
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -926,6 +938,19 @@ export default function PatientNotesPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Excluir Nota"
+        description="Tem certeza que deseja excluir esta nota? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={confirmDeleteNote}
+      />
     </div>
   );
 }

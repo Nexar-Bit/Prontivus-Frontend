@@ -36,6 +36,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Patient {
   id: number;
@@ -88,6 +89,9 @@ export default function PacientesPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
+  const [deleting, setDeleting] = useState(false);
   
   const [formData, setFormData] = useState<PatientFormData>({
     first_name: "",
@@ -255,20 +259,27 @@ export default function PacientesPage() {
     }
   };
 
-  const handleDelete = async (patient: Patient) => {
-    if (!confirm(`Tem certeza que deseja excluir o paciente ${patient.first_name} ${patient.last_name}?`)) {
-      return;
-    }
+  const handleDelete = (patient: Patient) => {
+    setPatientToDelete(patient);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!patientToDelete) return;
 
     try {
-      await api.delete(`/api/patients/${patient.id}`);
+      setDeleting(true);
+      await api.delete(`/api/patients/${patientToDelete.id}`);
       toast.success("Paciente excluído com sucesso!");
       await loadPatients();
+      setPatientToDelete(null);
     } catch (error: any) {
       console.error("Failed to delete patient:", error);
       toast.error("Erro ao excluir paciente", {
         description: error?.message || error?.detail || "Não foi possível excluir o paciente",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -923,6 +934,19 @@ export default function PacientesPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Excluir Paciente"
+        description={patientToDelete ? `Tem certeza que deseja excluir o paciente ${patientToDelete.first_name} ${patientToDelete.last_name}? Esta ação não pode ser desfeita.` : ""}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

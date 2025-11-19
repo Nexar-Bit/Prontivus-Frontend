@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { api } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface PaymentMethodConfig {
   id: number;
@@ -79,6 +80,9 @@ export default function FormasPagamentoPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingMethod, setEditingMethod] = useState<PaymentMethodConfig | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [methodToDelete, setMethodToDelete] = useState<PaymentMethodConfig | null>(null);
+  const [deleting, setDeleting] = useState(false);
   
   const [formData, setFormData] = useState<PaymentMethodFormData>({
     method: "",
@@ -224,20 +228,27 @@ export default function FormasPagamentoPage() {
     }
   };
 
-  const handleDelete = async (method: PaymentMethodConfig) => {
-    if (!confirm(`Tem certeza que deseja excluir a forma de pagamento "${method.name}"?`)) {
-      return;
-    }
+  const handleDelete = (method: PaymentMethodConfig) => {
+    setMethodToDelete(method);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!methodToDelete) return;
 
     try {
-      await api.delete(`/api/v1/payment-methods/${method.id}`);
+      setDeleting(true);
+      await api.delete(`/api/v1/payment-methods/${methodToDelete.id}`);
       toast.success("Forma de pagamento excluída com sucesso!");
       await loadPaymentMethods();
+      setMethodToDelete(null);
     } catch (error: any) {
       console.error("Failed to delete payment method:", error);
       toast.error("Erro ao excluir forma de pagamento", {
         description: error?.message || error?.detail || "Não foi possível excluir a forma de pagamento",
       });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -651,6 +662,19 @@ export default function FormasPagamentoPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Excluir Forma de Pagamento"
+        description={methodToDelete ? `Tem certeza que deseja excluir a forma de pagamento "${methodToDelete.name}"? Esta ação não pode ser desfeita.` : ""}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

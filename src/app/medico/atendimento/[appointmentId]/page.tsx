@@ -297,6 +297,7 @@ export default function ConsultationPage() {
     }
 
     if (
+      // Note: This confirm is for unsaved changes, not delete - keeping it for now
       !confirm(
         "Deseja finalizar este atendimento? Esta ação não pode ser desfeita."
       )

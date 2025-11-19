@@ -28,6 +28,7 @@ import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isS
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Calendar, momentLocalizer, View, Event } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { DndProvider } from "react-dnd";
@@ -106,6 +107,9 @@ export default function AgendamentosPage() {
   });
   const [saving, setSaving] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<number | null>(null);
+  const [canceling, setCanceling] = useState(false);
   const [view, setView] = useState<View>("month");
   const [isDragging, setIsDragging] = useState(false);
 
@@ -398,22 +402,29 @@ export default function AgendamentosPage() {
     }
   };
 
-  const handleCancelAppointment = async (appointmentId: number) => {
-    if (!confirm("Tem certeza que deseja cancelar este agendamento?")) {
-      return;
-    }
+  const handleCancelAppointment = (appointmentId: number) => {
+    setAppointmentToCancel(appointmentId);
+    setShowCancelDialog(true);
+  };
+
+  const confirmCancelAppointment = async () => {
+    if (!appointmentToCancel) return;
 
     try {
-      await api.patch(`/api/appointments/${appointmentId}/status`, {
+      setCanceling(true);
+      await api.patch(`/api/appointments/${appointmentToCancel}/status`, {
         status: "cancelled",
       });
       toast.success("Agendamento cancelado com sucesso!");
       await loadAppointments();
+      setAppointmentToCancel(null);
     } catch (error: any) {
       console.error("Failed to cancel appointment:", error);
       toast.error("Erro ao cancelar agendamento", {
         description: error?.message || error?.detail || "Não foi possível cancelar o agendamento",
       });
+    } finally {
+      setCanceling(false);
     }
   };
 
@@ -940,6 +951,19 @@ export default function AgendamentosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel Appointment Confirmation Dialog */}
+      <ConfirmDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        title="Cancelar Agendamento"
+        description="Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita."
+        confirmText="Cancelar Agendamento"
+        cancelText="Manter Agendamento"
+        variant="destructive"
+        loading={canceling}
+        onConfirm={confirmCancelAppointment}
+      />
     </div>
   );
 }

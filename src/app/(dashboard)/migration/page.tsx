@@ -124,6 +124,7 @@ export default function MigrationPage() {
   };
 
   const rollback = async (id: number) => {
+    // Note: Migration rollback is a critical operation - keeping confirm for now
     if (!confirm("Tem certeza que deseja fazer rollback desta migração?")) return;
     try {
       const token = getAccessToken();

@@ -17,6 +17,7 @@ import {
 import { Plus, Trash2, Pill } from "lucide-react";
 import { Prescription, PrescriptionCreate } from "@/lib/types";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface PrescriptionsFormProps {
   prescriptions: Prescription[];
@@ -39,6 +40,8 @@ export function PrescriptionsForm({
     duration: "",
     instructions: "",
   });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [prescriptionToDelete, setPrescriptionToDelete] = useState<number | null>(null);
 
   const handleAdd = async () => {
     if (!newPrescription.medication_name.trim()) {
@@ -69,12 +72,18 @@ export function PrescriptionsForm({
     }
   };
 
-  const handleDelete = async (prescriptionId: number) => {
-    if (!confirm("Deseja realmente excluir esta prescrição?")) return;
+  const handleDelete = (prescriptionId: number) => {
+    setPrescriptionToDelete(prescriptionId);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!prescriptionToDelete) return;
 
     try {
-      await onDelete(prescriptionId);
+      await onDelete(prescriptionToDelete);
       toast.success("Prescrição excluída");
+      setPrescriptionToDelete(null);
     } catch (error: any) {
       toast.error("Erro ao excluir prescrição", {
         description: error.message,
@@ -83,6 +92,7 @@ export function PrescriptionsForm({
   };
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
@@ -242,6 +252,19 @@ export function PrescriptionsForm({
         )}
       </CardContent>
     </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Excluir Prescrição"
+        description="Deseja realmente excluir esta prescrição? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
+    </>
   );
 }
 

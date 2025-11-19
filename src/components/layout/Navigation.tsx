@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { getUserSettings } from "@/lib/settings-api";
 import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 export interface NavigationMenuItem {
   id: string;
@@ -49,6 +50,8 @@ export function Navigation({ className, onNavigate }: NavigationProps) {
   const [menuLoading, setMenuLoading] = React.useState(true);
   const [menuError, setMenuError] = React.useState<string | null>(null);
   const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>({});
+  const [showLogoutDialog, setShowLogoutDialog] = React.useState(false);
+  const [loggingOut, setLoggingOut] = React.useState(false);
 
   // Load menu from API
   React.useEffect(() => {
@@ -303,28 +306,40 @@ export function Navigation({ className, onNavigate }: NavigationProps) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => {
-            if (confirm('Deseja sair da aplicação?')) {
-              (async () => {
-                try {
-                  if (typeof window !== 'undefined') {
-                    localStorage.removeItem('prontivus_access_token');
-                    localStorage.removeItem('refresh_token');
-                  }
-                  await logout();
-                  router.push('/login');
-                } catch (e) {
-                  router.push('/login');
-                }
-              })();
-            }
-          }}
+          onClick={() => setShowLogoutDialog(true)}
           className="w-full justify-start text-white/90 hover:text-white hover:bg-white/10"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Sair
         </Button>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        open={showLogoutDialog}
+        onOpenChange={setShowLogoutDialog}
+        title="Confirmar Saída"
+        description="Tem certeza que deseja sair da aplicação? Você precisará fazer login novamente para acessar o sistema."
+        confirmText="Sair"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={loggingOut}
+        onConfirm={async () => {
+          try {
+            setLoggingOut(true);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('prontivus_access_token');
+              localStorage.removeItem('refresh_token');
+            }
+            await logout();
+            router.push('/login');
+          } catch (e) {
+            router.push('/login');
+          } finally {
+            setLoggingOut(false);
+          }
+        }}
+      />
     </div>
   );
 

@@ -41,6 +41,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface TissConfig {
   prestador: {
@@ -132,6 +133,9 @@ export default function TISSPage() {
   const [connectionStatus, setConnectionStatus] = useState<"unknown" | "success" | "error">("unknown");
   const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TissTemplate | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<TissTemplate | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadClinics();
@@ -328,10 +332,11 @@ export default function TISSPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
-        </div>
       </div>
-    );
-  }
+
+    </div>
+  );
+}
 
   return (
     <div className="space-y-6">
@@ -799,18 +804,9 @@ export default function TISSPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={async () => {
-                                  if (confirm(`Tem certeza que deseja excluir o template "${template.name}"?`)) {
-                                    try {
-                                      await api.delete(`/api/v1/financial/templates/${template.id}`);
-                                      toast.success("Template excluído com sucesso!");
-                                      await loadTemplates();
-                                    } catch (error: any) {
-                                      toast.error("Erro ao excluir template", {
-                                        description: error?.message || error?.detail,
-                                      });
-                                    }
-                                  }
+                                onClick={() => {
+                                  setTemplateToDelete(template);
+                                  setShowDeleteDialog(true);
                                 }}
                               >
                                 <Trash2 className="h-4 w-4 text-red-600" />
@@ -890,6 +886,34 @@ export default function TISSPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Excluir Template"
+        description={templateToDelete ? `Tem certeza que deseja excluir o template "${templateToDelete.name}"? Esta ação não pode ser desfeita.` : ""}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        loading={deleting}
+        onConfirm={async () => {
+          if (!templateToDelete) return;
+          try {
+            setDeleting(true);
+            await api.delete(`/api/v1/financial/templates/${templateToDelete.id}`);
+            toast.success("Template excluído com sucesso!");
+            await loadTemplates();
+            setTemplateToDelete(null);
+          } catch (error: any) {
+            toast.error("Erro ao excluir template", {
+              description: error?.message || error?.detail,
+            });
+          } finally {
+            setDeleting(false);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -449,6 +449,7 @@ export default function ModulosPage() {
                 value={selectedClinicId}
                 onValueChange={(value) => {
                   if (hasChanges) {
+                    // Note: This confirm is for unsaved changes warning, not delete - keeping it for now
                     if (confirm("Há alterações não salvas. Deseja descartá-las?")) {
                       setSelectedClinicId(value);
                     }

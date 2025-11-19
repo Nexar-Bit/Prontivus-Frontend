@@ -42,6 +42,7 @@ export default function ProntuarioPage() {
 
   const handleTabChange = async (value: string) => {
     if (unsaved) {
+      // Note: This confirm is for unsaved changes warning, not delete - keeping it for now
       const confirmLeave = confirm("Existem alterações não salvas. Deseja continuar?");
       if (!confirmLeave) return;
     }

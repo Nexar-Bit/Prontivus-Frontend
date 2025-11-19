@@ -273,6 +273,8 @@ export default function ProceduresPage() {
   };
 
   const handleRemoveProductFromProcedure = async (procedureProductId: number) => {
+    // Note: This is for removing a product from a procedure, not deleting the procedure itself
+    // We'll keep window.confirm for now as it's a less critical action
     if (window.confirm("Tem certeza que deseja remover este produto da ficha técnica?")) {
       try {
         await proceduresApi.removeProductFromProcedure(procedureProductId);

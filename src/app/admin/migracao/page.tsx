@@ -57,6 +57,7 @@ export default function MigrationPage() {
   }
 
   const rollback = async (id: number) => {
+    // Note: Migration rollback is a critical operation - keeping confirm for now
     if (!confirm('Rollback this migration?')) return
     await fetch(`/api/migration/jobs/${id}/rollback`, { method: 'POST', credentials: 'include' })
     await loadJobs()

@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, ClipboardList } from "lucide-react";
 import { ExamRequest, ExamRequestCreate, UrgencyLevel } from "@/lib/types";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ExamRequestsFormProps {
   examRequests: ExamRequest[];
@@ -46,6 +47,8 @@ export function ExamRequestsForm({
     reason: "",
     urgency: UrgencyLevel.ROUTINE as UrgencyLevel,
   });
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [examRequestToDelete, setExamRequestToDelete] = useState<number | null>(null);
 
   const handleAdd = async () => {
     if (!newExam.exam_type.trim()) {
@@ -75,12 +78,18 @@ export function ExamRequestsForm({
     }
   };
 
-  const handleDelete = async (examRequestId: number) => {
-    if (!confirm("Deseja realmente excluir esta solicitação de exame?")) return;
+  const handleDelete = (examRequestId: number) => {
+    setExamRequestToDelete(examRequestId);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!examRequestToDelete) return;
 
     try {
-      await onDelete(examRequestId);
+      await onDelete(examRequestToDelete);
       toast.success("Solicitação excluída");
+      setExamRequestToDelete(null);
     } catch (error: any) {
       toast.error("Erro ao excluir solicitação", {
         description: error.message,
@@ -102,6 +111,7 @@ export function ExamRequestsForm({
   };
 
   return (
+    <>
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
@@ -261,6 +271,19 @@ export function ExamRequestsForm({
         )}
       </CardContent>
     </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title="Excluir Solicitação de Exame"
+        description="Deseja realmente excluir esta solicitação de exame? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
+    </>
   );
 }
 
