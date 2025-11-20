@@ -75,26 +75,40 @@ async function apiRequest<T>(
     let errorData: any = null;
     
     try {
-      errorData = await response.json();
-      // FastAPI validation errors typically have 'detail' as an array or string
-      if (errorData.detail) {
-        if (Array.isArray(errorData.detail)) {
-          // Pydantic validation errors
-          errorMessage = errorData.detail.map((err: any) => 
-            `${err.loc?.join('.') || 'field'}: ${err.msg}`
-          ).join(', ');
-        } else if (typeof errorData.detail === 'string') {
-          errorMessage = errorData.detail;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        errorData = await response.json();
+        // FastAPI validation errors typically have 'detail' as an array or string
+        if (errorData.detail) {
+          if (Array.isArray(errorData.detail)) {
+            // Pydantic validation errors
+            errorMessage = errorData.detail.map((err: any) => 
+              `${err.loc?.join('.') || 'field'}: ${err.msg}`
+            ).join(', ');
+          } else if (typeof errorData.detail === 'string') {
+            errorMessage = errorData.detail;
+          } else {
+            errorMessage = JSON.stringify(errorData.detail);
+          }
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          // Some APIs return error object
+          errorMessage = typeof errorData.error === 'string' 
+            ? errorData.error 
+            : errorData.error.message || JSON.stringify(errorData.error);
         } else {
-          errorMessage = JSON.stringify(errorData.detail);
+          errorMessage = JSON.stringify(errorData);
         }
-      } else if (errorData.message) {
-        errorMessage = errorData.message;
       } else {
-        errorMessage = JSON.stringify(errorData);
+        // Try to read as text if not JSON
+        const text = await response.text();
+        if (text) {
+          errorMessage = text;
+        }
       }
-    } catch {
-      // If response is not JSON, use status text
+    } catch (parseError) {
+      // If response is not JSON or parsing fails, use status text
       errorMessage = response.statusText || errorMessage;
       
       // For 404 errors, provide more helpful message
@@ -117,9 +131,17 @@ async function apiRequest<T>(
       }
     }
     
+    // Create error object with all relevant information
     const error = new Error(errorMessage);
     (error as any).status = response.status;
+    (error as any).statusText = response.statusText;
     (error as any).data = errorData;
+    (error as any).detail = errorData?.detail;
+    (error as any).response = {
+      status: response.status,
+      statusText: response.statusText,
+      data: errorData,
+    };
     throw error;
   }
 

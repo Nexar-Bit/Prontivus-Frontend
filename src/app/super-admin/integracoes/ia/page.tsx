@@ -190,6 +190,7 @@ export default function IAPage() {
     if (!selectedClinicId) return;
     
     try {
+      setLoading(true);
       const data = await api.get<AIConfig>(`/api/v1/ai-config?clinic_id=${selectedClinicId}`);
       setConfig(data);
       // Ensure no null values for form inputs
@@ -205,18 +206,34 @@ export default function IAPage() {
       setConnectionStatus("unknown");
     } catch (error: any) {
       console.error("Failed to load AI config:", error);
+      
+      // Extract error details
+      const errorStatus = error?.status || error?.response?.status;
+      const errorData = error?.data || error?.response?.data;
+      const errorMessage = error?.message || errorData?.detail || errorData?.message || "Erro desconhecido";
+      const errorDetail = typeof errorData?.detail === 'string' 
+        ? errorData.detail 
+        : Array.isArray(errorData?.detail) 
+          ? errorData.detail.map((e: any) => e.msg || e.message).join(', ')
+          : errorData?.detail;
+      
       // Check if it's a 404 - might mean endpoint doesn't exist or server needs restart
-      if (error?.status === 404 || error?.message?.includes("Not Found")) {
+      if (errorStatus === 404 || errorMessage.includes("Not Found")) {
         toast.error("Endpoint não encontrado", {
           description: "O servidor pode precisar ser reiniciado. Verifique se o backend está rodando.",
         });
-      } else if (error?.status === 403) {
-        const errorMsg = error?.detail || error?.message || "";
-        if (errorMsg.includes("AI module is not enabled")) {
+      } else if (errorStatus === 400) {
+        // Bad request - might be missing clinic_id or invalid parameter
+        toast.error("Requisição inválida", {
+          description: errorDetail || errorMessage || "Parâmetros inválidos na requisição.",
+        });
+      } else if (errorStatus === 403) {
+        const errorMsg = errorDetail || errorMessage || "";
+        if (errorMsg.includes("AI module is not enabled") || errorMsg.includes("módulo")) {
           toast.error("Módulo de IA não habilitado", {
             description: "Habilite o módulo 'Inteligência Artificial' na licença da clínica primeiro.",
           });
-        } else if (errorMsg.includes("does not have a license")) {
+        } else if (errorMsg.includes("does not have a license") || errorMsg.includes("licença")) {
           toast.warning("Clínica sem licença", {
             description: "A clínica selecionada não possui uma licença. Crie uma licença primeiro.",
           });
@@ -253,11 +270,18 @@ export default function IAPage() {
             description: errorMsg || "Você precisa de permissões de SuperAdmin para acessar esta página.",
           });
         }
+      } else if (errorStatus === 401) {
+        toast.error("Não autenticado", {
+          description: "Sua sessão expirou. Por favor, faça login novamente.",
+        });
       } else {
+        // Generic error - show more details
         toast.error("Erro ao carregar configuração de IA", {
-          description: error?.message || error?.detail || "Não foi possível carregar a configuração",
+          description: errorDetail || errorMessage || "Não foi possível carregar a configuração. Verifique sua conexão e tente novamente.",
         });
       }
+    } finally {
+      setLoading(false);
     }
   };
 
