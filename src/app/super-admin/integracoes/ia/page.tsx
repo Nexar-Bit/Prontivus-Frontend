@@ -56,9 +56,11 @@ interface AIConfig {
     total_tokens?: number;
     tokens_this_month?: number;
   };
-  token_limit?: number;
-  token_limit_type?: "limited" | "unlimited";
-  tokens_remaining?: number;
+  token_limit?: number | null;
+  token_limit_type?: "limited" | "unlimited" | "disabled" | "no_license";
+  tokens_remaining?: number | null;
+  ai_module_enabled?: boolean;
+  warning?: string;
 }
 
 interface AIStats {
@@ -204,6 +206,36 @@ export default function IAPage() {
         if (errorMsg.includes("AI module is not enabled")) {
           toast.error("Módulo de IA não habilitado", {
             description: "Habilite o módulo 'Inteligência Artificial' na licença da clínica primeiro.",
+          });
+        } else if (errorMsg.includes("does not have a license")) {
+          toast.warning("Clínica sem licença", {
+            description: "A clínica selecionada não possui uma licença. Crie uma licença primeiro.",
+          });
+          // Still set config to show warning in UI
+          setConfig({
+            enabled: false,
+            provider: "openai",
+            api_key: "",
+            model: "gpt-4",
+            base_url: "",
+            max_tokens: 2000,
+            temperature: 0.7,
+            features: {
+              clinical_analysis: { enabled: false, description: "" },
+              diagnosis_suggestions: { enabled: false, description: "" },
+              predictive_analysis: { enabled: false, description: "" },
+              virtual_assistant: { enabled: false, description: "" },
+            },
+            usage_stats: {
+              documents_processed: 0,
+              suggestions_generated: 0,
+              approval_rate: 0,
+            },
+            token_limit: null,
+            token_limit_type: "no_license",
+            tokens_remaining: null,
+            ai_module_enabled: false,
+            warning: "Clínica não possui licença",
           });
         } else {
           toast.error("Acesso negado", {
@@ -492,7 +524,7 @@ export default function IAPage() {
               <p className="text-xs text-gray-500 mt-1">Sugestões aceitas</p>
             </CardContent>
           </Card>
-          {config && config.token_limit !== undefined && (
+          {config && config.token_limit !== undefined && config.token_limit !== null && config.token_limit_type !== "no_license" && (
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -508,6 +540,23 @@ export default function IAPage() {
                   {config.token_limit_type === "unlimited" 
                     ? "Ilimitado" 
                     : `${(config.usage_stats?.tokens_this_month || 0).toLocaleString()} / ${(config.token_limit || 0).toLocaleString()} usados`}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          {config && (config.token_limit_type === "no_license" || !config.ai_module_enabled) && (
+            <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-yellow-800 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  {config.token_limit_type === "no_license" ? "Licença Necessária" : "Módulo IA Desabilitado"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-yellow-800">
+                  {config.warning || (config.token_limit_type === "no_license" 
+                    ? "A clínica não possui uma licença. Crie uma licença e habilite o módulo de IA primeiro."
+                    : "O módulo de IA não está habilitado na licença desta clínica. Habilite o módulo 'Inteligência Artificial' na licença.")}
                 </p>
               </CardContent>
             </Card>

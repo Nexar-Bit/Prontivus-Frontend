@@ -681,7 +681,7 @@ export default function LicenciamentoPage() {
 
       {/* Create/Edit License Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingLicense ? "Editar Licença" : "Criar Nova Licença"}
@@ -700,7 +700,7 @@ export default function LicenciamentoPage() {
               
               <TabsContent value="basic" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="tenant_id">Clínica *</Label>
                     <Select
                       value={formData.tenant_id}
@@ -708,7 +708,7 @@ export default function LicenciamentoPage() {
                       disabled={!!editingLicense}
                       required
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Selecione a clínica" />
                       </SelectTrigger>
                       <SelectContent>
@@ -723,14 +723,14 @@ export default function LicenciamentoPage() {
                       <p className="text-xs text-gray-500 mt-1">A clínica não pode ser alterada</p>
                     )}
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="plan">Plano *</Label>
                     <Select
                       value={formData.plan}
                       onValueChange={(value) => setFormData({ ...formData, plan: value })}
                       required
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Selecione o plano" />
                       </SelectTrigger>
                       <SelectContent>
@@ -744,22 +744,24 @@ export default function LicenciamentoPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="start_at">Data de Início *</Label>
                     <Input
                       id="start_at"
                       type="date"
                       required
+                      className="w-full"
                       value={formData.start_at}
                       onChange={(e) => setFormData({ ...formData, start_at: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="end_at">Data de Término *</Label>
                     <Input
                       id="end_at"
                       type="date"
                       required
+                      className="w-full"
                       value={formData.end_at}
                       onChange={(e) => setFormData({ ...formData, end_at: e.target.value })}
                     />
@@ -769,7 +771,7 @@ export default function LicenciamentoPage() {
               
               <TabsContent value="limits" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="users_limit">Limite de Usuários *</Label>
                     <Input
                       id="users_limit"
@@ -777,17 +779,19 @@ export default function LicenciamentoPage() {
                       min="1"
                       max="10000"
                       required
+                      className="w-full"
                       value={formData.users_limit}
                       onChange={(e) => setFormData({ ...formData, users_limit: e.target.value })}
                     />
                     <p className="text-xs text-gray-500 mt-1">Número máximo de usuários permitidos</p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="units_limit">Limite de Unidades</Label>
                     <Input
                       id="units_limit"
                       type="number"
                       min="1"
+                      className="w-full"
                       value={formData.units_limit}
                       onChange={(e) => setFormData({ ...formData, units_limit: e.target.value })}
                     />
