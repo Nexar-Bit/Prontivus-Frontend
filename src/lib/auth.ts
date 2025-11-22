@@ -405,9 +405,10 @@ export interface RegisterData {
 
 /**
  * Register a new user
+ * After registration, automatically logs the user in to get tokens
  */
 export async function register(userData: RegisterData): Promise<LoginResponse> {
-  const response = await fetch(`${API_URL}/api/auth/register`, {
+  const response = await fetch(`${API_URL}/api/v1/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -438,8 +439,21 @@ export async function register(userData: RegisterData): Promise<LoginResponse> {
     throw new Error(errorMessage);
   }
 
-  const data: LoginResponse = await response.json();
-  setAuthData(data);
-  return data;
+  // Backend returns UserResponse, not LoginResponse
+  // So we need to automatically log the user in to get tokens
+  const userResponse: User = await response.json();
+  
+  // Automatically log in the newly registered user
+  try {
+    const loginResponse = await login({
+      username_or_email: userData.email,
+      password: userData.password,
+    });
+    return loginResponse;
+  } catch (loginError) {
+    // If auto-login fails, throw an error but include the user data
+    // This allows the UI to handle the case where registration succeeded but login failed
+    throw new Error('Registration successful, but automatic login failed. Please try logging in manually.');
+  }
 }
 

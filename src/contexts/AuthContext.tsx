@@ -47,8 +47,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // Skip verification on public routes (e.g., login, home page)
-        if (pathname === '/' || pathname === '/login' || pathname === '/portal/login') {
+        // Skip verification on public routes (e.g., login, home page, forgot password)
+        const publicRoutes = ['/', '/login', '/portal/login', '/forgot-password', '/reset-password', '/register', '/portal/register'];
+        if (publicRoutes.includes(pathname)) {
           setIsLoading(false);
           hasInitializedRef.current = true;
           return;
@@ -126,9 +127,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } else {
             verificationAttemptsRef.current = 0; // Reset on success
           }
-        } else if (!storedUser && pathname !== '/' && pathname !== '/login' && pathname !== '/portal/login') {
-          // No user found and not on public pages - redirect to login
-          router.push('/login');
+        } else if (!storedUser) {
+          // No user found - check if we're on a public page
+          const publicRoutes = ['/', '/login', '/portal/login', '/forgot-password', '/reset-password', '/register', '/portal/register'];
+          if (!publicRoutes.includes(pathname)) {
+            // Not on a public page - redirect to login
+            router.push('/login');
+          }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -219,7 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.user.role === 'patient') {
         router.push('/patient/dashboard');
       } else {
-        router.push('/portal');
+        router.push('/dashboard');
       }
     } catch (error) {
       console.error('Registration error:', error);
