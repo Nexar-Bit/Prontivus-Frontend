@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Upload, Plus, Download, FileText, Search, Edit, Trash2, User, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { Users, Upload, Plus, Download, FileText, Search, Edit, Trash2, User, RefreshCw, CheckCircle2, XCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +37,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { onlyDigits, validateCPF, validatePhone } from "@/lib/inputMasks";
+import { onlyDigits, validateCPF, validatePhone, maskCPF, maskPhone } from "@/lib/inputMasks";
 
 interface Patient {
   id: number;
@@ -93,6 +93,9 @@ export default function PacientesPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState("list");
+  const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
   
   const [formData, setFormData] = useState<PatientFormData>({
     first_name: "",
@@ -117,16 +120,29 @@ export default function PacientesPage() {
   }, []);
 
   useEffect(() => {
+    console.log("Filtering patients. Total patients:", patients.length, "Search term:", searchTerm);
     filterPatients();
   }, [patients, searchTerm]);
 
   const loadPatients = async () => {
     try {
       setLoading(true);
+      console.log("Loading patients...");
       const data = await api.get<Patient[]>("/api/patients");
-      setPatients(data);
+      console.log("Patients loaded:", data);
+      // Ensure we always set the patients, even if data is null or undefined
+      const patientsArray = Array.isArray(data) ? data : [];
+      console.log("Setting patients array with length:", patientsArray.length);
+      setPatients(patientsArray);
+      // filterPatients will be called automatically via useEffect
     } catch (error: any) {
       console.error("Failed to load patients:", error);
+      console.error("Error details:", {
+        message: error?.message,
+        detail: error?.detail,
+        response: error?.response,
+        status: error?.response?.status,
+      });
       toast.error("Erro ao carregar pacientes", {
         description: error?.message || error?.detail || "Não foi possível carregar os pacientes",
       });
@@ -150,6 +166,7 @@ export default function PacientesPage() {
       );
     }
 
+    console.log("Filtered patients count:", filtered.length);
     setFilteredPatients(filtered);
   };
 
@@ -182,17 +199,21 @@ export default function PacientesPage() {
   const openEditForm = (patient: Patient) => {
     setEditingPatient(patient);
     const birthDate = patient.date_of_birth ? parseISO(patient.date_of_birth).toISOString().split('T')[0] : "";
+    // Apply masks to CPF and phone when loading existing data
+    const cpfValue = patient.cpf ? maskCPF(onlyDigits(patient.cpf)) : "";
+    const phoneValue = patient.phone ? maskPhone(onlyDigits(patient.phone.replace(/^\+55/, ""))) : "";
+    const emergencyPhoneValue = patient.emergency_contact_phone ? maskPhone(onlyDigits(patient.emergency_contact_phone.replace(/^\+55/, ""))) : "";
     setFormData({
       first_name: patient.first_name || "",
       last_name: patient.last_name || "",
       date_of_birth: birthDate,
       gender: patient.gender || "",
-      cpf: patient.cpf || "",
-      phone: patient.phone || "",
+      cpf: cpfValue,
+      phone: phoneValue,
       email: patient.email || "",
       address: patient.address || "",
       emergency_contact_name: patient.emergency_contact_name || "",
-      emergency_contact_phone: patient.emergency_contact_phone || "",
+      emergency_contact_phone: emergencyPhoneValue,
       emergency_contact_relationship: patient.emergency_contact_relationship || "",
       allergies: patient.allergies || "",
       active_problems: patient.active_problems || "",
@@ -236,42 +257,60 @@ export default function PacientesPage() {
         }
       }
 
-      // Validate and clean phone
+      // Validate and clean phone - same logic as bulk upload
       let cleanedPhone: string | undefined = undefined;
       if (formData.phone && formData.phone.trim()) {
-        const phoneDigits = onlyDigits(formData.phone.trim());
-        if (phoneDigits.length >= 10 && phoneDigits.length <= 11) {
-          // Add country code for Brazil if not present
-          if (!phoneDigits.startsWith('55')) {
-            cleanedPhone = `+55${phoneDigits}`;
-          } else if (phoneDigits.startsWith('55')) {
-            cleanedPhone = `+${phoneDigits}`;
-          } else {
-            cleanedPhone = phoneDigits;
+        const phoneRaw = onlyDigits(formData.phone.trim());
+        if (phoneRaw && phoneRaw.length >= 10) {
+          // Remove country code if present
+          let phoneDigits = phoneRaw;
+          if (phoneDigits.startsWith('55') && phoneDigits.length >= 12) {
+            phoneDigits = phoneDigits.substring(2);
           }
-        } else if (phoneDigits.length > 0) {
-          toast.error("Telefone deve ter 10 ou 11 dígitos.");
-          setSaving(false);
-          return;
+          
+          // Check if it's a valid length (10 or 11 digits for Brazil)
+          // Also check if it's not all the same digit (invalid pattern)
+          if ((phoneDigits.length === 10 || phoneDigits.length === 11) && 
+              phoneDigits !== phoneDigits[0].repeat(phoneDigits.length) &&
+              phoneDigits !== '0000000000' && phoneDigits !== '00000000000') {
+            // Format as +55XXXXXXXXXXX
+            // For Brazilian numbers: +55 + area code (2 digits) + number (8 or 9 digits)
+            // Area code should start with 1-9, not 0
+            const areaCode = phoneDigits.substring(0, 2);
+            const number = phoneDigits.substring(2);
+            
+            // Validate area code (should be 11-99, not 00-10)
+            if (parseInt(areaCode) >= 11 && parseInt(areaCode) <= 99 && number.length >= 8) {
+              cleanedPhone = `+55${phoneDigits}`;
+            } else {
+              console.warn(`Telefone com área inválida (${phoneRaw}), será ignorado`);
+            }
+          } else if (phoneRaw.length > 0) {
+            console.warn(`Telefone com formato inválido (${phoneRaw}), será ignorado`);
+          }
         }
       }
 
-      // Validate and clean emergency contact phone
+      // Validate and clean emergency contact phone - same validation
       let cleanedEmergencyPhone: string | undefined = undefined;
       if (formData.emergency_contact_phone && formData.emergency_contact_phone.trim()) {
-        const emergencyPhoneDigits = onlyDigits(formData.emergency_contact_phone.trim());
-        if (emergencyPhoneDigits.length >= 10 && emergencyPhoneDigits.length <= 11) {
-          if (!emergencyPhoneDigits.startsWith('55')) {
-            cleanedEmergencyPhone = `+55${emergencyPhoneDigits}`;
-          } else if (emergencyPhoneDigits.startsWith('55')) {
-            cleanedEmergencyPhone = `+${emergencyPhoneDigits}`;
-          } else {
-            cleanedEmergencyPhone = emergencyPhoneDigits;
+        const emergencyPhoneRaw = onlyDigits(formData.emergency_contact_phone.trim());
+        if (emergencyPhoneRaw && emergencyPhoneRaw.length >= 10) {
+          let emergencyPhoneDigits = emergencyPhoneRaw;
+          if (emergencyPhoneDigits.startsWith('55') && emergencyPhoneDigits.length >= 12) {
+            emergencyPhoneDigits = emergencyPhoneDigits.substring(2);
           }
-        } else if (emergencyPhoneDigits.length > 0) {
-          toast.error("Telefone de emergência deve ter 10 ou 11 dígitos.");
-          setSaving(false);
-          return;
+          
+          if ((emergencyPhoneDigits.length === 10 || emergencyPhoneDigits.length === 11) &&
+              emergencyPhoneDigits !== emergencyPhoneDigits[0].repeat(emergencyPhoneDigits.length) &&
+              emergencyPhoneDigits !== '0000000000' && emergencyPhoneDigits !== '00000000000') {
+            const areaCode = emergencyPhoneDigits.substring(0, 2);
+            const number = emergencyPhoneDigits.substring(2);
+            
+            if (parseInt(areaCode) >= 11 && parseInt(areaCode) <= 99 && number.length >= 8) {
+              cleanedEmergencyPhone = `+55${emergencyPhoneDigits}`;
+            }
+          }
         }
       }
 
@@ -298,10 +337,60 @@ export default function PacientesPage() {
         await api.put(`/api/patients/${editingPatient.id}`, patientData);
         toast.success("Paciente atualizado com sucesso!");
       } else {
-        // Create new patient
+        // Create new patient - with retry logic for phone validation
         patientData.clinic_id = user.clinic_id;
-        await api.post("/api/patients", patientData);
-        toast.success("Paciente cadastrado com sucesso!");
+        
+        try {
+          await api.post("/api/patients", patientData);
+          toast.success("Paciente cadastrado com sucesso!");
+        } catch (phoneError: any) {
+          // Check if error is related to phone validation
+          // The error might be in different formats
+          const errorDetail = phoneError?.response?.data?.detail;
+          const errorMessage = phoneError?.response?.data?.message || phoneError?.message || phoneError?.detail || "";
+          
+          // Convert error detail to string if it's an object or array
+          let errorMsgStr = "";
+          if (typeof errorDetail === 'string') {
+            errorMsgStr = errorDetail;
+          } else if (Array.isArray(errorDetail)) {
+            errorMsgStr = errorDetail.map((e: any) => {
+              if (typeof e === 'string') return e;
+              if (e?.msg) return e.msg;
+              return JSON.stringify(e);
+            }).join(', ');
+          } else if (errorDetail && typeof errorDetail === 'object') {
+            errorMsgStr = errorDetail.msg || errorDetail.message || JSON.stringify(errorDetail);
+          } else {
+            errorMsgStr = errorMessage;
+          }
+          
+          // Check if error is related to phone (case insensitive)
+          const isPhoneError = errorMsgStr.toLowerCase().includes("phone") || 
+                              errorMsgStr.toLowerCase().includes("telefone") ||
+                              (Array.isArray(errorDetail) && errorDetail.some((e: any) => 
+                                (e?.loc && Array.isArray(e.loc) && e.loc.includes('phone')) ||
+                                (typeof e === 'string' && e.toLowerCase().includes('phone'))
+                              ));
+          
+          if (isPhoneError && patientData.phone) {
+            // Retry without phone
+            console.warn("Telefone rejeitado pelo backend, tentando sem telefone...");
+            const patientDataWithoutPhone = { ...patientData };
+            delete patientDataWithoutPhone.phone;
+            
+            try {
+              await api.post("/api/patients", patientDataWithoutPhone);
+              toast.success("Paciente cadastrado com sucesso! (Telefone foi ignorado por formato inválido)");
+            } catch (retryError: any) {
+              // If retry also fails, throw the original error
+              throw phoneError;
+            }
+          } else {
+            // If error is not phone-related, throw it
+            throw phoneError;
+          }
+        }
       }
 
       setShowForm(false);
@@ -309,8 +398,33 @@ export default function PacientesPage() {
       await loadPatients();
     } catch (error: any) {
       console.error("Failed to save patient:", error);
+      
+      // Safely extract error message, handling objects and arrays
+      const errorDetail = error?.response?.data?.detail;
+      const errorMessage = error?.response?.data?.message || error?.message || error?.detail;
+      
+      let errorMsgStr = "Não foi possível salvar o paciente";
+      
+      if (typeof errorDetail === 'string') {
+        errorMsgStr = errorDetail;
+      } else if (Array.isArray(errorDetail)) {
+        // Handle Pydantic validation errors
+        errorMsgStr = errorDetail.map((e: any) => {
+          if (typeof e === 'string') return e;
+          if (e?.msg) {
+            const field = e?.loc && Array.isArray(e.loc) ? e.loc[e.loc.length - 1] : '';
+            return field ? `${field}: ${e.msg}` : e.msg;
+          }
+          return JSON.stringify(e);
+        }).join(', ');
+      } else if (errorDetail && typeof errorDetail === 'object') {
+        errorMsgStr = errorDetail.msg || errorDetail.message || JSON.stringify(errorDetail);
+      } else if (typeof errorMessage === 'string') {
+        errorMsgStr = errorMessage;
+      }
+      
       toast.error(editingPatient ? "Erro ao atualizar paciente" : "Erro ao cadastrar paciente", {
-        description: error?.message || error?.detail || "Não foi possível salvar o paciente",
+        description: errorMsgStr,
       });
     } finally {
       setSaving(false);
@@ -377,23 +491,63 @@ export default function PacientesPage() {
   };
 
   const parseCSV = (csvText: string): any[] => {
-    const lines = csvText.split('\n').filter(line => line.trim());
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim());
     if (lines.length < 2) return [];
 
+    // Improved CSV parser that handles quoted values
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            // Escaped quote
+            current += '"';
+            i++; // Skip next quote
+          } else {
+            // Toggle quote state
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          // End of field
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      // Add last field
+      result.push(current.trim());
+      return result;
+    };
+
     // Parse header
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const headerLine = parseCSVLine(lines[0]);
+    const headers = headerLine.map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
     
     // Parse data rows
     const rows: any[] = [];
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      if (values.length !== headers.length) continue;
+      const values = parseCSVLine(lines[i]);
       
+      // Handle cases where row has fewer or more columns than headers
       const row: any = {};
       headers.forEach((header, index) => {
-        row[header] = values[index] || '';
+        const value = values[index] || '';
+        // Remove surrounding quotes if present
+        row[header] = value.replace(/^"|"$/g, '').trim();
       });
-      rows.push(row);
+      
+      // Only add row if it has at least one non-empty value
+      if (Object.values(row).some(v => v && v.toString().trim())) {
+        rows.push(row);
+      }
     }
     
     return rows;
@@ -424,6 +578,12 @@ export default function PacientesPage() {
         return;
       }
 
+      // Debug: Log first row to help diagnose issues
+      if (csvData.length > 0) {
+        console.log("CSV Headers:", Object.keys(csvData[0]));
+        console.log("First row data:", csvData[0]);
+      }
+
       if (csvData.length > 1000) {
         toast.error("O arquivo contém mais de 1000 linhas. Por favor, divida o arquivo.");
         setIsUploading(false);
@@ -439,69 +599,223 @@ export default function PacientesPage() {
       for (let i = 0; i < csvData.length; i += batchSize) {
         const batch = csvData.slice(i, i + batchSize);
         
-        for (const row of batch) {
+        for (let batchIdx = 0; batchIdx < batch.length; batchIdx++) {
+          const row = batch[batchIdx];
+          const rowIndex = i + batchIdx + 2; // +2 because: +1 for header row, +1 for 0-based index
+          
           try {
-            // Map CSV columns to patient data
+            // Debug: log the row to see what we're getting
+            
+            // Map CSV columns to patient data - try multiple possible column names
+            const firstName = (row.nome || row.first_name || row['first name'] || row['primeiro nome'] || "").toString().trim();
+            const lastName = (row.sobrenome || row.last_name || row['last name'] || row['último nome'] || "").toString().trim();
+            const dateOfBirth = (row.data_nascimento || row.date_of_birth || row['data nascimento'] || row['birth date'] || row['birthdate'] || "").toString().trim();
+            
+            // Process CPF - validate before including
+            let cpfValue: string | undefined = undefined;
+            const cpfRaw = (row.cpf || "").toString().replace(/\D/g, "");
+            if (cpfRaw && cpfRaw.length === 11) {
+              // Validate CPF using the same logic as frontend
+              if (validateCPF(cpfRaw)) {
+                cpfValue = cpfRaw;
+              } else {
+                // CPF is invalid, log warning but don't fail - set to undefined
+                console.warn(`Linha ${rowIndex}: CPF inválido (${cpfRaw}), será ignorado`);
+              }
+            } else if (cpfRaw && cpfRaw.length > 0) {
+              console.warn(`Linha ${rowIndex}: CPF com formato inválido (${cpfRaw}), deve ter 11 dígitos`);
+            }
+            
+            // Process phone - format to E164 format (+55XXXXXXXXXXX)
+            // Note: Backend validates using phonenumbers library which is strict
+            // If phone format is questionable, we'll set it to undefined to avoid errors
+            let phoneValue: string | undefined = undefined;
+            const phoneRaw = (row.telefone || row.phone || row['telefone celular'] || "").toString().replace(/\D/g, "");
+            if (phoneRaw && phoneRaw.length >= 10) {
+              // Remove country code if present
+              let phoneDigits = phoneRaw;
+              if (phoneDigits.startsWith('55') && phoneDigits.length >= 12) {
+                phoneDigits = phoneDigits.substring(2);
+              }
+              
+              // Check if it's a valid length (10 or 11 digits for Brazil)
+              // Also check if it's not all the same digit (invalid pattern)
+              if ((phoneDigits.length === 10 || phoneDigits.length === 11) && 
+                  phoneDigits !== phoneDigits[0].repeat(phoneDigits.length) &&
+                  phoneDigits !== '0000000000' && phoneDigits !== '00000000000') {
+                // Format as +55XXXXXXXXXXX
+                // For Brazilian numbers: +55 + area code (2 digits) + number (8 or 9 digits)
+                // Area code should start with 1-9, not 0
+                const areaCode = phoneDigits.substring(0, 2);
+                const number = phoneDigits.substring(2);
+                
+                // Validate area code (should be 11-99, not 00-10)
+                if (parseInt(areaCode) >= 11 && parseInt(areaCode) <= 99 && number.length >= 8) {
+                  phoneValue = `+55${phoneDigits}`;
+                } else {
+                  console.warn(`Linha ${rowIndex}: Telefone com área inválida (${phoneRaw}), será ignorado`);
+                }
+              } else {
+                console.warn(`Linha ${rowIndex}: Telefone com formato inválido (${phoneRaw}), será ignorado`);
+              }
+            } else if (phoneRaw && phoneRaw.length > 0) {
+              console.warn(`Linha ${rowIndex}: Telefone muito curto (${phoneRaw}), será ignorado`);
+            }
+            
+            // Process emergency contact phone - same validation
+            let emergencyPhoneValue: string | undefined = undefined;
+            const emergencyPhoneRaw = (row.contato_emergencia_telefone || row.emergency_contact_phone || row['contato emergência telefone'] || "").toString().replace(/\D/g, "");
+            if (emergencyPhoneRaw && emergencyPhoneRaw.length >= 10) {
+              let emergencyPhoneDigits = emergencyPhoneRaw;
+              if (emergencyPhoneDigits.startsWith('55') && emergencyPhoneDigits.length >= 12) {
+                emergencyPhoneDigits = emergencyPhoneDigits.substring(2);
+              }
+              
+              if ((emergencyPhoneDigits.length === 10 || emergencyPhoneDigits.length === 11) &&
+                  emergencyPhoneDigits !== emergencyPhoneDigits[0].repeat(emergencyPhoneDigits.length) &&
+                  emergencyPhoneDigits !== '0000000000' && emergencyPhoneDigits !== '00000000000') {
+                const areaCode = emergencyPhoneDigits.substring(0, 2);
+                const number = emergencyPhoneDigits.substring(2);
+                
+                if (parseInt(areaCode) >= 11 && parseInt(areaCode) <= 99 && number.length >= 8) {
+                  emergencyPhoneValue = `+55${emergencyPhoneDigits}`;
+                }
+              }
+            }
+            
             const patientData: any = {
               clinic_id: user.clinic_id,
-              first_name: (row.nome || row.first_name || "").trim(),
-              last_name: (row.sobrenome || row.last_name || "").trim(),
-              date_of_birth: row.data_nascimento || row.date_of_birth || "",
-              gender: (row.genero || row.gender || "").toLowerCase(),
-              cpf: (row.cpf || "").replace(/\D/g, ""),
-              phone: (row.telefone || row.phone || "").replace(/\D/g, ""),
-              email: (row.email || "").trim(),
-              address: (row.endereco || row.address || "").trim(),
-              emergency_contact_name: (row.contato_emergencia_nome || row.emergency_contact_name || "").trim(),
-              emergency_contact_phone: (row.contato_emergencia_telefone || row.emergency_contact_phone || "").replace(/\D/g, ""),
-              emergency_contact_relationship: (row.contato_emergencia_parentesco || row.emergency_contact_relationship || "").trim(),
-              allergies: (row.alergias || row.allergies || "").trim(),
-              active_problems: (row.problemas_ativos || row.active_problems || "").trim(),
-              blood_type: (row.tipo_sanguineo || row.blood_type || "").trim(),
-              notes: (row.observacoes || row.notes || "").trim(),
+              first_name: firstName,
+              last_name: lastName,
+              date_of_birth: dateOfBirth,
+              gender: ((row.genero || row.gender || row.sexo || "").toString().trim().toLowerCase() || undefined),
+              cpf: cpfValue,
+              phone: phoneValue,
+              email: ((row.email || row.e_mail || row['e-mail'] || "").toString().trim() || undefined),
+              address: ((row.endereco || row.address || row['endereço'] || "").toString().trim() || undefined),
+              emergency_contact_name: ((row.contato_emergencia_nome || row.emergency_contact_name || row['contato emergência nome'] || "").toString().trim() || undefined),
+              emergency_contact_phone: emergencyPhoneValue,
+              emergency_contact_relationship: ((row.contato_emergencia_parentesco || row.emergency_contact_relationship || row['contato emergência parentesco'] || "").toString().trim() || undefined),
+              allergies: ((row.alergias || row.allergies || "").toString().trim() || undefined),
+              active_problems: ((row.problemas_ativos || row.active_problems || row['problemas ativos'] || "").toString().trim() || undefined),
+              blood_type: ((row.tipo_sanguineo || row.blood_type || row['tipo sanguíneo'] || row['tipo sanguineo'] || "").toString().trim() || undefined),
+              notes: ((row.observacoes || row.notes || row['observações'] || "").toString().trim() || undefined),
             };
 
-            // Validate required fields
+            // Validate required fields with better error messages
             if (!patientData.first_name || !patientData.last_name || !patientData.date_of_birth) {
               failed++;
-              errors.push(`Linha ${i + batch.indexOf(row) + 2}: Campos obrigatórios faltando (nome, sobrenome, data de nascimento)`);
+              const missingFields = [];
+              if (!patientData.first_name) missingFields.push('nome');
+              if (!patientData.last_name) missingFields.push('sobrenome');
+              if (!patientData.date_of_birth) missingFields.push('data de nascimento');
+              errors.push(`Linha ${rowIndex}: Campos obrigatórios faltando: ${missingFields.join(', ')}. Dados recebidos: nome="${firstName}", sobrenome="${lastName}", data="${dateOfBirth}"`);
               continue;
             }
 
             // Format date if needed
             if (patientData.date_of_birth) {
               // Try to parse different date formats
-              const dateStr = patientData.date_of_birth;
+              const dateStr = patientData.date_of_birth.toString().trim();
               let date: Date | null = null;
               
-              // Try DD/MM/YYYY format
+              // Try DD/MM/YYYY format (most common in Brazil)
               if (dateStr.includes('/')) {
-                const parts = dateStr.split('/');
-                if (parts.length === 3) {
-                  date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+                const parts = dateStr.split('/').map((p: string) => parseInt(p.trim(), 10));
+                if (parts.length === 3 && parts.every((p: number) => !isNaN(p))) {
+                  // Check if it's DD/MM/YYYY or MM/DD/YYYY by checking if day > 12
+                  if (parts[0] > 12) {
+                    // DD/MM/YYYY
+                    date = new Date(parts[2], parts[1] - 1, parts[0]);
+                  } else if (parts[1] > 12) {
+                    // MM/DD/YYYY
+                    date = new Date(parts[2], parts[0] - 1, parts[1]);
+                  } else {
+                    // Assume DD/MM/YYYY for Brazilian format
+                    date = new Date(parts[2], parts[1] - 1, parts[0]);
+                  }
                 }
               }
               
-              // Try YYYY-MM-DD format
-              if (!date || isNaN(date.getTime())) {
+              // Try YYYY-MM-DD format (ISO)
+              if ((!date || isNaN(date.getTime())) && dateStr.includes('-')) {
                 date = new Date(dateStr);
               }
               
+              // Try DD-MM-YYYY format
+              if ((!date || isNaN(date.getTime())) && dateStr.includes('-')) {
+                const parts = dateStr.split('-').map((p: string) => parseInt(p.trim(), 10));
+                if (parts.length === 3 && parts.every((p: number) => !isNaN(p))) {
+                  if (parts[0] > 12) {
+                    // DD-MM-YYYY
+                    date = new Date(parts[2], parts[1] - 1, parts[0]);
+                  } else {
+                    // Assume YYYY-MM-DD
+                    date = new Date(parts[0], parts[1] - 1, parts[2]);
+                  }
+                }
+              }
+              
+              // Validate the date
               if (date && !isNaN(date.getTime())) {
+                // Check if date is reasonable (not in the future, not too old)
+                const today = new Date();
+                const minDate = new Date(1900, 0, 1);
+                if (date > today) {
+                  failed++;
+                  errors.push(`Linha ${rowIndex}: Data de nascimento não pode ser no futuro: ${dateStr}`);
+                  continue;
+                }
+                if (date < minDate) {
+                  failed++;
+                  errors.push(`Linha ${rowIndex}: Data de nascimento muito antiga: ${dateStr}`);
+                  continue;
+                }
                 patientData.date_of_birth = date.toISOString().split('T')[0];
               } else {
                 failed++;
-                errors.push(`Linha ${i + batch.indexOf(row) + 2}: Data de nascimento inválida`);
+                errors.push(`Linha ${rowIndex}: Data de nascimento inválida: "${dateStr}". Use o formato DD/MM/YYYY ou YYYY-MM-DD`);
                 continue;
               }
             }
 
-            await api.post("/api/patients", patientData);
-            success++;
-          } catch (error: any) {
+            // If phone validation fails on backend, retry without phone
+            let retryWithoutPhone = false;
+            try {
+              const response = await api.post("/api/patients", patientData);
+              console.log(`Patient created successfully:`, response);
+              success++;
+            } catch (error: any) {
+              // Check if error is related to phone validation
+              const errorMsg = error?.response?.data?.detail || error?.message || error?.detail || "";
+              if (errorMsg.includes("phone") && patientData.phone) {
+                // Retry without phone
+                console.warn(`Linha ${rowIndex}: Telefone rejeitado pelo backend, tentando sem telefone...`);
+                const patientDataWithoutPhone = { ...patientData };
+                delete patientDataWithoutPhone.phone;
+                
+                try {
+                  const response = await api.post("/api/patients", patientDataWithoutPhone);
+                  console.log(`Patient created successfully (without phone):`, response);
+                  success++;
+                  errors.push(`Linha ${rowIndex}: Paciente criado, mas telefone foi ignorado (formato inválido)`);
+                } catch (retryError: any) {
+                  failed++;
+                  const retryErrorMsg = retryError?.response?.data?.detail || retryError?.message || retryError?.detail || "Erro desconhecido";
+                  errors.push(`Linha ${rowIndex}: ${retryErrorMsg}`);
+                }
+              } else {
+                failed++;
+                console.error(`Error creating patient at row ${rowIndex}:`, error);
+                errors.push(`Linha ${rowIndex}: ${errorMsg || "Erro desconhecido"}`);
+              }
+            }
+          } catch (outerError: any) {
+            // Catch any unexpected errors in the try block
             failed++;
-            const errorMsg = error?.message || error?.detail || "Erro desconhecido";
-            errors.push(`Linha ${i + batch.indexOf(row) + 2}: ${errorMsg}`);
+            console.error(`Unexpected error processing row ${rowIndex}:`, outerError);
+            const outerErrorMsg = outerError?.message || outerError?.detail || "Erro inesperado ao processar linha";
+            errors.push(`Linha ${rowIndex}: ${outerErrorMsg}`);
           }
         }
 
@@ -515,7 +829,38 @@ export default function PacientesPage() {
 
       if (success > 0) {
         toast.success(`${success} paciente(s) importado(s) com sucesso!`);
-        await loadPatients();
+        
+        // Wait a bit to ensure backend has processed all requests
+        console.log("Waiting 1 second before reloading patients...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Reload patients list with retry logic
+        let retries = 3;
+        let loaded = false;
+        while (retries > 0 && !loaded) {
+          try {
+            console.log(`Attempting to reload patients (${4 - retries}/3)...`);
+            await loadPatients();
+            loaded = true;
+            console.log("Patients reloaded successfully!");
+          } catch (error) {
+            console.error(`Failed to reload patients (attempt ${4 - retries}/3):`, error);
+            retries--;
+            if (retries > 0) {
+              // Wait before retry
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              console.error("Failed to reload patients after upload:", error);
+              toast.warning("Pacientes importados, mas a lista não foi atualizada. Clique em 'Atualizar Lista' para ver os novos pacientes.");
+            }
+          }
+        }
+        
+        // Switch to list tab to show the imported patients
+        if (loaded) {
+          console.log("Switching to list tab...");
+          setActiveTab("list");
+        }
       }
       
       if (failed > 0) {
@@ -566,7 +911,7 @@ export default function PacientesPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="list" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="list">Lista de Pacientes</TabsTrigger>
           <TabsTrigger value="bulk">Upload em Massa</TabsTrigger>
@@ -641,7 +986,19 @@ export default function PacientesPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => {
+                                  setViewingPatient(patient);
+                                  setShowViewDialog(true);
+                                }}
+                                title="Visualizar detalhes"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => openEditForm(patient)}
+                                title="Editar"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -649,6 +1006,7 @@ export default function PacientesPage() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleDelete(patient)}
+                                title="Excluir"
                               >
                                 <Trash2 className="h-4 w-4 text-red-600" />
                               </Button>
@@ -720,16 +1078,32 @@ export default function PacientesPage() {
                 )}
                 {uploadResults && (
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg text-left">
-                    <div className="flex items-center gap-4 mb-2">
-                      <div className="flex items-center gap-2 text-green-600">
-                        <CheckCircle2 className="h-5 w-5" />
-                        <span className="font-semibold">{uploadResults.success} importado(s)</span>
-                      </div>
-                      {uploadResults.failed > 0 && (
-                        <div className="flex items-center gap-2 text-red-600">
-                          <XCircle className="h-5 w-5" />
-                          <span className="font-semibold">{uploadResults.failed} falhou(ram)</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle2 className="h-5 w-5" />
+                          <span className="font-semibold">{uploadResults.success} importado(s)</span>
                         </div>
+                        {uploadResults.failed > 0 && (
+                          <div className="flex items-center gap-2 text-red-600">
+                            <XCircle className="h-5 w-5" />
+                            <span className="font-semibold">{uploadResults.failed} falhou(ram)</span>
+                          </div>
+                        )}
+                      </div>
+                      {uploadResults.success > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            await loadPatients();
+                            toast.success("Lista atualizada!");
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Atualizar Lista
+                        </Button>
                       )}
                     </div>
                     {uploadResults.errors.length > 0 && (
@@ -883,7 +1257,17 @@ export default function PacientesPage() {
                   id="cpf"
                   placeholder="000.000.000-00"
                   value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                  onChange={(e) => {
+                    const digits = onlyDigits(e.target.value);
+                    const masked = maskCPF(digits);
+                    setFormData({ ...formData, cpf: masked });
+                  }}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  maxLength={14}
                 />
               </div>
               <div className="space-y-2">
@@ -892,7 +1276,17 @@ export default function PacientesPage() {
                   id="phone"
                   placeholder="(00) 00000-0000"
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) => {
+                    const digits = onlyDigits(e.target.value);
+                    const masked = maskPhone(digits);
+                    setFormData({ ...formData, phone: masked });
+                  }}
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  maxLength={15}
                 />
               </div>
             </div>
@@ -932,7 +1326,17 @@ export default function PacientesPage() {
                     id="emergency_contact_phone"
                     placeholder="(00) 00000-0000"
                     value={formData.emergency_contact_phone}
-                    onChange={(e) => setFormData({ ...formData, emergency_contact_phone: e.target.value })}
+                    onChange={(e) => {
+                      const digits = onlyDigits(e.target.value);
+                      const masked = maskPhone(digits);
+                      setFormData({ ...formData, emergency_contact_phone: masked });
+                    }}
+                    onKeyPress={(e) => {
+                      if (!/[0-9]/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'Enter'].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    maxLength={15}
                   />
                 </div>
                 <div className="space-y-2">
@@ -990,6 +1394,160 @@ export default function PacientesPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Patient Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Detalhes do Paciente
+            </DialogTitle>
+            <DialogDescription>
+              Informações completas do paciente
+            </DialogDescription>
+          </DialogHeader>
+          {viewingPatient && (
+            <div className="space-y-6">
+              {/* Personal Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Informações Pessoais</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-600">Nome Completo</Label>
+                    <p className="text-base">{viewingPatient.first_name} {viewingPatient.last_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-600">Data de Nascimento</Label>
+                    <p className="text-base">
+                      {viewingPatient.date_of_birth 
+                        ? format(parseISO(viewingPatient.date_of_birth), "dd/MM/yyyy", { locale: ptBR })
+                        : "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-600">CPF</Label>
+                    <p className="text-base">{formatCPF(viewingPatient.cpf)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-600">Gênero</Label>
+                    <p className="text-base">
+                      {viewingPatient.gender === 'male' ? 'Masculino' : 
+                       viewingPatient.gender === 'female' ? 'Feminino' : 
+                       viewingPatient.gender || '-'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Informações de Contato</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-600">Telefone</Label>
+                    <p className="text-base">{formatPhone(viewingPatient.phone)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-600">E-mail</Label>
+                    <p className="text-base">{viewingPatient.email || "-"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <Label className="text-sm font-semibold text-gray-600">Endereço</Label>
+                    <p className="text-base">{viewingPatient.address || "-"}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Emergency Contact */}
+              {(viewingPatient.emergency_contact_name || viewingPatient.emergency_contact_phone) && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Contato de Emergência</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-600">Nome</Label>
+                      <p className="text-base">{viewingPatient.emergency_contact_name || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-600">Telefone</Label>
+                      <p className="text-base">{formatPhone(viewingPatient.emergency_contact_phone)}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-600">Parentesco</Label>
+                      <p className="text-base">{viewingPatient.emergency_contact_relationship || "-"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Medical Information */}
+              {(viewingPatient.allergies || viewingPatient.active_problems || viewingPatient.blood_type) && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Informações Médicas</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-600">Alergias</Label>
+                      <p className="text-base whitespace-pre-wrap">{viewingPatient.allergies || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-600">Problemas Ativos</Label>
+                      <p className="text-base whitespace-pre-wrap">{viewingPatient.active_problems || "-"}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-600">Tipo Sanguíneo</Label>
+                      <p className="text-base">{viewingPatient.blood_type || "-"}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {viewingPatient.notes && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2">Observações</h3>
+                  <p className="text-base whitespace-pre-wrap">{viewingPatient.notes}</p>
+                </div>
+              )}
+
+              {/* Status */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Status</h3>
+                <div className="flex items-center gap-2">
+                  {viewingPatient.is_active ? (
+                    <>
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      <span className="text-base text-green-600 font-medium">Ativo</span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-5 w-5 text-red-600" />
+                      <span className="text-base text-red-600 font-medium">Inativo</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                if (viewingPatient) {
+                  openEditForm(viewingPatient);
+                  setShowViewDialog(false);
+                }
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+            <Button type="button" onClick={() => setShowViewDialog(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

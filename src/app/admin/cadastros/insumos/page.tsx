@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Package2, Plus, Search, Edit, Trash2, AlertCircle, CheckCircle2, RefreshCw,
-  TrendingUp, TrendingDown, History, Settings, ArrowUp, ArrowDown, XCircle, AlertTriangle
+  TrendingUp, TrendingDown, History, Settings, ArrowUp, ArrowDown, XCircle, AlertTriangle,
+  Upload, FileText, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -167,6 +169,11 @@ function InsumosPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState("list");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResults, setUploadResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   
   const [productFormData, setProductFormData] = useState<ProductFormData>({
     name: "",
@@ -568,6 +575,359 @@ function InsumosPage() {
     return PRODUCT_CATEGORIES.find(c => c.value === category)?.label || category;
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast.error("Por favor, selecione um arquivo CSV");
+      return;
+    }
+
+    setUploadFile(file);
+  };
+
+  const parseCSV = (csvText: string): any[] => {
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length < 2) return [];
+
+    // Improved CSV parser that handles quoted values
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            // Escaped quote
+            current += '"';
+            i++; // Skip next quote
+          } else {
+            // Toggle quote state
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          // End of field
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      // Add last field
+      result.push(current.trim());
+      return result;
+    };
+
+    // Parse header
+    const headerLine = parseCSVLine(lines[0]);
+    const headers = headerLine.map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
+    
+    // Parse data rows
+    const rows: any[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      
+      // Handle cases where row has fewer or more columns than headers
+      const row: any = {};
+      headers.forEach((header, index) => {
+        const value = values[index] || '';
+        // Remove surrounding quotes if present
+        row[header] = value.replace(/^"|"$/g, '').trim();
+      });
+      
+      // Only add row if it has at least one non-empty value
+      if (Object.values(row).some(v => v && v.toString().trim())) {
+        rows.push(row);
+      }
+    }
+    
+    return rows;
+  };
+
+  const handleBulkUpload = async () => {
+    if (!uploadFile) {
+      toast.error("Por favor, selecione um arquivo CSV");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadResults(null);
+
+    try {
+      const fileText = await uploadFile.text();
+      const csvData = parseCSV(fileText);
+      
+      if (csvData.length === 0) {
+        toast.error("O arquivo CSV está vazio ou em formato inválido");
+        setIsUploading(false);
+        return;
+      }
+
+      // Debug: Log first row to help diagnose issues
+      if (csvData.length > 0) {
+        console.log("CSV Headers:", Object.keys(csvData[0]));
+        console.log("First row data:", csvData[0]);
+      }
+
+      if (csvData.length > 1000) {
+        toast.error("O arquivo contém mais de 1000 linhas. Por favor, divida o arquivo.");
+        setIsUploading(false);
+        return;
+      }
+
+      let success = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      // Process products in batches
+      const batchSize = 10;
+      for (let i = 0; i < csvData.length; i += batchSize) {
+        const batch = csvData.slice(i, i + batchSize);
+        
+        for (let batchIdx = 0; batchIdx < batch.length; batchIdx++) {
+          const row = batch[batchIdx];
+          const rowIndex = i + batchIdx + 2; // +2 because: +1 for header row, +1 for 0-based index
+          
+          try {
+            // Map CSV columns to product data
+            const name = (row.nome || row.name || row['nome insumo'] || "").toString().trim();
+            const description = (row.descricao || row.description || row['descrição'] || "").toString().trim();
+            const category = (row.categoria || row.category || "").toString().trim().toLowerCase();
+            const supplier = (row.fornecedor || row.supplier || "").toString().trim();
+            const minStock = (row.estoque_minimo || row.min_stock || row['estoque mínimo'] || "0").toString().trim();
+            const currentStock = (row.estoque_atual || row.current_stock || row['estoque atual'] || "0").toString().trim();
+            const unitPrice = (row.preco || row.unit_price || row.preco_unitario || row['preço unitário'] || "").toString().trim();
+            const unitOfMeasure = (row.unidade || row.unit_of_measure || row.unidade_medida || row['unidade de medida'] || "unidade").toString().trim();
+            const barcode = (row.codigo_barras || row.barcode || row['código de barras'] || "").toString().trim();
+
+            // Validate required fields
+            if (!name || !category) {
+              failed++;
+              const missingFields = [];
+              if (!name) missingFields.push('nome');
+              if (!category) missingFields.push('categoria');
+              errors.push(`Linha ${rowIndex}: Campos obrigatórios faltando: ${missingFields.join(', ')}`);
+              continue;
+            }
+
+            // Validate category
+            const validCategory = PRODUCT_CATEGORIES.find(c => 
+              c.value === category || 
+              c.label.toLowerCase() === category.toLowerCase() ||
+              c.value.replace('_', ' ') === category.replace('_', ' ')
+            );
+            
+            if (!validCategory) {
+              failed++;
+              errors.push(`Linha ${rowIndex}: Categoria inválida: "${category}". Categorias válidas: ${PRODUCT_CATEGORIES.map(c => c.value).join(', ')}`);
+              continue;
+            }
+
+            // Parse numeric values
+            const minStockNum = parseInt(minStock) || 0;
+            const currentStockNum = parseInt(currentStock) || 0;
+            let unitPriceNum: number | undefined = undefined;
+            
+            if (unitPrice) {
+              const cleanedPrice = unitPrice.replace(/[^\d,.-]/g, "").replace(",", ".");
+              unitPriceNum = parseFloat(cleanedPrice);
+              if (isNaN(unitPriceNum)) {
+                unitPriceNum = undefined;
+              }
+            }
+
+            // Validate numeric values
+            if (minStockNum < 0 || currentStockNum < 0) {
+              failed++;
+              errors.push(`Linha ${rowIndex}: Valores de estoque não podem ser negativos`);
+              continue;
+            }
+
+            if (unitPriceNum !== undefined && unitPriceNum < 0) {
+              failed++;
+              errors.push(`Linha ${rowIndex}: Preço não pode ser negativo`);
+              continue;
+            }
+
+            // Create product data
+            const productData: any = {
+              name: name,
+              description: description || undefined,
+              category: validCategory.value,
+              supplier: supplier || undefined,
+              min_stock: minStockNum,
+              current_stock: currentStockNum,
+              unit_price: unitPriceNum,
+              unit_of_measure: unitOfMeasure || "unidade",
+              barcode: barcode || undefined,
+              is_active: true,
+            };
+
+            try {
+              await api.post("/api/v1/stock/products", productData);
+              console.log(`Product created successfully at row ${rowIndex}`);
+              success++;
+            } catch (error: any) {
+              // Check if error is about duplicate barcode
+              const errorDetail = error?.response?.data?.detail;
+              const errorMessage = typeof errorDetail === 'string' ? errorDetail : 
+                                 error?.response?.data?.message || 
+                                 error?.message || 
+                                 error?.detail || 
+                                 "";
+              
+              // If barcode already exists, try creating without barcode
+              if (barcode && (
+                errorMessage.toLowerCase().includes('barcode') && 
+                errorMessage.toLowerCase().includes('already exists') ||
+                errorMessage.toLowerCase().includes('código de barras') && 
+                errorMessage.toLowerCase().includes('já existe')
+              )) {
+                console.log(`Barcode ${barcode} already exists at row ${rowIndex}, trying without barcode...`);
+                try {
+                  // Try again without barcode
+                  const productDataWithoutBarcode = { ...productData };
+                  delete productDataWithoutBarcode.barcode;
+                  await api.post("/api/v1/stock/products", productDataWithoutBarcode);
+                  console.log(`Product created successfully at row ${rowIndex} (without barcode)`);
+                  success++;
+                } catch (retryError: any) {
+                  // If it still fails, report the original error
+                  failed++;
+                  const retryErrorDetail = retryError?.response?.data?.detail;
+                  let errorMsgStr = "Erro desconhecido";
+                  
+                  if (typeof retryErrorDetail === 'string') {
+                    errorMsgStr = retryErrorDetail;
+                  } else if (Array.isArray(retryErrorDetail)) {
+                    errorMsgStr = retryErrorDetail.map((e: any) => {
+                      if (typeof e === 'string') return e;
+                      if (e?.msg) {
+                        const field = e?.loc && Array.isArray(e.loc) ? e.loc[e.loc.length - 1] : '';
+                        return field ? `${field}: ${e.msg}` : e.msg;
+                      }
+                      return JSON.stringify(e);
+                    }).join(', ');
+                  } else if (retryErrorDetail && typeof retryErrorDetail === 'object') {
+                    errorMsgStr = retryErrorDetail.msg || retryErrorDetail.message || JSON.stringify(retryErrorDetail);
+                  } else {
+                    errorMsgStr = retryError?.response?.data?.message || retryError?.message || retryError?.detail || "Erro desconhecido";
+                  }
+                  
+                  errors.push(`Linha ${rowIndex}: Código de barras "${barcode}" já existe. Tentativa sem código de barras também falhou: ${errorMsgStr}`);
+                }
+              } else {
+                // Other errors
+                failed++;
+                console.error(`Error creating product at row ${rowIndex}:`, error);
+                
+                // Safely extract error message
+                let errorMsgStr = "Erro desconhecido";
+                
+                if (typeof errorDetail === 'string') {
+                  errorMsgStr = errorDetail;
+                } else if (Array.isArray(errorDetail)) {
+                  errorMsgStr = errorDetail.map((e: any) => {
+                    if (typeof e === 'string') return e;
+                    if (e?.msg) {
+                      const field = e?.loc && Array.isArray(e.loc) ? e.loc[e.loc.length - 1] : '';
+                      return field ? `${field}: ${e.msg}` : e.msg;
+                    }
+                    return JSON.stringify(e);
+                  }).join(', ');
+                } else if (errorDetail && typeof errorDetail === 'object') {
+                  errorMsgStr = errorDetail.msg || errorDetail.message || JSON.stringify(errorDetail);
+                } else {
+                  errorMsgStr = error?.response?.data?.message || error?.message || error?.detail || "Erro desconhecido";
+                }
+                
+                errors.push(`Linha ${rowIndex}: ${errorMsgStr}`);
+              }
+            }
+          } catch (error: any) {
+            // Outer catch for any unexpected errors
+            failed++;
+            console.error(`Unexpected error at row ${rowIndex}:`, error);
+            errors.push(`Linha ${rowIndex}: Erro inesperado - ${error?.message || "Erro desconhecido"}`);
+          }
+        }
+
+        // Update progress
+        const progress = Math.min(90, ((i + batch.length) / csvData.length) * 90);
+        setUploadProgress(progress);
+      }
+
+      setUploadProgress(100);
+      setUploadResults({ success, failed, errors: errors.slice(0, 20) }); // Limit to 20 errors
+
+      if (success > 0) {
+        toast.success(`${success} insumo(s) importado(s) com sucesso!`);
+        
+        // Wait a bit to ensure backend has processed all requests
+        console.log("Waiting 1 second before reloading products...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Reload products list with retry logic
+        let retries = 3;
+        let loaded = false;
+        while (retries > 0 && !loaded) {
+          try {
+            console.log(`Attempting to reload products (${4 - retries}/3)...`);
+            await loadProducts();
+            loaded = true;
+            console.log("Products reloaded successfully!");
+          } catch (error) {
+            console.error(`Failed to reload products (attempt ${4 - retries}/3):`, error);
+            retries--;
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              console.error("Failed to reload products after upload:", error);
+              toast.warning("Insumos importados, mas a lista não foi atualizada. Clique em 'Atualizar Lista' para ver os novos insumos.");
+            }
+          }
+        }
+        
+        // Switch to list tab to show the imported products
+        if (loaded) {
+          console.log("Switching to list tab...");
+          setActiveTab("list");
+        }
+      }
+      
+      if (failed > 0) {
+        toast.error(`${failed} insumo(s) falharam ao importar`);
+      }
+    } catch (error: any) {
+      console.error("Failed to upload CSV:", error);
+      toast.error("Erro ao processar arquivo CSV", {
+        description: error?.message || error?.detail || "Não foi possível processar o arquivo",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    // Create CSV template
+    const csvContent = "nome,categoria,descricao,fornecedor,estoque_minimo,estoque_atual,preco,unidade,codigo_barras\nSeringa 5ml,medical_supply,Seringa descartável 5ml,Fornecedor XYZ,20,100,2.30,unidade,7891234567891\nAgulha 25x7,medical_supply,Agulha descartável 25x7,Fornecedor XYZ,30,150,0.85,unidade,7891234567892";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_insumos.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast.success("Template baixado com sucesso");
+  };
+
   if (loading && products.length === 0) {
     return (
       <div className="space-y-6">
@@ -628,6 +988,13 @@ function InsumosPage() {
         </div>
       )}
 
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list">Lista de Insumos</TabsTrigger>
+          <TabsTrigger value="bulk">Upload em Massa</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list" className="space-y-4">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -795,6 +1162,190 @@ function InsumosPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="bulk" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload em Massa de Insumos</CardTitle>
+              <CardDescription>
+                Faça upload de um arquivo CSV para cadastrar múltiplos insumos de uma vez
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <div className="mb-4">
+                  <Label htmlFor="csv-upload-insumos" className="cursor-pointer">
+                    <span className="text-blue-600 hover:text-blue-700 font-medium">
+                      Clique para selecionar um arquivo CSV
+                    </span>
+                  </Label>
+                  <Input
+                    id="csv-upload-insumos"
+                    type="file"
+                    accept=".csv"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    disabled={isUploading}
+                  />
+                </div>
+                {uploadFile && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium text-gray-700">{uploadFile.name}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setUploadFile(null)}
+                        disabled={isUploading}
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                <p className="text-sm text-gray-500 mt-4">
+                  Ou <button onClick={downloadTemplate} className="text-blue-600 hover:text-blue-700 font-medium underline">baixe o template CSV</button> para ver o formato esperado
+                </p>
+              </div>
+
+              {isUploading && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Processando upload...</span>
+                    <span className="font-medium">{Math.round(uploadProgress)}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {uploadResults && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card className="bg-green-50 border-green-200">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-gray-600">Sucesso</p>
+                            <p className="text-2xl font-bold text-green-600">{uploadResults.success}</p>
+                          </div>
+                          <CheckCircle2 className="h-8 w-8 text-green-600" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card className="bg-red-50 border-red-200">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-gray-600">Falhas</p>
+                            <p className="text-2xl font-bold text-red-600">{uploadResults.failed}</p>
+                          </div>
+                          <XCircle className="h-8 w-8 text-red-600" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {uploadResults.errors.length > 0 && (
+                    <Card className="border-yellow-200 bg-yellow-50">
+                      <CardHeader>
+                        <CardTitle className="text-yellow-800 flex items-center gap-2">
+                          <AlertTriangle className="h-5 w-5" />
+                          Erros Encontrados ({uploadResults.errors.length})
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="max-h-60 overflow-y-auto space-y-1">
+                          {uploadResults.errors.map((error, idx) => (
+                            <p key={idx} className="text-sm text-yellow-800">
+                              {error}
+                            </p>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        setUploadFile(null);
+                        setUploadResults(null);
+                        setUploadProgress(0);
+                      }}
+                      variant="outline"
+                    >
+                      Limpar
+                    </Button>
+                    <Button
+                      onClick={loadProducts}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Atualizar Lista
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6">
+                <Button
+                  onClick={handleBulkUpload}
+                  disabled={!uploadFile || isUploading}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  size="lg"
+                >
+                  {isUploading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Fazer Upload
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <Card className="bg-gray-50">
+                <CardHeader>
+                  <CardTitle className="text-sm">Formato do CSV</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <p><strong>Colunas obrigatórias:</strong></p>
+                    <ul className="list-disc list-inside space-y-1 ml-2">
+                      <li><code className="bg-gray-200 px-1 rounded">nome</code> - Nome do insumo</li>
+                      <li><code className="bg-gray-200 px-1 rounded">categoria</code> - Categoria (medication, medical_supply, equipment, consumable, instrument, other)</li>
+                    </ul>
+                    <p className="mt-3"><strong>Colunas opcionais:</strong></p>
+                    <ul className="list-disc list-inside space-y-1 ml-2">
+                      <li><code className="bg-gray-200 px-1 rounded">descricao</code> - Descrição do insumo</li>
+                      <li><code className="bg-gray-200 px-1 rounded">fornecedor</code> - Nome do fornecedor</li>
+                      <li><code className="bg-gray-200 px-1 rounded">estoque_minimo</code> - Estoque mínimo (padrão: 0)</li>
+                      <li><code className="bg-gray-200 px-1 rounded">estoque_atual</code> - Estoque atual (padrão: 0)</li>
+                      <li><code className="bg-gray-200 px-1 rounded">preco</code> - Preço unitário</li>
+                      <li><code className="bg-gray-200 px-1 rounded">unidade</code> - Unidade de medida (padrão: unidade)</li>
+                      <li><code className="bg-gray-200 px-1 rounded">codigo_barras</code> - Código de barras</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Product Create/Edit Dialog */}
       <Dialog open={showProductForm} onOpenChange={setShowProductForm}>

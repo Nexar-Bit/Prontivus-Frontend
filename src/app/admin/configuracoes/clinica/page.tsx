@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { maskCPFOrCNPJ, onlyDigits } from "@/lib/inputMasks";
 
 interface ClinicData {
   id: number;
@@ -94,10 +95,12 @@ export default function ClinicaConfigPage() {
       const data = await api.get<ClinicData>("/api/v1/admin/clinics/me");
       
       setClinicData(data);
+      // Apply mask to tax_id when loading data
+      const maskedTaxId = data.tax_id ? maskCPFOrCNPJ(data.tax_id) : "";
       setFormData({
         name: data.name || "",
         legal_name: data.legal_name || "",
-        tax_id: data.tax_id || "",
+        tax_id: maskedTaxId,
         address: data.address || "",
         phone: data.phone || "",
         email: data.email || "",
@@ -128,7 +131,16 @@ export default function ClinicaConfigPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Apply CPF/CNPJ mask for tax_id field
+    if (name === 'tax_id') {
+      const digits = onlyDigits(value);
+      const masked = maskCPFOrCNPJ(digits);
+      setFormData(prev => ({ ...prev, [name]: masked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+    
     setHasChanges(true);
   };
 
@@ -138,11 +150,24 @@ export default function ClinicaConfigPage() {
   };
 
   const handleLicenseChange = (field: string, value: any) => {
+    // Prevent changes if not SuperAdmin
+    if (!isSuperAdmin) {
+      toast.warning("Apenas Super Administradores podem editar informações de licenciamento");
+      return;
+    }
     setLicenseData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
   };
 
   const handleModuleToggle = (moduleId: string, checked: boolean) => {
+    // Prevent changes if not SuperAdmin - double check for security
+    if (!isSuperAdmin || !user || user.role !== 'admin' || (user.role_id !== 1 && user.role_name !== 'SuperAdmin')) {
+      toast.warning("Apenas Super Administradores podem gerenciar módulos", {
+        description: "Você não tem permissão para modificar os módulos ativos da clínica."
+      });
+      return;
+    }
+    
     setLicenseData(prev => {
       let newModules = [...prev.active_modules];
       
@@ -236,10 +261,11 @@ export default function ClinicaConfigPage() {
 
     try {
       // Update basic clinic information
+      // Remove mask from tax_id before sending to backend (send only digits)
       const updateData = {
         name: formData.name,
         legal_name: formData.legal_name,
-        tax_id: formData.tax_id,
+        tax_id: onlyDigits(formData.tax_id), // Send only digits to backend
         address: formData.address || null,
         phone: formData.phone || null,
         email: formData.email || null,
@@ -248,8 +274,10 @@ export default function ClinicaConfigPage() {
 
       await api.put<ClinicData>("/api/v1/admin/clinics/me", updateData);
       
-      // Update license information if user is SuperAdmin
-      if (isSuperAdmin && clinicData) {
+      // Update license information ONLY if user is SuperAdmin
+      // Double check to prevent unauthorized access
+      const isActuallySuperAdmin = user?.role === 'admin' && (user?.role_id === 1 || user?.role_name === 'SuperAdmin');
+      if (isActuallySuperAdmin && clinicData) {
         try {
           // Update modules separately
           if (JSON.stringify(licenseData.active_modules.sort()) !== JSON.stringify((clinicData.active_modules || []).sort())) {
@@ -313,10 +341,12 @@ export default function ClinicaConfigPage() {
 
   const handleCancel = () => {
     if (clinicData) {
+      // Apply mask to tax_id when canceling
+      const maskedTaxId = clinicData.tax_id ? maskCPFOrCNPJ(clinicData.tax_id) : "";
       setFormData({
         name: clinicData.name || "",
         legal_name: clinicData.legal_name || "",
-        tax_id: clinicData.tax_id || "",
+        tax_id: maskedTaxId,
         address: clinicData.address || "",
         phone: clinicData.phone || "",
         email: clinicData.email || "",
@@ -405,7 +435,8 @@ export default function ClinicaConfigPage() {
         </div>
         <div className="flex items-center gap-2">
           {hasChanges && (
-            <Badge variant="outline" className="text-orange-600 border-orange-600">
+            <Badge variant="outline" className="text-orange-700 border-2 border-orange-500 bg-orange-50 px-4 py-2 shadow-md hover:shadow-lg transition-shadow font-semibold">
+              <AlertCircle className="h-4 w-4 mr-1.5" />
               Alterações não salvas
             </Badge>
           )}
@@ -420,19 +451,66 @@ export default function ClinicaConfigPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informações Básicas</CardTitle>
-            <CardDescription>
+        <Card className="border-2 border-gray-200 shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-100">
+            <CardTitle className="text-2xl font-bold text-gray-900">Informações Básicas</CardTitle>
+            <CardDescription className="text-gray-600 font-medium">
               Dados principais da clínica
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Nome da Clínica *</Label>
+          <CardContent className="space-y-6 pt-6">
+            {/* Logo Upload - First Field */}
+            <div className="space-y-2 pb-6 border-b-2 border-gray-200">
+              <Label htmlFor="logo" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-blue-600" />
+                Logo da Clínica
+              </Label>
+              <div className="mt-2 flex items-center gap-4">
+                <Input
+                  id="logo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoUpload}
+                  className="hidden"
+                  disabled={loading}
+                />
+                <Label
+                  htmlFor="logo"
+                  className={`cursor-pointer flex items-center gap-2 px-6 py-3 border-2 border-gray-300 rounded-xl hover:border-teal-500 hover:bg-teal-50 transition-all duration-200 shadow-sm hover:shadow-md font-semibold text-gray-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <Upload className="h-5 w-5" />
+                  Selecionar Logo
+                </Label>
+                {formData.logo && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-600 font-medium">{formData.logo.name}</span>
+                    <Badge variant="outline" className="text-green-700 border-green-500 bg-green-50">
+                      Arquivo selecionado
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              {formData.logo && (
+                <div className="mt-4">
+                  <img
+                    src={URL.createObjectURL(formData.logo)}
+                    alt="Preview do Logo"
+                    className="max-w-xs h-32 object-contain border-2 border-gray-300 rounded-xl p-3 shadow-sm"
+                  />
+                </div>
+              )}
+              <p className="text-sm text-gray-500 mt-2 font-medium">
+                Faça upload do logo da clínica (máximo 5MB). Formatos aceitos: JPG, PNG, GIF, WebP.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                  Nome da Clínica <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="name"
                   name="name"
@@ -440,12 +518,14 @@ export default function ClinicaConfigPage() {
                   onChange={handleInputChange}
                   placeholder="Ex: Clínica São Paulo"
                   required
-                  className="mt-1"
+                  className="mt-1 h-12 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm hover:shadow-md"
                   disabled={loading}
                 />
               </div>
-              <div>
-                <Label htmlFor="legal_name">Razão Social *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="legal_name" className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                  Razão Social <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="legal_name"
                   name="legal_name"
@@ -453,28 +533,48 @@ export default function ClinicaConfigPage() {
                   onChange={handleInputChange}
                   placeholder="Ex: Clínica São Paulo Ltda"
                   required
-                  className="mt-1"
+                  className="mt-1 h-12 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm hover:shadow-md"
                   disabled={loading}
                 />
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="tax_id">CNPJ *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="tax_id" className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                CNPJ/CPF <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="tax_id"
                 name="tax_id"
                 value={formData.tax_id}
                 onChange={handleInputChange}
-                placeholder="00.000.000/0000-00"
+                placeholder="00.000.000/0000-00 ou 000.000.000-00"
                 required
-                className="mt-1"
+                className="mt-1 h-12 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm hover:shadow-md font-mono"
                 disabled={loading}
+                onKeyPress={(e) => {
+                  // Only allow numbers and control keys
+                  if (!/[0-9]/.test(e.key) && 
+                      !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pastedText = e.clipboardData.getData('text');
+                  const digits = onlyDigits(pastedText);
+                  const masked = maskCPFOrCNPJ(digits);
+                  setFormData(prev => ({ ...prev, tax_id: masked }));
+                  setHasChanges(true);
+                }}
+                maxLength={18} // CNPJ max length with mask
               />
             </div>
 
-            <div>
-              <Label htmlFor="address">Endereço Completo *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="address" className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                Endereço Completo <span className="text-red-500">*</span>
+              </Label>
               <Textarea
                 id="address"
                 name="address"
@@ -482,15 +582,17 @@ export default function ClinicaConfigPage() {
                 onChange={handleInputChange}
                 placeholder="Rua, número, bairro, cidade, estado, CEP"
                 required
-                className="mt-1"
+                className="mt-1 min-h-[100px] border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm hover:shadow-md resize-y"
                 rows={3}
                 disabled={loading}
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="phone">Telefone *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                  Telefone <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="phone"
                   name="phone"
@@ -498,12 +600,14 @@ export default function ClinicaConfigPage() {
                   onChange={handleInputChange}
                   placeholder="(00) 0000-0000"
                   required
-                  className="mt-1"
+                  className="mt-1 h-12 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm hover:shadow-md"
                   disabled={loading}
                 />
               </div>
-              <div>
-                <Label htmlFor="email">E-mail *</Label>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                  E-mail <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="email"
                   name="email"
@@ -512,31 +616,34 @@ export default function ClinicaConfigPage() {
                   onChange={handleInputChange}
                   placeholder="contato@clinica.com"
                   required
-                  className="mt-1"
+                  className="mt-1 h-12 border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 shadow-sm hover:shadow-md"
                   disabled={loading}
                 />
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 pt-2">
-              <Switch
-                id="is_active"
-                checked={formData.is_active}
-                onCheckedChange={handleSwitchChange}
-                disabled={loading}
-              />
-              <Label htmlFor="is_active" className="cursor-pointer">
-                Clínica Ativa
-              </Label>
+            <div className="flex items-center space-x-4 pt-4 border-t border-gray-200">
+              <div className="flex items-center space-x-3">
+                <Switch
+                  id="is_active"
+                  checked={formData.is_active}
+                  onCheckedChange={handleSwitchChange}
+                  disabled={loading}
+                  className="data-[state=checked]:bg-green-600"
+                />
+                <Label htmlFor="is_active" className="cursor-pointer text-sm font-semibold text-gray-700">
+                  Clínica Ativa
+                </Label>
+              </div>
               {formData.is_active ? (
-                <Badge variant="outline" className="text-green-600 border-green-600">
-                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                  Ativa
+                <Badge variant="outline" className="text-green-700 border-green-500 bg-green-50 px-3 py-1.5 shadow-sm hover:shadow-md transition-shadow">
+                  <CheckCircle2 className="h-4 w-4 mr-1.5" />
+                  <span className="font-semibold">Ativa</span>
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-red-600 border-red-600">
-                  <XCircle className="h-3 w-3 mr-1" />
-                  Inativa
+                <Badge variant="outline" className="text-red-700 border-red-500 bg-red-50 px-3 py-1.5 shadow-sm hover:shadow-md transition-shadow">
+                  <XCircle className="h-4 w-4 mr-1.5" />
+                  <span className="font-semibold">Inativa</span>
                 </Badge>
               )}
             </div>
@@ -544,72 +651,117 @@ export default function ClinicaConfigPage() {
         </Card>
 
         {/* License Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-600" />
-              Informações de Licenciamento
-            </CardTitle>
-            <CardDescription>
-              {isSuperAdmin 
-                ? "Gerencie as informações de licenciamento da clínica"
-                : "Informações de licenciamento (somente leitura)"}
-            </CardDescription>
+        <Card className={`border-2 shadow-lg hover:shadow-xl transition-shadow duration-300 ${
+          !isSuperAdmin ? 'border-gray-300 bg-gray-50/50' : 'border-gray-200'
+        }`}>
+          <CardHeader className={`border-b-2 ${
+            !isSuperAdmin 
+              ? 'bg-gradient-to-r from-gray-100 to-gray-200 border-gray-300' 
+              : 'bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-100'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                  <Shield className={`h-6 w-6 ${!isSuperAdmin ? 'text-gray-500' : 'text-indigo-600'}`} />
+                  Informações de Licenciamento
+                </CardTitle>
+                <CardDescription className="text-gray-600 font-medium mt-1">
+                  {isSuperAdmin 
+                    ? "Gerencie as informações de licenciamento da clínica"
+                    : "Informações de licenciamento (somente leitura - apenas Super Administradores podem editar)"}
+                </CardDescription>
+              </div>
+              {!isSuperAdmin && (
+                <Badge variant="outline" className="text-gray-600 border-gray-400 bg-white px-3 py-1.5 shadow-sm">
+                  <Shield className="h-4 w-4 mr-1.5" />
+                  Somente Leitura
+                </Badge>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-6">
             {isLicenseExpired() && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+              <div className="bg-gradient-to-r from-red-50 to-red-100 border-2 border-red-300 rounded-xl p-5 flex items-start gap-4 shadow-md hover:shadow-lg transition-shadow">
+                <AlertCircle className="h-6 w-6 text-red-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-semibold text-red-900">Licença Expirada</p>
-                  <p className="text-sm text-red-700">
-                    A licença expirou em {formatDate(clinicData.expiration_date)}. Entre em contato para renovar.
+                  <p className="font-bold text-lg text-red-900 mb-1">Licença Expirada</p>
+                  <p className="text-sm text-red-800">
+                    A licença expirou em <span className="font-semibold">{formatDate(clinicData.expiration_date)}</span>. Entre em contato para renovar.
                   </p>
                 </div>
               </div>
             )}
             
             {isLicenseExpiringSoon() && !isLicenseExpired() && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5" />
+              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-300 rounded-xl p-5 flex items-start gap-4 shadow-md hover:shadow-lg transition-shadow">
+                <AlertCircle className="h-6 w-6 text-orange-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="font-semibold text-orange-900">Licença Expirando em Breve</p>
-                  <p className="text-sm text-orange-700">
-                    A licença expira em {formatDate(clinicData.expiration_date)}. Considere renovar.
+                  <p className="font-bold text-lg text-orange-900 mb-1">Licença Expirando em Breve</p>
+                  <p className="text-sm text-orange-800">
+                    A licença expira em <span className="font-semibold">{formatDate(clinicData.expiration_date)}</span>. Considere renovar.
                   </p>
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="license_key">Chave de Licença</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="license_key" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  Chave de Licença
+                  {!isSuperAdmin && (
+                    <Badge variant="outline" className="text-xs text-gray-500 border-gray-300 bg-gray-50">
+                      Somente Leitura
+                    </Badge>
+                  )}
+                </Label>
                 <Input
                   id="license_key"
-                  value={licenseData.license_key}
+                  value={licenseData.license_key || "N/A"}
                   onChange={(e) => handleLicenseChange("license_key", e.target.value)}
                   placeholder="Chave de licença"
-                  className="mt-1"
+                  readOnly={!isSuperAdmin}
+                  className={`mt-1 h-12 border-2 transition-all duration-200 shadow-sm font-mono ${
+                    !isSuperAdmin 
+                      ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed' 
+                      : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 hover:shadow-md'
+                  }`}
                   disabled={loading || !isSuperAdmin}
                 />
               </div>
-              <div>
-                <Label htmlFor="expiration_date">Data de Expiração</Label>
+              <div className="space-y-2">
+                <Label htmlFor="expiration_date" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                  Data de Expiração
+                  {!isSuperAdmin && (
+                    <Badge variant="outline" className="text-xs text-gray-500 border-gray-300 bg-gray-50">
+                      Somente Leitura
+                    </Badge>
+                  )}
+                </Label>
                 <Input
                   id="expiration_date"
                   type="date"
-                  value={licenseData.expiration_date}
+                  value={licenseData.expiration_date || ""}
                   onChange={(e) => handleLicenseChange("expiration_date", e.target.value)}
-                  className="mt-1"
+                  readOnly={!isSuperAdmin}
+                  className={`mt-1 h-12 border-2 transition-all duration-200 shadow-sm ${
+                    !isSuperAdmin 
+                      ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed' 
+                      : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 hover:shadow-md'
+                  }`}
                   disabled={loading || !isSuperAdmin}
                 />
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="max_users" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
+            <div className="space-y-2">
+              <Label htmlFor="max_users" className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <Users className="h-5 w-5 text-indigo-600" />
                 Máximo de Usuários
+                {!isSuperAdmin && (
+                  <Badge variant="outline" className="text-xs text-gray-500 border-gray-300 bg-gray-50 ml-auto">
+                    Somente Leitura
+                  </Badge>
+                )}
               </Label>
               <Input
                 id="max_users"
@@ -618,10 +770,15 @@ export default function ClinicaConfigPage() {
                 max="1000"
                 value={licenseData.max_users}
                 onChange={(e) => handleLicenseChange("max_users", parseInt(e.target.value) || 10)}
-                className="mt-1"
+                readOnly={!isSuperAdmin}
+                className={`mt-1 h-12 border-2 transition-all duration-200 shadow-sm ${
+                  !isSuperAdmin 
+                    ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed' 
+                    : 'border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 hover:shadow-md'
+                }`}
                 disabled={loading || !isSuperAdmin}
               />
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-600 mt-2 font-medium">
                 Número máximo de usuários permitidos para esta clínica
               </p>
             </div>
@@ -643,19 +800,43 @@ export default function ClinicaConfigPage() {
         </Card>
 
         {/* Module Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-blue-600" />
-              Módulos Ativos
-            </CardTitle>
-            <CardDescription>
-              {isSuperAdmin 
-                ? "Gerencie os módulos disponíveis para a clínica"
-                : "Módulos ativos da clínica (somente leitura)"}
-            </CardDescription>
+        <Card className={`border-2 shadow-lg hover:shadow-xl transition-shadow duration-300 ${
+          !isSuperAdmin ? 'border-gray-300 bg-gray-50/50' : 'border-gray-200'
+        }`}>
+          <CardHeader className={`border-b-2 ${
+            !isSuperAdmin 
+              ? 'bg-gradient-to-r from-gray-100 to-gray-200 border-gray-300' 
+              : 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-100'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-2xl font-bold text-gray-900">
+                  <Package className={`h-6 w-6 ${!isSuperAdmin ? 'text-gray-500' : 'text-purple-600'}`} />
+                  Módulos Ativos
+                </CardTitle>
+                <CardDescription className="text-gray-600 font-medium mt-1">
+                  {isSuperAdmin 
+                    ? "Gerencie os módulos disponíveis para a clínica"
+                    : "Módulos ativos da clínica (somente leitura - apenas Super Administradores podem editar)"}
+                </CardDescription>
+              </div>
+              {!isSuperAdmin && (
+                <Badge variant="outline" className="text-gray-600 border-gray-400 bg-white px-3 py-1.5 shadow-sm">
+                  <Package className="h-4 w-4 mr-1.5" />
+                  Somente Leitura
+                </Badge>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-6">
+            {!isSuperAdmin && (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
+                <p className="text-sm text-blue-800 font-medium flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Apenas Super Administradores podem gerenciar os módulos ativos da clínica.
+                </p>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {AVAILABLE_MODULES.map((module) => {
                 const isChecked = licenseData.active_modules.includes(module.id);
@@ -665,24 +846,59 @@ export default function ClinicaConfigPage() {
                 return (
                   <div
                     key={module.id}
-                    className={`border rounded-lg p-4 ${isChecked ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                    className={`border-2 rounded-xl p-5 transition-all duration-200 ${
+                      !isSuperAdmin 
+                        ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-90' 
+                        : isChecked 
+                          ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-md hover:shadow-lg' 
+                          : 'border-gray-300 bg-white hover:border-gray-400 hover:shadow-md'
+                    }`}
                   >
                     <div className="flex items-start space-x-3">
-                      <Checkbox
-                        id={`module-${module.id}`}
-                        checked={isChecked}
-                        onCheckedChange={(checked) => handleModuleToggle(module.id, checked as boolean)}
-                        disabled={loading || !isSuperAdmin}
-                        className="mt-1"
-                      />
+                      {isSuperAdmin ? (
+                        <Checkbox
+                          id={`module-${module.id}`}
+                          checked={isChecked}
+                          onCheckedChange={(checked) => handleModuleToggle(module.id, checked as boolean)}
+                          disabled={loading}
+                          className="mt-1"
+                        />
+                      ) : (
+                        <div className="mt-1 flex items-center justify-center w-5 h-5 border-2 border-gray-300 rounded bg-gray-100">
+                          {isChecked && (
+                            <CheckCircle2 className="h-4 w-4 text-gray-500" />
+                          )}
+                        </div>
+                      )}
                       <div className="flex-1">
-                        <Label
-                          htmlFor={`module-${module.id}`}
-                          className={`font-medium cursor-pointer ${isSuperAdmin ? '' : 'cursor-default'}`}
-                        >
-                          {module.label}
-                        </Label>
-                        <p className="text-sm text-gray-500 mt-1">{module.description}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Label
+                            htmlFor={isSuperAdmin ? `module-${module.id}` : undefined}
+                            className={`font-medium ${isSuperAdmin ? 'cursor-pointer' : 'cursor-default text-gray-700'}`}
+                          >
+                            {module.label}
+                          </Label>
+                          {isChecked && (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${
+                                isSuperAdmin 
+                                  ? 'text-blue-600 border-blue-400 bg-blue-50' 
+                                  : 'text-gray-600 border-gray-400 bg-gray-100'
+                              }`}
+                            >
+                              {isSuperAdmin ? 'Ativo' : 'Ativado'}
+                            </Badge>
+                          )}
+                          {!isSuperAdmin && (
+                            <Badge variant="outline" className="text-xs text-gray-500 border-gray-300 bg-gray-50">
+                              Somente Leitura
+                            </Badge>
+                          )}
+                        </div>
+                        <p className={`text-sm mt-1 ${!isSuperAdmin ? 'text-gray-500' : 'text-gray-600'}`}>
+                          {module.description}
+                        </p>
                         {hasDependencies && (
                           <p className="text-xs text-gray-400 mt-2">
                             Depende de: {dependencies.map(d => AVAILABLE_MODULES.find(m => m.id === d)?.label).join(", ")}
@@ -698,77 +914,53 @@ export default function ClinicaConfigPage() {
             {licenseData.active_modules.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 <Package className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-                <p>Nenhum módulo ativo</p>
+                <p className="font-medium">Nenhum módulo ativo</p>
+                {!isSuperAdmin && (
+                  <p className="text-sm text-gray-400 mt-2">
+                    Entre em contato com o Super Administrador para ativar módulos
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {!isSuperAdmin && licenseData.active_modules.length > 0 && (
+              <div className="mt-6 pt-6 border-t-2 border-gray-200">
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
+                  <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                    <span>
+                      Você está visualizando os módulos ativos. Para modificar esta configuração, entre em contato com o Super Administrador do sistema.
+                    </span>
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Logo Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Logo da Clínica</CardTitle>
-            <CardDescription>
-              Faça upload do logo da clínica (máximo 5MB)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="logo">Logo</Label>
-              <div className="mt-2 flex items-center gap-4">
-                <Input
-                  id="logo"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoUpload}
-                  className="hidden"
-                  disabled={loading}
-                />
-                <Label
-                  htmlFor="logo"
-                  className={`cursor-pointer flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <Upload className="h-4 w-4" />
-                  Selecionar Logo
-                </Label>
-                {formData.logo && (
-                  <span className="text-sm text-gray-600">{formData.logo.name}</span>
-                )}
-              </div>
-              {formData.logo && (
-                <div className="mt-4">
-                  <img
-                    src={URL.createObjectURL(formData.logo)}
-                    alt="Preview"
-                    className="max-w-xs h-32 object-contain border rounded-lg p-2"
-                  />
-                </div>
-              )}
-              <p className="text-sm text-gray-500 mt-2">
-                O upload de logo será implementado em breve
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end gap-3">
+        <div className="flex justify-end gap-4 pt-6 border-t-2 border-gray-200">
           <Button
             type="button"
             variant="outline"
             onClick={handleCancel}
             disabled={loading || !hasChanges}
+            className="h-12 px-8 border-2 border-gray-300 text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading || !hasChanges} className="bg-blue-600 hover:bg-blue-700">
+          <Button 
+            type="submit" 
+            disabled={loading || !hasChanges} 
+            className="h-12 px-8 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105"
+          >
             {loading ? (
               <>
-                <Save className="h-4 w-4 mr-2 animate-spin" />
+                <Save className="h-5 w-5 mr-2 animate-spin" />
                 Salvando...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="h-5 w-5 mr-2" />
                 Salvar Alterações
               </>
             )}

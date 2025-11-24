@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserCog2, Plus, Search, Edit, Trash2, User, RefreshCw, Mail, Phone, Eye, EyeOff, Shield, CheckCircle2, XCircle, Calendar, Download, Filter } from "lucide-react";
+import { UserCog2, Plus, Search, Edit, Trash2, User, RefreshCw, Mail, Phone, Eye, EyeOff, Shield, CheckCircle2, XCircle, Calendar, Download, Filter, Upload, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,6 +37,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Doctor {
   id: number;
@@ -89,6 +90,11 @@ export default function MedicosPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [activeTab, setActiveTab] = useState("list");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResults, setUploadResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   
   const [formData, setFormData] = useState<DoctorFormData>({
     username: "",
@@ -426,6 +432,270 @@ export default function MedicosPage() {
     toast.success("Lista de médicos exportada com sucesso!");
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast.error("Por favor, selecione um arquivo CSV");
+      return;
+    }
+
+    setUploadFile(file);
+  };
+
+  const parseCSV = (csvText: string): any[] => {
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+    if (lines.length < 2) return [];
+
+    // Improved CSV parser that handles quoted values
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const nextChar = line[i + 1];
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            // Escaped quote
+            current += '"';
+            i++; // Skip next quote
+          } else {
+            // Toggle quote state
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          // End of field
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      
+      // Add last field
+      result.push(current.trim());
+      return result;
+    };
+
+    // Parse header
+    const headerLine = parseCSVLine(lines[0]);
+    const headers = headerLine.map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
+    
+    // Parse data rows
+    const rows: any[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = parseCSVLine(lines[i]);
+      
+      // Handle cases where row has fewer or more columns than headers
+      const row: any = {};
+      headers.forEach((header, index) => {
+        const value = values[index] || '';
+        // Remove surrounding quotes if present
+        row[header] = value.replace(/^"|"$/g, '').trim();
+      });
+      
+      // Only add row if it has at least one non-empty value
+      if (Object.values(row).some(v => v && v.toString().trim())) {
+        rows.push(row);
+      }
+    }
+    
+    return rows;
+  };
+
+  const handleBulkUpload = async () => {
+    if (!uploadFile) {
+      toast.error("Por favor, selecione um arquivo CSV");
+      return;
+    }
+
+    if (!user?.clinic_id) {
+      toast.error("Erro ao identificar a clínica");
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadResults(null);
+
+    try {
+      const fileText = await uploadFile.text();
+      const csvData = parseCSV(fileText);
+      
+      if (csvData.length === 0) {
+        toast.error("O arquivo CSV está vazio ou em formato inválido");
+        setIsUploading(false);
+        return;
+      }
+
+      // Debug: Log first row to help diagnose issues
+      if (csvData.length > 0) {
+        console.log("CSV Headers:", Object.keys(csvData[0]));
+        console.log("First row data:", csvData[0]);
+      }
+
+      if (csvData.length > 1000) {
+        toast.error("O arquivo contém mais de 1000 linhas. Por favor, divida o arquivo.");
+        setIsUploading(false);
+        return;
+      }
+
+      let success = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      // Process doctors in batches
+      const batchSize = 10;
+      for (let i = 0; i < csvData.length; i += batchSize) {
+        const batch = csvData.slice(i, i + batchSize);
+        
+        for (let batchIdx = 0; batchIdx < batch.length; batchIdx++) {
+          const row = batch[batchIdx];
+          const rowIndex = i + batchIdx + 2; // +2 because: +1 for header row, +1 for 0-based index
+          
+          try {
+            // Map CSV columns to doctor data
+            const username = (row.usuario || row.username || row['nome usuario'] || "").toString().trim();
+            const email = (row.email || row.e_mail || row['e-mail'] || "").toString().trim();
+            const firstName = (row.nome || row.first_name || row['first name'] || row['primeiro nome'] || "").toString().trim();
+            const lastName = (row.sobrenome || row.last_name || row['last name'] || row['último nome'] || "").toString().trim();
+            const password = (row.senha || row.password || "Senha123!").toString().trim(); // Default password if not provided
+
+            // Validate required fields
+            if (!username || !email || !firstName || !lastName) {
+              failed++;
+              const missingFields = [];
+              if (!username) missingFields.push('usuario');
+              if (!email) missingFields.push('email');
+              if (!firstName) missingFields.push('nome');
+              if (!lastName) missingFields.push('sobrenome');
+              errors.push(`Linha ${rowIndex}: Campos obrigatórios faltando: ${missingFields.join(', ')}`);
+              continue;
+            }
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+              failed++;
+              errors.push(`Linha ${rowIndex}: E-mail inválido: ${email}`);
+              continue;
+            }
+
+            // Create doctor data
+            const doctorData = {
+              username: username,
+              email: email,
+              password: password,
+              first_name: firstName,
+              last_name: lastName,
+              role: "doctor" as const,
+            };
+
+            await api.post("/api/users", doctorData);
+            console.log(`Doctor created successfully at row ${rowIndex}`);
+            success++;
+          } catch (error: any) {
+            failed++;
+            console.error(`Error creating doctor at row ${rowIndex}:`, error);
+            
+            // Safely extract error message
+            const errorDetail = error?.response?.data?.detail;
+            let errorMsgStr = "Erro desconhecido";
+            
+            if (typeof errorDetail === 'string') {
+              errorMsgStr = errorDetail;
+            } else if (Array.isArray(errorDetail)) {
+              errorMsgStr = errorDetail.map((e: any) => {
+                if (typeof e === 'string') return e;
+                if (e?.msg) {
+                  const field = e?.loc && Array.isArray(e.loc) ? e.loc[e.loc.length - 1] : '';
+                  return field ? `${field}: ${e.msg}` : e.msg;
+                }
+                return JSON.stringify(e);
+              }).join(', ');
+            } else if (errorDetail && typeof errorDetail === 'object') {
+              errorMsgStr = errorDetail.msg || errorDetail.message || JSON.stringify(errorDetail);
+            } else {
+              errorMsgStr = error?.response?.data?.message || error?.message || error?.detail || "Erro desconhecido";
+            }
+            
+            errors.push(`Linha ${rowIndex}: ${errorMsgStr}`);
+          }
+        }
+
+        // Update progress
+        const progress = Math.min(90, ((i + batch.length) / csvData.length) * 90);
+        setUploadProgress(progress);
+      }
+
+      setUploadProgress(100);
+      setUploadResults({ success, failed, errors: errors.slice(0, 20) }); // Limit to 20 errors
+
+      if (success > 0) {
+        toast.success(`${success} médico(s) importado(s) com sucesso!`);
+        
+        // Wait a bit to ensure backend has processed all requests
+        console.log("Waiting 1 second before reloading doctors...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Reload doctors list with retry logic
+        let retries = 3;
+        let loaded = false;
+        while (retries > 0 && !loaded) {
+          try {
+            console.log(`Attempting to reload doctors (${4 - retries}/3)...`);
+            await loadDoctors();
+            loaded = true;
+            console.log("Doctors reloaded successfully!");
+          } catch (error) {
+            console.error(`Failed to reload doctors (attempt ${4 - retries}/3):`, error);
+            retries--;
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              console.error("Failed to reload doctors after upload:", error);
+              toast.warning("Médicos importados, mas a lista não foi atualizada. Clique em 'Atualizar' para ver os novos médicos.");
+            }
+          }
+        }
+        
+        // Switch to list tab to show the imported doctors
+        if (loaded) {
+          console.log("Switching to list tab...");
+          setActiveTab("list");
+        }
+      }
+      
+      if (failed > 0) {
+        toast.error(`${failed} médico(s) falharam ao importar`);
+      }
+    } catch (error: any) {
+      console.error("Failed to upload CSV:", error);
+      toast.error("Erro ao processar arquivo CSV", {
+        description: error?.message || error?.detail || "Não foi possível processar o arquivo",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    // Create CSV template
+    const csvContent = "usuario,email,nome,sobrenome,senha\nmedico1,medico1@clinica.com,João,Silva,Senha123!\nmedico2,medico2@clinica.com,Maria,Santos,Senha123!";
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_medicos.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast.success("Template baixado com sucesso");
+  };
+
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return "N/A";
     try {
@@ -459,6 +729,13 @@ export default function MedicosPage() {
         </div>
       </div>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list">Lista de Médicos</TabsTrigger>
+          <TabsTrigger value="bulk">Upload em Massa</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list" className="space-y-4">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -627,6 +904,137 @@ export default function MedicosPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="bulk" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload em Massa de Médicos</CardTitle>
+              <CardDescription>
+                Faça upload de um arquivo CSV para cadastrar múltiplos médicos de uma vez
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <div className="mb-4">
+                  <Label htmlFor="csv-upload" className="cursor-pointer">
+                    <span className="text-blue-600 hover:text-blue-700 font-medium">
+                      Clique para selecionar um arquivo CSV
+                    </span>
+                    <Input
+                      id="csv-upload"
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </Label>
+                </div>
+                {uploadFile && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium">{uploadFile.name}</span>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {(uploadFile.size / 1024).toFixed(2)} KB
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {isUploading && (
+                  <div className="mt-4">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                      <div
+                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` } as React.CSSProperties}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">{uploadProgress.toFixed(0)}% concluído</p>
+                  </div>
+                )}
+                {uploadResults && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg text-left">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-green-600">
+                          <CheckCircle2 className="h-5 w-5" />
+                          <span className="font-semibold">{uploadResults.success} importado(s)</span>
+                        </div>
+                        {uploadResults.failed > 0 && (
+                          <div className="flex items-center gap-2 text-red-600">
+                            <XCircle className="h-5 w-5" />
+                            <span className="font-semibold">{uploadResults.failed} falhou(ram)</span>
+                          </div>
+                        )}
+                      </div>
+                      {uploadResults.success > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            await loadDoctors();
+                            toast.success("Lista atualizada!");
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Atualizar Lista
+                        </Button>
+                      )}
+                    </div>
+                    {uploadResults.errors.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-sm font-semibold mb-2">Erros encontrados:</p>
+                        <ul className="text-xs text-red-600 space-y-1 max-h-32 overflow-y-auto">
+                          {uploadResults.errors.map((error, index) => (
+                            <li key={index}>{error}</li>
+                          ))}
+                        </ul>
+                        {uploadResults.errors.length >= 20 && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            Mostrando apenas os primeiros 20 erros...
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={downloadTemplate}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Baixar Template CSV
+                </Button>
+                <Button
+                  onClick={handleBulkUpload}
+                  disabled={!uploadFile || isUploading}
+                  className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {isUploading ? "Fazendo Upload..." : "Fazer Upload"}
+                </Button>
+              </div>
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-semibold mb-2">Instruções:</h4>
+                <ul className="text-sm text-gray-700 space-y-1 list-disc list-inside">
+                  <li>O arquivo CSV deve conter as colunas: usuario, email, nome, sobrenome, senha</li>
+                  <li>A senha é opcional. Se não fornecida, será usada "Senha123!" como padrão</li>
+                  <li>O arquivo deve estar codificado em UTF-8</li>
+                  <li>Máximo de 1000 linhas por arquivo</li>
+                  <li>Baixe o template para ver o formato correto</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Create/Edit Doctor Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
