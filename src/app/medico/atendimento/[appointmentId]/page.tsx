@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts";
 import { appointmentsApi } from "@/lib/appointments-api";
@@ -55,6 +55,13 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { PDFGenerator } from "@/components/documents/PDFGenerator";
+import { VoiceRecorder } from "@/components/voice/VoiceRecorder";
+import { TranscriptionResult } from "@/components/voice/TranscriptionResult";
+import { SoapFormRef } from "@/components/consultation/soap-form";
+import { SymptomChecker } from "@/components/ai-diagnosis/SymptomChecker";
+import { ICD10Suggestions } from "@/components/ai-diagnosis/ICD10Suggestions";
+import { DrugInteractionChecker } from "@/components/ai-diagnosis/DrugInteractionChecker";
 
 export default function ConsultationPage() {
   const params = useParams();
@@ -73,6 +80,9 @@ export default function ConsultationPage() {
   const [showCallDialog, setShowCallDialog] = useState(false);
   const [isCalling, setIsCalling] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [transcriptionResult, setTranscriptionResult] = useState<any>(null);
+  const soapFormRef = useRef<SoapFormRef>(null);
+  const [diagnoses, setDiagnoses] = useState<any[]>([]);
 
   // Load appointment and related data
   useEffect(() => {
@@ -319,6 +329,26 @@ export default function ConsultationPage() {
     }
   };
 
+  const handleTranscriptionComplete = (result: any) => {
+    setTranscriptionResult(result);
+  };
+
+  const applyTranscriptionToForm = (section: string, text: string) => {
+    if (soapFormRef.current) {
+      soapFormRef.current.updateField(section, text);
+      toast.success(`Texto aplicado à seção ${section}`);
+    }
+  };
+
+  const handleDiagnosisUpdate = (newDiagnoses: any[]) => {
+    setDiagnoses(newDiagnoses);
+  };
+
+  // Extract medication names from prescriptions for drug interaction checker
+  const medicationNames = prescriptions
+    .map(p => p.medication_name)
+    .filter((name): name is string => !!name);
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
       scheduled: { label: "Agendado", variant: "secondary" },
@@ -525,8 +555,30 @@ export default function ConsultationPage() {
             </Card>
           )}
 
+          {/* Voice Recording Section */}
+          <VoiceRecorder
+            onTranscriptionComplete={handleTranscriptionComplete}
+            consultationId={appointmentId}
+            language="pt-BR"
+            enhanceMedicalTerms={true}
+            structureSoap={true}
+          />
+
+          {/* Transcription Result */}
+          {transcriptionResult && (
+            <TranscriptionResult
+              result={transcriptionResult}
+              onApplyToForm={applyTranscriptionToForm}
+              onClose={() => setTranscriptionResult(null)}
+            />
+          )}
+
+          {/* AI Diagnosis Support Section */}
+          <SymptomChecker onDiagnosisUpdate={handleDiagnosisUpdate} />
+
           {/* SOAP Form */}
           <SoapForm
+            ref={soapFormRef}
             clinicalRecord={clinicalRecord || undefined}
             onSave={handleSaveSoap}
             isSaving={isSaving}
@@ -543,13 +595,18 @@ export default function ConsultationPage() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="prescriptions" className="mt-6">
+            <TabsContent value="prescriptions" className="mt-6 space-y-6">
               <PrescriptionsForm
                 prescriptions={prescriptions}
                 clinicalRecordId={clinicalRecord?.id}
                 onAdd={handleAddPrescription}
                 onDelete={handleDeletePrescription}
               />
+              
+              {/* Drug Interaction Checker */}
+              {medicationNames.length >= 2 && (
+                <DrugInteractionChecker medications={medicationNames} />
+              )}
             </TabsContent>
 
             <TabsContent value="exams" className="mt-6">
@@ -561,6 +618,37 @@ export default function ConsultationPage() {
               />
             </TabsContent>
           </Tabs>
+
+          {/* PDF Generation Section */}
+          {clinicalRecord && (
+            <div className="mt-6 p-6 border rounded-lg bg-muted/50">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Documentos
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                <PDFGenerator
+                  consultationId={appointmentId}
+                  documentType="consultation"
+                  buttonVariant="default"
+                />
+                {prescriptions.length > 0 && (
+                  <PDFGenerator
+                    prescriptionId={prescriptions[0].id}
+                    documentType="prescription"
+                    buttonVariant="outline"
+                  />
+                )}
+                {patient && (
+                  <PDFGenerator
+                    patientId={patient.id}
+                    documentType="certificate"
+                    buttonVariant="outline"
+                  />
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar - Appointment Info */}

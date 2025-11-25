@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { ClinicalRecord } from "@/lib/types";
 import { clinicalRecordsApi, diagnosesApi } from "@/lib/clinical-api";
 import { Input } from "@/components/ui/input";
 import { ICD10Search } from "@/components/icd10-search";
+import { ICD10Suggestions } from "@/components/ai-diagnosis/ICD10Suggestions";
 
 interface SoapFormProps {
   clinicalRecord?: ClinicalRecord;
@@ -24,7 +25,12 @@ interface SoapFormProps {
   isSaving?: boolean;
 }
 
-export function SoapForm({ clinicalRecord, onSave, isSaving }: SoapFormProps) {
+export interface SoapFormRef {
+  updateField: (section: string, text: string) => void;
+}
+
+export const SoapForm = forwardRef<SoapFormRef, SoapFormProps>(
+  ({ clinicalRecord, onSave, isSaving }, ref) => {
   const [subjective, setSubjective] = useState(clinicalRecord?.subjective || "");
   const [objective, setObjective] = useState(clinicalRecord?.objective || "");
   const [assessment, setAssessment] = useState(clinicalRecord?.assessment || "");
@@ -88,6 +94,40 @@ export function SoapForm({ clinicalRecord, onSave, isSaving }: SoapFormProps) {
       throw e;
     }
   };
+
+  // Expose method to update form fields from parent (for transcription)
+  useImperativeHandle(ref, () => ({
+    updateField: (section: string, text: string) => {
+      // Define the fields object with explicit type
+      const fields: Record<string, string> = {
+        subjective,
+        objective,
+        assessment,
+        plan,
+      };
+      
+      // Get existing text for the section
+      const existingText = fields[section] || '';
+      
+      // Append new text to existing text with a newline if there's existing content
+      const newText = existingText ? `${existingText}\n${text}` : text;
+      
+      switch (section) {
+        case 'subjective':
+          setSubjective(newText);
+          break;
+        case 'objective':
+          setObjective(newText);
+          break;
+        case 'assessment':
+          setAssessment(newText);
+          break;
+        case 'plan':
+          setPlan(newText);
+          break;
+      }
+    }
+  }), [subjective, objective, assessment, plan]);
 
   return (
     <Card className="mb-6">
@@ -168,6 +208,20 @@ export function SoapForm({ clinicalRecord, onSave, isSaving }: SoapFormProps) {
                 placeholder="Ex: Hipótese diagnóstica: Enxaqueca (CID-10: G43.9). Quadro compatível com cefaleia do tipo migranosa..."
                 className="min-h-[300px]"
               />
+              
+              {/* AI ICD-10 Suggestions */}
+              <ICD10Suggestions
+                clinicalFindings={assessment}
+                onCodeSelect={(code, description) => {
+                  setCidInput(code);
+                  setCidDesc(description);
+                  // Optionally append to assessment
+                  if (assessment && !assessment.includes(code)) {
+                    setAssessment(`${assessment}\nCID-10: ${code} - ${description}`);
+                  }
+                }}
+              />
+              
               {/* Diagnoses quick add */}
               {clinicalRecord?.id && (
                 <div className="space-y-2">
@@ -242,5 +296,7 @@ export function SoapForm({ clinicalRecord, onSave, isSaving }: SoapFormProps) {
       </CardContent>
     </Card>
   );
-}
+});
+
+SoapForm.displayName = "SoapForm";
 
