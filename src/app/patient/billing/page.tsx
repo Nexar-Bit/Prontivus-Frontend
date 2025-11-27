@@ -301,26 +301,27 @@ export default function PatientBillingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
+    <div className="flex flex-col h-full overflow-hidden">
       <PatientHeader showSearch={false} notificationCount={3} />
       <PatientMobileNav />
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <div className="hidden lg:block">
           <PatientSidebar />
         </div>
 
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto patient-content-scroll w-full">
+          <div className="px-4 lg:px-5 py-4 lg:py-6 pb-20 lg:pb-6">
           {/* Modern Header */}
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Receipt className="h-7 w-7 text-blue-600" />
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-700 to-teal-700 bg-clip-text text-transparent mb-2 flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+                  <Receipt className="h-7 w-7 text-white" />
                 </div>
                 Faturas e Pagamentos
               </h1>
-              <p className="text-muted-foreground text-sm">Visualize suas faturas e histórico de pagamentos</p>
+              <p className="text-gray-600 text-sm lg:text-base font-medium mt-2">Visualize suas faturas e histórico de pagamentos</p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -561,6 +562,7 @@ export default function PatientBillingPage() {
               )}
             </CardContent>
           </Card>
+          </div>
         </main>
       </div>
 

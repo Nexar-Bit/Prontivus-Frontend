@@ -509,16 +509,16 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
+    <div className="flex flex-col h-full overflow-hidden">
       <PatientHeader showSearch notificationCount={3} />
       <PatientMobileNav />
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <div className="hidden lg:block">
           <PatientSidebar />
         </div>
 
-        <main className="flex-1 flex h-[calc(100vh-80px)]">
+        <main className="flex-1 overflow-y-auto patient-content-scroll">
           {/* Conversation List Sidebar */}
           <div className="w-full lg:w-80 border-r border-gray-200 bg-white flex flex-col h-full">
             {/* Header with Stats and New Thread Button */}

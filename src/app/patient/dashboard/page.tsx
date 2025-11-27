@@ -7,16 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronRight,
-  Heart,
-  Activity,
+  HeartPulse,
+  ActivitySquare,
   TrendingUp,
-  FileText,
+  NotebookPen,
   Video,
   Clock,
   MapPin,
   Calendar,
   TestTube,
-  MessageCircle,
+  MessagesSquare,
   Pill,
   Stethoscope,
   CheckCircle2,
@@ -185,11 +185,11 @@ export default function PatientDashboard() {
       case "exam_result":
         return TestTube;
       case "message":
-        return MessageCircle;
+      return MessagesSquare;
       case "payment":
         return CreditCard;
       default:
-        return FileText;
+      return NotebookPen;
     }
   };
 
@@ -234,37 +234,41 @@ export default function PatientDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <PatientHeader showSearch notificationCount={stats.unread_messages_count} />
 
       {/* Mobile Navigation */}
       <PatientMobileNav />
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar Navigation - Desktop Only */}
         <div className="hidden lg:block">
           <PatientSidebar />
         </div>
 
-        {/* Main Content Area */}
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
-          <div className="space-y-6">
+        {/* Main Content Area - Scrollable */}
+        <main className="flex-1 overflow-y-auto patient-content-scroll w-full">
+          <div className="px-4 lg:px-5 py-4 lg:py-6 pb-20 lg:pb-6 space-y-6">
             {/* Welcome / Hero Section */}
             <section
               aria-label="Resumo do seu painel de saúde"
-              className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-teal-50 px-5 py-5 lg:px-6 lg:py-6 shadow-[0_1px_0_rgba(0,0,0,0.02)]"
+              className="relative rounded-2xl border border-blue-200/50 bg-gradient-to-br from-blue-50 via-white to-teal-50/30 px-6 py-6 lg:px-8 lg:py-8 shadow-lg shadow-blue-500/5 backdrop-blur-sm overflow-hidden"
             >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-blue-100">
-                    <Heart className="h-6 w-6 text-blue-600" />
+              {/* Decorative background elements */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-200/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-200/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+              
+              <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+                    <HeartPulse className="h-7 w-7 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+                    <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-700 to-teal-700 bg-clip-text text-transparent">
                       Seu Painel de Saúde
                     </h1>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm lg:text-base text-gray-600 mt-2 font-medium">
                       Acompanhe consultas, resultados e registros com segurança.
                     </p>
                   </div>
@@ -299,18 +303,20 @@ export default function PatientDashboard() {
                 </div>
               </div>
               {/* Quick links */}
-              <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="relative mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Button
                   variant="outline"
-                  className="justify-start gap-2 h-12 border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50"
+                  className="group justify-start gap-3 h-14 border-2 border-blue-200/60 hover:border-blue-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100/50 transition-all duration-300 shadow-sm hover:shadow-md hover:scale-[1.02]"
                   aria-label="Abrir mensagens"
                   onClick={() => window.location.href = "/patient/messages"}
                 >
-                  <MessageCircle className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700">
+                  <div className="p-1.5 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                    <MessagesSquare className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-blue-700">
                     Mensagens
                     {stats.unread_messages_count > 0 && (
-                      <Badge className="ml-2 bg-red-500 text-white text-xs">
+                      <Badge className="ml-2 bg-red-500 text-white text-xs shadow-sm">
                         {stats.unread_messages_count}
                       </Badge>
                     )}
@@ -318,99 +324,117 @@ export default function PatientDashboard() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="justify-start gap-2 h-12 border-2 border-teal-200 hover:border-teal-300 hover:bg-teal-50"
+                  className="group justify-start gap-3 h-14 border-2 border-teal-200/60 hover:border-teal-400 hover:bg-gradient-to-br hover:from-teal-50 hover:to-teal-100/50 transition-all duration-300 shadow-sm hover:shadow-md hover:scale-[1.02]"
                   aria-label="Acessar prescrições"
                   onClick={() => window.location.href = "/patient/prescriptions"}
                 >
-                  <Pill className="h-4 w-4 text-teal-600" />
-                  <span className="text-sm font-medium text-teal-700">Prescrições</span>
+                  <div className="p-1.5 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-colors">
+                    <Pill className="h-5 w-5 text-teal-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-teal-700">Prescrições</span>
                 </Button>
                 <Button
                   variant="outline"
-                  className="justify-start gap-2 h-12 border-2 border-green-200 hover:border-green-300 hover:bg-green-50"
+                  className="group justify-start gap-3 h-14 border-2 border-green-200/60 hover:border-green-400 hover:bg-gradient-to-br hover:from-green-50 hover:to-green-100/50 transition-all duration-300 shadow-sm hover:shadow-md hover:scale-[1.02]"
                   aria-label="Ver registros médicos"
                   onClick={() => window.location.href = "/patient/medical-records"}
                 >
-                  <FileText className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-700">Registros</span>
+                  <div className="p-1.5 rounded-lg bg-green-100 group-hover:bg-green-200 transition-colors">
+                    <NotebookPen className="h-5 w-5 text-green-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-green-700">Registros</span>
                 </Button>
                 <Button
                   variant="outline"
-                  className="justify-start gap-2 h-12 border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50"
+                  className="group justify-start gap-3 h-14 border-2 border-blue-200/60 hover:border-blue-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100/50 transition-all duration-300 shadow-sm hover:shadow-md hover:scale-[1.02]"
                   aria-label="Telemedicina"
                   onClick={() => window.location.href = "/patient/telemedicine"}
                 >
-                  <Video className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700">Telemedicina</span>
+                  <div className="p-1.5 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                    <Video className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <span className="text-sm font-semibold text-blue-700">Telemedicina</span>
                 </Button>
               </div>
             </section>
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="border-l-4 border-l-blue-500">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-blue-600" />
+              <Card className="group relative overflow-hidden border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/30 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                <CardHeader className="pb-3 relative">
+                  <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                      <Calendar className="h-4 w-4 text-blue-600" />
+                    </div>
                     Próximas Consultas
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-blue-600">
+                <CardContent className="relative">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
                     {stats.upcoming_appointments_count}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-600 mt-2 font-medium">
                     Consultas agendadas
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-teal-500">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    <Pill className="h-4 w-4 text-teal-600" />
+              <Card className="group relative overflow-hidden border-l-4 border-l-teal-500 bg-gradient-to-br from-white to-teal-50/30 hover:shadow-xl hover:shadow-teal-500/10 transition-all duration-300 hover:-translate-y-1">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-teal-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                <CardHeader className="pb-3 relative">
+                  <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-colors">
+                      <Pill className="h-4 w-4 text-teal-600" />
+                    </div>
                     Prescrições Ativas
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-teal-600">
+                <CardContent className="relative">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-teal-600 to-teal-700 bg-clip-text text-transparent">
                     {stats.active_prescriptions_count}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-600 mt-2 font-medium">
                     Medicações em uso
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-yellow-500">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    <TestTube className="h-4 w-4 text-yellow-600" />
+              <Card className="group relative overflow-hidden border-l-4 border-l-yellow-500 bg-gradient-to-br from-white to-yellow-50/30 hover:shadow-xl hover:shadow-yellow-500/10 transition-all duration-300 hover:-translate-y-1">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-yellow-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                <CardHeader className="pb-3 relative">
+                  <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-yellow-100 group-hover:bg-yellow-200 transition-colors">
+                      <TestTube className="h-4 w-4 text-yellow-600" />
+                    </div>
                     Exames Pendentes
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-yellow-600">
+                <CardContent className="relative">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-yellow-600 to-yellow-700 bg-clip-text text-transparent">
                     {stats.pending_exam_results_count}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-600 mt-2 font-medium">
                     Aguardando resultados
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="border-l-4 border-l-red-500">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
-                    <CreditCard className="h-4 w-4 text-red-600" />
+              <Card className="group relative overflow-hidden border-l-4 border-l-red-500 bg-gradient-to-br from-white to-red-50/30 hover:shadow-xl hover:shadow-red-500/10 transition-all duration-300 hover:-translate-y-1">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-red-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                <CardHeader className="pb-3 relative">
+                  <CardTitle className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-red-100 group-hover:bg-red-200 transition-colors">
+                      <CreditCard className="h-4 w-4 text-red-600" />
+                    </div>
                     Pagamentos Pendentes
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-red-600">
+                <CardContent className="relative">
+                  <div className="text-4xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">
                     {stats.pending_payments_count}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-600 mt-2 font-medium">
                     Faturas a pagar
                   </p>
                 </CardContent>
@@ -420,58 +444,61 @@ export default function PatientDashboard() {
             {/* Dashboard Widgets Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Health Summary Card */}
-              <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
-                <CardHeader>
+              <Card className="group relative overflow-hidden border-l-4 border-l-blue-500 bg-gradient-to-br from-white via-blue-50/20 to-white hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-blue-200/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <CardHeader className="relative">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl text-blue-600 flex items-center gap-2">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Heart className="h-5 w-5" />
+                      <CardTitle className="text-xl font-bold text-blue-700 flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+                          <HeartPulse className="h-5 w-5 text-white" />
                         </div>
                         Resumo de Saúde
                       </CardTitle>
-                      <CardDescription className="mt-1">Informações médicas recentes</CardDescription>
+                      <CardDescription className="mt-2 text-gray-600 font-medium">Informações médicas recentes</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative">
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg border border-blue-100">
+                      <div className="flex items-center justify-between p-5 bg-gradient-to-r from-blue-50 via-blue-50/50 to-teal-50 rounded-xl border-2 border-blue-100/50 shadow-sm hover:shadow-md transition-all">
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Última Consulta</p>
-                        <p className="text-lg font-semibold text-blue-700">
+                        <p className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Última Consulta</p>
+                        <p className="text-xl font-bold text-blue-700">
                           {stats.last_appointment_date
                             ? formatDate(stats.last_appointment_date)
                             : "N/A"}
                         </p>
                       </div>
-                      <Activity className="h-8 w-8 text-teal-500" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="p-4 bg-white border-2 border-blue-100 rounded-lg hover:border-blue-300 transition-colors">
-                        <p className="text-xs text-gray-500 mb-1">Condições Ativas</p>
-                        <p className="text-2xl font-bold text-blue-600">{healthSummary.active_conditions_count}</p>
-                        <p className="text-xs text-gray-500 mt-1">Monitoradas</p>
-                      </div>
-                      <div className="p-4 bg-white border-2 border-teal-100 rounded-lg hover:border-teal-300 transition-colors">
-                        <p className="text-xs text-gray-500 mb-1">Medicações</p>
-                        <p className="text-2xl font-bold text-teal-600">{healthSummary.active_prescriptions_count}</p>
-                        <p className="text-xs text-gray-500 mt-1">Em uso</p>
+                      <div className="p-3 rounded-xl bg-gradient-to-br from-teal-400 to-teal-500 shadow-lg">
+                        <ActivitySquare className="h-7 w-7 text-white" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-4 bg-white border-2 border-yellow-100 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Exames Pendentes</p>
-                        <p className="text-2xl font-bold text-yellow-600">{healthSummary.pending_exams_count}</p>
+                      <div className="group p-4 bg-gradient-to-br from-white to-blue-50/30 border-2 border-blue-100 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-300">
+                        <p className="text-xs font-semibold text-gray-600 mb-1.5">Condições Ativas</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">{healthSummary.active_conditions_count}</p>
+                        <p className="text-xs text-gray-500 mt-1.5 font-medium">Monitoradas</p>
                       </div>
-                      <div className="p-4 bg-white border-2 border-green-100 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Exames Concluídos</p>
-                        <p className="text-2xl font-bold text-green-600">{healthSummary.completed_exams_count}</p>
+                      <div className="group p-4 bg-gradient-to-br from-white to-teal-50/30 border-2 border-teal-100 rounded-xl hover:border-teal-300 hover:shadow-md transition-all duration-300">
+                        <p className="text-xs font-semibold text-gray-600 mb-1.5">Medicações</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-teal-600 to-teal-700 bg-clip-text text-transparent">{healthSummary.active_prescriptions_count}</p>
+                        <p className="text-xs text-gray-500 mt-1.5 font-medium">Em uso</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="group p-4 bg-gradient-to-br from-white to-yellow-50/30 border-2 border-yellow-100 rounded-xl hover:border-yellow-300 hover:shadow-md transition-all duration-300">
+                        <p className="text-xs font-semibold text-gray-600 mb-1.5">Exames Pendentes</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-yellow-600 to-yellow-700 bg-clip-text text-transparent">{healthSummary.pending_exams_count}</p>
+                      </div>
+                      <div className="group p-4 bg-gradient-to-br from-white to-green-50/30 border-2 border-green-100 rounded-xl hover:border-green-300 hover:shadow-md transition-all duration-300">
+                        <p className="text-xs font-semibold text-gray-600 mb-1.5">Exames Concluídos</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">{healthSummary.completed_exams_count}</p>
                       </div>
                     </div>
                     <Button 
                       variant="outline" 
-                      className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                      className="w-full border-2 border-blue-300 text-blue-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 font-semibold shadow-sm hover:shadow-md transition-all duration-300"
                       onClick={() => window.location.href = "/patient/health"}
                     >
                       Ver Detalhes
@@ -482,72 +509,78 @@ export default function PatientDashboard() {
               </Card>
 
               {/* Next Appointment Card */}
-              <Card className="border-l-4 border-l-teal-500 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
-                <CardHeader>
+              <Card className="group relative overflow-hidden border-l-4 border-l-teal-500 bg-gradient-to-br from-white via-teal-50/20 to-white hover:shadow-2xl hover:shadow-teal-500/10 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-teal-200/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <CardHeader className="relative">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl text-teal-600 flex items-center gap-2">
-                        <div className="p-2 bg-teal-100 rounded-lg">
-                          <Calendar className="h-5 w-5" />
+                      <CardTitle className="text-xl font-bold text-teal-700 flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 shadow-lg shadow-teal-500/25">
+                          <Calendar className="h-5 w-5 text-white" />
                         </div>
                         Próxima Consulta
                       </CardTitle>
-                      <CardDescription className="mt-1">Seu próximo atendimento</CardDescription>
+                      <CardDescription className="mt-2 text-gray-600 font-medium">Seu próximo atendimento</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative">
                   {loading ? (
                     <div className="space-y-3">
-                      <Skeleton className="h-32 w-full" />
+                      <Skeleton className="h-32 w-full rounded-xl" />
                     </div>
                   ) : upcomingAppointment ? (
                     <div className="space-y-4">
-                      <div className="p-5 bg-gradient-to-br from-blue-500 via-blue-600 to-teal-600 rounded-lg text-white shadow-lg">
-                        <div className="flex items-center justify-between mb-3">
+                      <div className="relative p-6 bg-gradient-to-br from-blue-500 via-blue-600 to-teal-600 rounded-2xl text-white shadow-xl overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                        <div className="relative flex items-center justify-between mb-4">
                           <div>
-                            <p className="text-sm opacity-90 mb-1">Data e Hora</p>
-                            <p className="text-2xl font-bold">
+                            <p className="text-xs font-semibold opacity-90 mb-2 uppercase tracking-wide">Data e Hora</p>
+                            <p className="text-3xl font-bold mb-1">
                               {formatDate(upcomingAppointment.scheduled_datetime)}
                             </p>
-                            <p className="text-lg mt-1">
+                            <p className="text-xl font-semibold opacity-95">
                               {format(parseISO(upcomingAppointment.scheduled_datetime), "HH:mm", { locale: ptBR })}
                             </p>
                           </div>
-                          <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
-                            <Clock className="h-8 w-8" />
+                          <div className="p-4 bg-white/20 rounded-xl backdrop-blur-md shadow-lg">
+                            <Clock className="h-9 w-9" />
                           </div>
                         </div>
-                        <div className="border-t border-white/20 pt-3 mt-3">
-                          <p className="text-sm opacity-90 mb-1">Médico</p>
-                          <p className="font-semibold text-lg">{upcomingAppointment.doctor_name}</p>
+                        <div className="relative border-t border-white/30 pt-4 mt-4">
+                          <p className="text-xs font-semibold opacity-90 mb-2 uppercase tracking-wide">Médico</p>
+                          <p className="font-bold text-xl">{upcomingAppointment.doctor_name}</p>
                           {upcomingAppointment.doctor_specialty && (
-                            <p className="text-sm opacity-80 mt-1">{upcomingAppointment.doctor_specialty}</p>
+                            <p className="text-sm opacity-90 mt-1.5 font-medium">{upcomingAppointment.doctor_specialty}</p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <div className="flex items-center gap-2.5 text-sm text-gray-700 font-medium p-3 bg-gray-50 rounded-lg border border-gray-200">
                         {upcomingAppointment.is_virtual ? (
                           <>
-                            <Video className="h-4 w-4 text-blue-600" />
+                            <div className="p-1.5 rounded-lg bg-blue-100">
+                              <Video className="h-4 w-4 text-blue-600" />
+                            </div>
                             <span>Consulta Virtual</span>
                           </>
                         ) : (
                           <>
-                            <MapPin className="h-4 w-4 text-blue-600" />
+                            <div className="p-1.5 rounded-lg bg-blue-100">
+                              <MapPin className="h-4 w-4 text-blue-600" />
+                            </div>
                             <span>{upcomingAppointment.location || "Local a confirmar"}</span>
                           </>
                         )}
                       </div>
-                      <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md">
+                      <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold h-12">
                         {upcomingAppointment.is_virtual ? (
                           <>
-                            <Video className="h-4 w-4 mr-2" />
+                            <Video className="h-5 w-5 mr-2" />
                             Entrar na Consulta
                           </>
                         ) : (
                           <>
-                            <MapPin className="h-4 w-4 mr-2" />
+                            <MapPin className="h-5 w-5 mr-2" />
                             Ver Localização
                           </>
                         )}
@@ -555,15 +588,15 @@ export default function PatientDashboard() {
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <div className="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                        <Calendar className="h-10 w-10 text-blue-600" />
+                      <div className="p-5 bg-gradient-to-br from-blue-100 to-teal-100 rounded-2xl w-24 h-24 mx-auto mb-5 flex items-center justify-center shadow-lg">
+                        <Calendar className="h-12 w-12 text-blue-600" />
                       </div>
-                      <p className="text-gray-500 mb-4 font-medium">Nenhuma consulta agendada</p>
+                      <p className="text-gray-600 mb-5 font-semibold text-lg">Nenhuma consulta agendada</p>
                       <Button 
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
                         onClick={() => window.location.href = "/patient/appointments"}
                       >
-                        <Calendar className="h-4 w-4 mr-2" />
+                        <Calendar className="h-5 w-5 mr-2" />
                         Agendar Consulta
                       </Button>
                     </div>
@@ -575,61 +608,66 @@ export default function PatientDashboard() {
             {/* Financial Summary and Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Financial Summary */}
-              <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
-                <CardHeader>
+              <Card className="group relative overflow-hidden border-l-4 border-l-green-500 bg-gradient-to-br from-white via-green-50/20 to-white hover:shadow-2xl hover:shadow-green-500/10 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-green-200/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <CardHeader className="relative">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl text-green-600 flex items-center gap-2">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <DollarSign className="h-5 w-5" />
+                      <CardTitle className="text-xl font-bold text-green-700 flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-lg shadow-green-500/25">
+                          <DollarSign className="h-5 w-5 text-white" />
                         </div>
                         Resumo Financeiro
                       </CardTitle>
-                      <CardDescription className="mt-1">Faturas e pagamentos</CardDescription>
+                      <CardDescription className="mt-2 text-gray-600 font-medium">Faturas e pagamentos</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative">
                   <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-lg border border-green-100">
-                      <div className="flex items-center justify-between mb-3">
+                    <div className="p-5 bg-gradient-to-r from-green-50 via-green-50/50 to-teal-50 rounded-xl border-2 border-green-100/50 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-gray-600 mb-1">Total Pago</p>
-                          <p className="text-2xl font-bold text-green-700">
+                          <p className="text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Total Pago</p>
+                          <p className="text-3xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
                             {formatCurrency(stats.total_payments_amount)}
                           </p>
                         </div>
-                        <CheckCircle2 className="h-8 w-8 text-green-500" />
+                        <div className="p-3 rounded-xl bg-gradient-to-br from-green-400 to-green-500 shadow-lg">
+                          <CheckCircle2 className="h-7 w-7 text-white" />
+                        </div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-4 bg-white border-2 border-red-100 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Pendentes</p>
-                        <p className="text-2xl font-bold text-red-600">{stats.pending_payments_count}</p>
-                        <p className="text-xs text-gray-500 mt-1">Faturas</p>
+                      <div className="group p-4 bg-gradient-to-br from-white to-red-50/30 border-2 border-red-100 rounded-xl hover:border-red-300 hover:shadow-md transition-all duration-300">
+                        <p className="text-xs font-semibold text-gray-600 mb-1.5">Pendentes</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">{stats.pending_payments_count}</p>
+                        <p className="text-xs text-gray-500 mt-1.5 font-medium">Faturas</p>
                       </div>
-                      <div className="p-4 bg-white border-2 border-blue-100 rounded-lg">
-                        <p className="text-xs text-gray-500 mb-1">Total</p>
-                        <p className="text-2xl font-bold text-blue-600">{invoices.length}</p>
-                        <p className="text-xs text-gray-500 mt-1">Faturas</p>
+                      <div className="group p-4 bg-gradient-to-br from-white to-blue-50/30 border-2 border-blue-100 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-300">
+                        <p className="text-xs font-semibold text-gray-600 mb-1.5">Total</p>
+                        <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">{invoices.length}</p>
+                        <p className="text-xs text-gray-500 mt-1.5 font-medium">Faturas</p>
                       </div>
                     </div>
                     {pendingInvoices.length > 0 && (
-                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-center gap-2 mb-2">
-                          <AlertCircle className="h-4 w-4 text-yellow-600" />
-                          <p className="text-sm font-semibold text-yellow-800">
+                      <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-2.5 mb-2">
+                          <div className="p-1.5 rounded-lg bg-yellow-100">
+                            <AlertCircle className="h-4 w-4 text-yellow-600" />
+                          </div>
+                          <p className="text-sm font-bold text-yellow-800">
                             {pendingInvoices.length} {pendingInvoices.length === 1 ? "fatura pendente" : "faturas pendentes"}
                           </p>
                         </div>
-                        <p className="text-xs text-yellow-700">
+                        <p className="text-xs text-yellow-700 font-semibold">
                           Total: {formatCurrency(pendingInvoices.reduce((sum, inv) => sum + inv.total_amount, 0))}
                         </p>
                       </div>
                     )}
                     <Button 
                       variant="outline" 
-                      className="w-full border-green-300 text-green-700 hover:bg-green-50"
+                      className="w-full border-2 border-green-300 text-green-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-green-100 font-semibold shadow-sm hover:shadow-md transition-all duration-300"
                       onClick={() => setShowInvoices(true)}
                     >
                       <Receipt className="h-4 w-4 mr-2" />
@@ -641,31 +679,34 @@ export default function PatientDashboard() {
               </Card>
 
               {/* Recent Activity */}
-              <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
-                <CardHeader>
+              <Card className="group relative overflow-hidden border-l-4 border-l-purple-500 bg-gradient-to-br from-white via-purple-50/20 to-white hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-300">
+                <div className="absolute top-0 right-0 w-40 h-40 bg-purple-200/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <CardHeader className="relative">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-xl text-green-600 flex items-center gap-2">
-                        <div className="p-2 bg-green-100 rounded-lg">
-                          <FileText className="h-5 w-5" />
+                      <CardTitle className="text-xl font-bold text-purple-700 flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-lg shadow-purple-500/25">
+                          <NotebookPen className="h-5 w-5 text-white" />
                         </div>
                         Atividades Recentes
                       </CardTitle>
-                      <CardDescription className="mt-1">Últimas atualizações do seu prontuário</CardDescription>
+                      <CardDescription className="mt-2 text-gray-600 font-medium">Últimas atualizações do seu prontuário</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative">
                   {loading ? (
                     <div className="space-y-3">
                       {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-16 w-full" />
+                        <Skeleton key={i} className="h-20 w-full rounded-xl" />
                       ))}
                     </div>
                   ) : recentActivities.length === 0 ? (
-                    <div className="text-center py-8">
-                      <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500 text-sm">Nenhuma atividade recente</p>
+                    <div className="text-center py-12">
+                      <div className="p-4 bg-purple-100 rounded-2xl w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                        <NotebookPen className="h-8 w-8 text-purple-600" />
+                      </div>
+                      <p className="text-gray-600 text-sm font-medium">Nenhuma atividade recente</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -674,17 +715,17 @@ export default function PatientDashboard() {
                         return (
                           <div
                             key={activity.id}
-                            className="flex items-start gap-4 p-4 rounded-lg hover:bg-blue-50/50 transition-colors cursor-pointer border border-transparent hover:border-blue-200"
+                            className="group/item flex items-start gap-4 p-4 rounded-xl hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-blue-200/50 hover:shadow-md"
                           >
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                              <Icon className="h-5 w-5 text-blue-600" />
+                            <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center flex-shrink-0 group-hover/item:scale-110 transition-transform shadow-sm">
+                              <Icon className="h-6 w-6 text-blue-600" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-900">{activity.title}</p>
-                              <p className="text-sm text-gray-600">{activity.description}</p>
-                              <p className="text-xs text-gray-500 mt-1">{formatDateTime(activity.date)}</p>
+                              <p className="font-bold text-gray-900 mb-1">{activity.title}</p>
+                              <p className="text-sm text-gray-600 mb-1.5">{activity.description}</p>
+                              <p className="text-xs text-gray-500 font-medium">{formatDateTime(activity.date)}</p>
                             </div>
-                            <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                            <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0 group-hover/item:text-blue-600 group-hover/item:translate-x-1 transition-all" />
                           </div>
                         );
                       })}
@@ -692,7 +733,7 @@ export default function PatientDashboard() {
                   )}
                   <Button 
                     variant="outline" 
-                    className="w-full mt-4 border-teal-300 text-teal-700 hover:bg-teal-50"
+                    className="w-full mt-4 border-2 border-purple-300 text-purple-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-purple-100 font-semibold shadow-sm hover:shadow-md transition-all duration-300"
                     onClick={() => window.location.href = "/patient/medical-records"}
                   >
                     Ver Todas as Atividades
@@ -703,58 +744,67 @@ export default function PatientDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <Card className="border-l-4 border-l-teal-500 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm">
-              <CardHeader>
+            <Card className="group relative overflow-hidden border-l-4 border-l-indigo-500 bg-gradient-to-br from-white via-indigo-50/20 to-white hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-300">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-200/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <CardHeader className="relative">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl text-teal-600 flex items-center gap-2">
-                      <div className="p-2 bg-teal-100 rounded-lg">
-                        <Activity className="h-5 w-5" />
+                    <CardTitle className="text-xl font-bold text-indigo-700 flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/25">
+                        <ActivitySquare className="h-5 w-5 text-white" />
                       </div>
                       Ações Rápidas
                     </CardTitle>
-                    <CardDescription className="mt-1">Acesso rápido a funcionalidades</CardDescription>
+                    <CardDescription className="mt-2 text-gray-600 font-medium">Acesso rápido a funcionalidades</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="relative">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <Button
                     variant="outline"
-                    className="h-auto flex-col items-center justify-center p-5 border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all"
+                    className="group/btn h-auto flex-col items-center justify-center p-6 border-2 border-blue-200/60 hover:border-blue-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100/50 transition-all duration-300 shadow-sm hover:shadow-lg hover:scale-105"
                     onClick={() => window.location.href = "/patient/appointments"}
                   >
-                    <Calendar className="h-6 w-6 mb-2 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700">Agendar</span>
+                    <div className="p-2 rounded-lg bg-blue-100 group-hover/btn:bg-blue-200 mb-3 transition-colors">
+                      <Calendar className="h-7 w-7 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-bold text-blue-700">Agendar</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="h-auto flex-col items-center justify-center p-5 border-2 border-teal-200 hover:bg-teal-50 hover:border-teal-300 transition-all"
+                    className="group/btn h-auto flex-col items-center justify-center p-6 border-2 border-teal-200/60 hover:border-teal-400 hover:bg-gradient-to-br hover:from-teal-50 hover:to-teal-100/50 transition-all duration-300 shadow-sm hover:shadow-lg hover:scale-105"
                     onClick={() => window.location.href = "/patient/messages"}
                   >
-                    <MessageCircle className="h-6 w-6 mb-2 text-teal-600" />
-                    <span className="text-sm font-medium text-teal-700">Mensagens</span>
+                    <div className="p-2 rounded-lg bg-teal-100 group-hover/btn:bg-teal-200 mb-3 transition-colors">
+                      <MessagesSquare className="h-7 w-7 text-teal-600" />
+                    </div>
+                    <span className="text-sm font-bold text-teal-700">Mensagens</span>
                     {stats.unread_messages_count > 0 && (
-                      <Badge className="mt-1 bg-red-500 text-white text-xs">
+                      <Badge className="mt-2 bg-red-500 text-white text-xs shadow-sm">
                         {stats.unread_messages_count}
                       </Badge>
                     )}
                   </Button>
                   <Button
                     variant="outline"
-                    className="h-auto flex-col items-center justify-center p-5 border-2 border-green-200 hover:bg-green-50 hover:border-green-300 transition-all"
+                    className="group/btn h-auto flex-col items-center justify-center p-6 border-2 border-green-200/60 hover:border-green-400 hover:bg-gradient-to-br hover:from-green-50 hover:to-green-100/50 transition-all duration-300 shadow-sm hover:shadow-lg hover:scale-105"
                     onClick={() => window.location.href = "/patient/medical-records"}
                   >
-                    <FileText className="h-6 w-6 mb-2 text-green-600" />
-                    <span className="text-sm font-medium text-green-700">Registros</span>
+                    <div className="p-2 rounded-lg bg-green-100 group-hover/btn:bg-green-200 mb-3 transition-colors">
+                      <NotebookPen className="h-7 w-7 text-green-600" />
+                    </div>
+                    <span className="text-sm font-bold text-green-700">Registros</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="h-auto flex-col items-center justify-center p-5 border-2 border-blue-200 hover:bg-blue-50 hover:border-blue-300 transition-all"
+                    className="group/btn h-auto flex-col items-center justify-center p-6 border-2 border-blue-200/60 hover:border-blue-400 hover:bg-gradient-to-br hover:from-blue-50 hover:to-blue-100/50 transition-all duration-300 shadow-sm hover:shadow-lg hover:scale-105"
                     onClick={() => window.location.href = "/patient/test-results"}
                   >
-                    <TestTube className="h-6 w-6 mb-2 text-blue-600" />
-                    <span className="text-sm font-medium text-blue-700">Resultados</span>
+                    <div className="p-2 rounded-lg bg-blue-100 group-hover/btn:bg-blue-200 mb-3 transition-colors">
+                      <TestTube className="h-7 w-7 text-blue-600" />
+                    </div>
+                    <span className="text-sm font-bold text-blue-700">Resultados</span>
                   </Button>
                 </div>
               </CardContent>

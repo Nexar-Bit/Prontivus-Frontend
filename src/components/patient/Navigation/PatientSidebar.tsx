@@ -9,17 +9,19 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePatientBadges } from "@/hooks/usePatientBadges";
+// Modern icons from lucide-react
 import {
-  Home,
-  CalendarDays,
-  Pill,
-  FlaskConical,
-  MessageCircle,
-  Wallet,
-  Settings2,
-  FileText,
-  HeartPulse,
+  LayoutDashboard,
+  CalendarCheck,
+  PillBottle,
+  TestTube,
+  Activity,
+  NotebookPen,
+  MessagesSquare,
+  CreditCard,
+  UserCircle,
   LogOut,
+  HelpCircle,
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -38,47 +40,47 @@ interface PatientSidebarProps {
 // Base navigation items without badges (badges will be added dynamically)
 // Simplified menu structure matching the requirements
 const baseNavigationItems: NavigationItem[] = [
-  { label: "Início", icon: Home, href: "/patient/dashboard", section: "main" },
-  { label: "Agendamentos", icon: CalendarDays, href: "/patient/appointments", section: "main" },
-  { label: "Histórico de Medicações", icon: Pill, href: "/patient/prescriptions", section: "health" },
-  { label: "Resultados Exames", icon: FlaskConical, href: "/patient/test-results", section: "health" },
-  { label: "Resumo de Saúde", icon: HeartPulse, href: "/patient/health", section: "health" },
-  { label: "Notas da Clínica", icon: FileText, href: "/patient/notes", section: "health" },
-  { label: "Mensagens", icon: MessageCircle, href: "/patient/messages", section: "communication" },
-  { label: "Pagamentos", icon: Wallet, href: "/patient/billing", section: "services" },
-  { label: "Perfil", icon: Settings2, href: "/patient/profile", section: "settings" },
+  { label: "Início", icon: LayoutDashboard, href: "/patient/dashboard", section: "main" },
+  { label: "Agendamentos", icon: CalendarCheck, href: "/patient/appointments", section: "main" },
+  { label: "Histórico de Medicações", icon: PillBottle, href: "/patient/prescriptions", section: "health" },
+  { label: "Resultados Exames", icon: TestTube, href: "/patient/test-results", section: "health" },
+  { label: "Resumo de Saúde", icon: Activity, href: "/patient/health", section: "health" },
+  { label: "Notas da Clínica", icon: NotebookPen, href: "/patient/notes", section: "health" },
+  { label: "Mensagens", icon: MessagesSquare, href: "/patient/messages", section: "communication" },
+  { label: "Pagamentos", icon: CreditCard, href: "/patient/billing", section: "services" },
+  { label: "Perfil", icon: UserCircle, href: "/patient/profile", section: "settings" },
 ];
 
 const sectionColors = {
   main: {
-    hover: "hover:bg-blue-50/50 hover:text-blue-600",
-    active: "bg-blue-600 text-white",
-    icon: "text-blue-500",
-    badge: "bg-blue-100 text-blue-700",
+    hover: "hover:bg-blue-500/40 hover:text-white",
+    active: "bg-blue-500 text-white",
+    icon: "text-blue-200",
+    badge: "bg-blue-400/30 text-white",
   },
   health: {
-    hover: "hover:bg-blue-50/50 hover:text-blue-600",
-    active: "bg-blue-600 text-white",
-    icon: "text-blue-500",
-    badge: "bg-blue-100 text-blue-700",
+    hover: "hover:bg-blue-500/40 hover:text-white",
+    active: "bg-blue-500 text-white",
+    icon: "text-blue-200",
+    badge: "bg-blue-400/30 text-white",
   },
   communication: {
-    hover: "hover:bg-blue-50/50 hover:text-blue-600",
-    active: "bg-blue-600 text-white",
-    icon: "text-blue-500",
-    badge: "bg-blue-100 text-blue-700",
+    hover: "hover:bg-blue-500/40 hover:text-white",
+    active: "bg-blue-500 text-white",
+    icon: "text-blue-200",
+    badge: "bg-blue-400/30 text-white",
   },
   services: {
-    hover: "hover:bg-blue-50/50 hover:text-blue-600",
-    active: "bg-blue-600 text-white",
-    icon: "text-blue-500",
-    badge: "bg-blue-100 text-blue-700",
+    hover: "hover:bg-blue-500/40 hover:text-white",
+    active: "bg-blue-500 text-white",
+    icon: "text-blue-200",
+    badge: "bg-blue-400/30 text-white",
   },
   settings: {
-    hover: "hover:bg-blue-50/50 hover:text-blue-600",
-    active: "bg-blue-600 text-white",
-    icon: "text-blue-500",
-    badge: "bg-blue-100 text-blue-700",
+    hover: "hover:bg-blue-500/40 hover:text-white",
+    active: "bg-blue-500 text-white",
+    icon: "text-blue-200",
+    badge: "bg-blue-400/30 text-white",
   },
 };
 
@@ -136,28 +138,30 @@ export function PatientSidebar({ className, items }: PatientSidebarProps) {
   return (
     <aside
       className={cn(
-        "w-64 bg-gradient-to-b from-white via-blue-50/30 to-white border-r border-blue-100/50 min-h-screen sticky top-0",
-        "flex flex-col shadow-sm",
+        "w-72 bg-gradient-to-b from-blue-600 via-blue-600 to-blue-700 border-r border-blue-800/50 h-full",
+        "flex flex-col shadow-lg",
         className
       )}
     >
-      <nav className="flex-1 overflow-y-auto py-4 px-3">
+      <nav className="flex-1 overflow-y-auto sidebar-scrollbar py-6 px-5">
         <div className="space-y-6">
           {Object.entries(groupedItems).map(([section, sectionItems]) => {
             const sectionConfig = getSectionConfig(section);
             return (
               <div key={section} className="space-y-1.5">
                 {section !== "main" && (
-                  <h3 className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                  <h3 className="px-5 py-2.5 text-xs font-bold text-blue-200 uppercase tracking-widest flex items-center gap-2.5">
                     <div className={cn(
-                      "h-0.5 w-4 rounded-full",
-                      section === "health" && "bg-blue-500",
-                      section === "communication" && "bg-blue-500",
-                      section === "services" && "bg-blue-500",
-                      section === "settings" && "bg-blue-500",
-                      section === "main" && "bg-blue-500"
+                      "h-1 w-6 rounded-full bg-gradient-to-r from-blue-300 to-blue-400 shadow-sm",
+                      section === "health" && "from-blue-300 to-blue-400",
+                      section === "communication" && "from-blue-300 to-blue-400",
+                      section === "services" && "from-blue-300 to-blue-400",
+                      section === "settings" && "from-blue-300 to-blue-400",
+                      section === "main" && "from-blue-300 to-blue-400"
                     )} />
-                    {sectionLabels[section] || section}
+                    <span>
+                      {sectionLabels[section] || section}
+                    </span>
                   </h3>
                 )}
                 <ul className="space-y-1">
@@ -173,49 +177,60 @@ export function PatientSidebar({ className, items }: PatientSidebarProps) {
                         <Link
                           href={item.href}
                           className={cn(
-                            "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200",
+                            "flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300",
                             "text-sm font-medium",
                             "group relative",
+                            "hover:scale-[1.02] active:scale-[0.98]",
                             isActive
                               ? cn(
                                   itemSectionConfig.active,
-                                  "shadow-md shadow-blue-500/10"
+                                  "shadow-lg shadow-blue-400/30 ring-1 ring-blue-300/30"
                                 )
                               : cn(
-                                  "text-gray-700",
-                                  itemSectionConfig.hover
+                                  "text-blue-100",
+                                  itemSectionConfig.hover,
+                                  "hover:shadow-md"
                                 )
                           )}
                         >
                           {/* Left accent bar for active state */}
                           {isActive && (
-                            <div className="absolute left-0 top-1 bottom-1 w-1 bg-white rounded-r-full shadow-sm" />
+                            <div className="absolute left-0 top-1 bottom-1 w-1.5 bg-white rounded-r-full shadow-lg shadow-blue-300/40" />
                           )}
                           <div
                             className={cn(
-                              "h-8 w-8 rounded-lg flex items-center justify-center transition-all duration-200",
+                              "h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-300 relative",
+                              "group-hover:scale-110",
                               isActive
-                                ? "bg-white/20"
-                                : "bg-gray-50 group-hover:bg-white"
+                                ? "bg-gradient-to-br from-white/30 to-white/10 shadow-lg shadow-blue-400/30 ring-2 ring-white/30"
+                                : "bg-gradient-to-br from-blue-500/30 to-blue-500/20 group-hover:from-blue-500/50 group-hover:to-blue-500/40 shadow-sm group-hover:shadow-md"
                             )}
                           >
+                            {/* Subtle glow effect for active state */}
+                            {isActive && (
+                              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />
+                            )}
                             <Icon
                               className={cn(
-                                "h-4 w-4 flex-shrink-0 transition-all duration-200",
+                                "h-5 w-5 flex-shrink-0 transition-all duration-300 relative z-10",
                                 isActive
-                                  ? "text-white"
-                                  : cn("text-gray-500 group-hover:text-current", itemSectionConfig.icon)
+                                  ? "text-white drop-shadow-sm"
+                                  : "text-blue-200 group-hover:text-white group-hover:scale-110"
                               )}
                             />
                           </div>
-                          <span className="flex-1">{item.label}</span>
+                          <span className={cn("flex-1", isActive ? "text-white" : "text-blue-100")}>{item.label}</span>
                           {item.badge && item.badge > 0 && (
                             <Badge
                               className={cn(
-                                "ml-auto min-w-[20px] h-5 flex items-center justify-center px-1.5 text-xs font-semibold",
+                                "ml-auto min-w-[22px] h-6 flex items-center justify-center px-2 text-xs font-bold rounded-full transition-all duration-300",
+                                "shadow-sm group-hover:scale-110",
                                 isActive
-                                  ? "bg-white/90 text-blue-600 shadow-sm"
-                                  : itemSectionConfig.badge
+                                  ? "bg-white/95 text-blue-600 shadow-md ring-1 ring-blue-200/50"
+                                  : cn(
+                                      "bg-blue-400/40 text-white",
+                                      "group-hover:shadow-md"
+                                    )
                               )}
                             >
                               {item.badge > 99 ? "99+" : item.badge}
@@ -233,23 +248,23 @@ export function PatientSidebar({ className, items }: PatientSidebarProps) {
       </nav>
 
       {/* Footer Section */}
-      <div className="border-t border-blue-100/50 p-4 space-y-2 bg-white/80 backdrop-blur-sm">
+      <div className="border-t border-blue-800/50 px-5 py-5 space-y-2 bg-blue-700/50 backdrop-blur-sm">
         <Link
           href="/patient/help"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 hover:bg-blue-50/50 hover:text-blue-600 transition-all duration-200 group"
+          className="flex items-center gap-3 px-5 py-3 rounded-xl text-sm font-medium text-blue-100 hover:bg-blue-500/40 hover:text-white transition-all duration-300 group hover:scale-[1.02] active:scale-[0.98]"
         >
-          <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-            <MessageCircle className="h-4 w-4 text-blue-500" />
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500/40 to-blue-500/30 flex items-center justify-center group-hover:from-blue-500/60 group-hover:to-blue-500/50 transition-all duration-300 shadow-sm group-hover:shadow-md group-hover:scale-110">
+            <HelpCircle className="h-5 w-5 text-blue-100 group-hover:text-white transition-all duration-300" />
           </div>
           <span>Precisa de Ajuda?</span>
         </Link>
         <Button
           variant="ghost"
           onClick={handleLogout}
-          className="w-full justify-start gap-3 px-3 py-2.5 h-auto text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200 rounded-xl"
+          className="w-full justify-start gap-3 px-5 py-3 h-auto text-sm font-medium text-blue-100 hover:bg-red-500/30 hover:text-white transition-all duration-300 rounded-xl hover:scale-[1.02] active:scale-[0.98]"
         >
-          <div className="h-8 w-8 rounded-lg bg-red-50 flex items-center justify-center group-hover:bg-red-100 transition-colors">
-            <LogOut className="h-4 w-4 text-red-500" />
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500/30 to-red-500/20 flex items-center justify-center group-hover:from-red-500/50 group-hover:to-red-500/40 transition-all duration-300 shadow-sm group-hover:shadow-md group-hover:scale-110">
+            <LogOut className="h-5 w-5 text-red-200 group-hover:text-white transition-all duration-300" />
           </div>
           <span>Sair</span>
         </Button>

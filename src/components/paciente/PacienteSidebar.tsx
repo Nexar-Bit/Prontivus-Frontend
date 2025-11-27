@@ -130,37 +130,37 @@ export function PacienteSidebar() {
           "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative group",
           "hover:scale-[1.02] active:scale-[0.98]",
           active
-            ? "bg-white text-blue-700 font-semibold shadow-lg shadow-blue-500/10"
-            : "text-white/90 hover:text-white hover:bg-white/15 hover:shadow-md"
+            ? "bg-white text-teal-700 font-semibold shadow-lg shadow-teal-200/30"
+            : "text-slate-700 hover:text-teal-700 hover:bg-teal-50/60 hover:shadow-md"
         )}
         onClick={() => setIsMobileMenuOpen(false)}
       >
         {active && (
           <>
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-10 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-full shadow-sm" />
-            <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent rounded-xl" />
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-10 bg-gradient-to-b from-teal-400 to-teal-500 rounded-r-full shadow-sm" />
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-50/20 to-transparent rounded-xl" />
           </>
         )}
         <div
           className={cn(
             "relative z-10 flex items-center justify-center h-9 w-9 rounded-lg transition-all duration-300",
             active
-              ? "bg-blue-50 shadow-sm"
-              : "bg-white/5 group-hover:bg-white/10"
+              ? "bg-teal-100 shadow-sm"
+              : "bg-teal-50/40 group-hover:bg-teal-100/60"
           )}
         >
           <Icon
             className={cn(
               "h-5 w-5 shrink-0 transition-all duration-300",
               active 
-                ? "text-blue-600 scale-110" 
-                : "text-white/90 group-hover:text-white group-hover:scale-105"
+                ? "text-teal-600 scale-110" 
+                : "text-slate-600 group-hover:text-teal-600 group-hover:scale-105"
             )}
           />
         </div>
         <span className={cn(
           "text-sm font-medium relative z-10 transition-all duration-300",
-          active ? "text-blue-700" : "text-white/90 group-hover:text-white"
+          active ? "text-teal-700" : "text-slate-700 group-hover:text-teal-700"
         )}>
           {item.title}
         </span>
@@ -171,7 +171,7 @@ export function PacienteSidebar() {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo Section */}
-      <div className="px-6 py-6 border-b border-white/10 bg-gradient-to-b from-blue-800/50 to-transparent">
+      <div className="px-6 py-6 border-b border-teal-200/20 bg-gradient-to-b from-teal-50/30 to-transparent">
         <Link href="/" className="flex items-center w-full group">
           <Image
             src={"/Logo/Logotipo em Fundo Transparente.png"}
@@ -183,11 +183,11 @@ export function PacienteSidebar() {
           />
         </Link>
         <div className="mt-4 px-2">
-          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg">
-            <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
-              <HeartPulse className="h-4 w-4 text-white" />
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 bg-teal-100/40 backdrop-blur-sm rounded-xl border border-teal-200/30 shadow-lg">
+            <div className="h-8 w-8 rounded-lg bg-teal-200/40 flex items-center justify-center">
+              <HeartPulse className="h-4 w-4 text-teal-700" />
             </div>
-            <span className="text-xs font-bold text-white uppercase tracking-wider">
+            <span className="text-xs font-bold text-teal-800 uppercase tracking-wider">
               Paciente
             </span>
           </div>
@@ -204,29 +204,29 @@ export function PacienteSidebar() {
       </div>
 
       {/* Help Section */}
-      <div className="px-3 py-2 border-t border-white/10 bg-gradient-to-t from-blue-800/30 to-transparent">
+      <div className="px-3 py-2 border-t border-teal-200/20 bg-gradient-to-t from-teal-50/40 to-transparent">
         <Link
           href="/pacient/ajuda"
           className={cn(
             "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
             "hover:scale-[1.02] active:scale-[0.98]",
             pathname === "/pacient/ajuda"
-              ? "bg-white text-blue-700 font-semibold shadow-lg shadow-blue-500/10"
-              : "text-white/90 hover:text-white hover:bg-white/15 hover:shadow-md"
+              ? "bg-white text-teal-700 font-semibold shadow-lg shadow-teal-200/30"
+              : "text-slate-700 hover:text-teal-700 hover:bg-teal-50/60 hover:shadow-md"
           )}
           onClick={() => setIsMobileMenuOpen(false)}
         >
           <div className={cn(
             "h-9 w-9 rounded-lg flex items-center justify-center transition-all duration-300",
             pathname === "/pacient/ajuda"
-              ? "bg-blue-50 shadow-sm"
-              : "bg-white/5 group-hover:bg-white/10"
+              ? "bg-teal-100 shadow-sm"
+              : "bg-teal-50/40 group-hover:bg-teal-100/60"
           )}>
             <HelpCircle className={cn(
               "h-5 w-5 shrink-0 transition-all duration-300",
               pathname === "/pacient/ajuda"
-                ? "text-blue-600 scale-110"
-                : "text-white/90 group-hover:text-white group-hover:scale-105"
+                ? "text-teal-600 scale-110"
+                : "text-slate-600 group-hover:text-teal-600 group-hover:scale-105"
             )} />
           </div>
           <span className="text-sm font-medium">Precisa de Ajuda?</span>
@@ -234,11 +234,11 @@ export function PacienteSidebar() {
       </div>
 
       {/* User Profile Footer */}
-      <div className="px-4 py-4 border-t border-white/10 bg-gradient-to-t from-blue-800/40 to-transparent backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300">
-          <Avatar className="h-11 w-11 border-2 border-white/30 shadow-lg ring-2 ring-white/10">
+      <div className="px-4 py-4 border-t border-teal-200/20 bg-gradient-to-t from-teal-50/50 to-transparent backdrop-blur-sm">
+        <div className="flex items-center gap-3 mb-3 p-2 rounded-xl bg-teal-50/40 hover:bg-teal-100/50 transition-all duration-300">
+          <Avatar className="h-11 w-11 border-2 border-teal-200/50 shadow-lg ring-2 ring-teal-100/30">
             <AvatarImage src={avatarUrl || undefined} alt={user.username} />
-            <AvatarFallback className="bg-gradient-to-br from-blue-400/30 to-blue-600/30 text-white border-white/30 font-semibold backdrop-blur-sm">
+            <AvatarFallback className="bg-gradient-to-br from-teal-200/50 to-teal-300/50 text-teal-700 border-teal-200/50 font-semibold backdrop-blur-sm">
               {avatarUrl ? (
                 <UserRound className="h-5 w-5" />
               ) : (
@@ -247,12 +247,12 @@ export function PacienteSidebar() {
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <div className="text-white font-semibold text-sm truncate">
+            <div className="text-slate-700 font-semibold text-sm truncate">
               {user.first_name && user.last_name
                 ? `${user.first_name} ${user.last_name}`
                 : user.username}
             </div>
-            <div className="text-white/60 text-xs truncate flex items-center gap-1.5">
+            <div className="text-slate-500 text-xs truncate flex items-center gap-1.5">
               <Sparkles className="h-3 w-3" />
               Paciente
             </div>
@@ -262,9 +262,9 @@ export function PacienteSidebar() {
           variant="ghost"
           size="sm"
           onClick={() => setShowLogoutDialog(true)}
-          className="w-full justify-start gap-3 px-3 py-2.5 h-auto text-white/90 hover:text-white hover:bg-red-500/20 hover:border-red-400/30 border border-transparent rounded-xl transition-all duration-300 group"
+          className="w-full justify-start gap-3 px-3 py-2.5 h-auto text-slate-700 hover:text-red-600 hover:bg-red-50/60 hover:border-red-200/50 border border-transparent rounded-xl transition-all duration-300 group"
         >
-          <div className="h-8 w-8 rounded-lg bg-red-500/10 group-hover:bg-red-500/20 flex items-center justify-center transition-all duration-300">
+          <div className="h-8 w-8 rounded-lg bg-red-50/60 group-hover:bg-red-100/80 flex items-center justify-center transition-all duration-300">
             <LogOut className="h-4 w-4 group-hover:scale-110 transition-transform" />
           </div>
           <span className="text-sm font-medium">Sair</span>
@@ -305,7 +305,7 @@ export function PacienteSidebar() {
     <>
       <button
         onClick={() => setIsMobileMenuOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-xl shadow-xl shadow-blue-900/30 hover:shadow-2xl hover:scale-105 transition-all duration-300"
+        className="lg:hidden fixed top-4 left-4 z-50 p-3 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-xl shadow-xl shadow-teal-900/30 hover:shadow-2xl hover:scale-105 transition-all duration-300"
         aria-label="Open menu"
       >
         <Menu className="h-6 w-6" />
@@ -317,8 +317,8 @@ export function PacienteSidebar() {
             className="lg:hidden fixed inset-0 bg-black/50 z-40"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] bg-gradient-to-b from-blue-700 via-blue-700 to-blue-800 shadow-2xl shadow-blue-900/40 transform transition-transform duration-300 ease-in-out">
-            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-gradient-to-r from-blue-800/50 to-transparent">
+          <div className="lg:hidden fixed inset-y-0 left-0 z-50 w-[280px] bg-gradient-to-b from-teal-50 via-teal-50/95 to-teal-100 shadow-2xl shadow-teal-900/20 transform transition-transform duration-300 ease-in-out">
+            <div className="flex items-center justify-between p-4 border-b border-teal-200/30 bg-gradient-to-r from-teal-50/80 to-transparent">
               <Image
                 src={"/Logo/Logotipo em Fundo Transparente.png"}
                 alt="Prontivus"
@@ -329,7 +329,7 @@ export function PacienteSidebar() {
               />
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2.5 text-white/90 hover:text-white hover:bg-white/15 rounded-xl transition-all duration-300 hover:scale-110"
+                className="p-2.5 text-slate-700 hover:text-teal-700 hover:bg-teal-100/60 rounded-xl transition-all duration-300 hover:scale-110"
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
@@ -345,7 +345,7 @@ export function PacienteSidebar() {
   return (
     <>
       <MobileSidebar />
-      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-[260px] bg-gradient-to-b from-blue-700 via-blue-700 to-blue-800 z-30 shadow-2xl shadow-blue-900/20">
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-[260px] bg-gradient-to-b from-teal-50 via-teal-50/95 to-teal-100 z-30 shadow-2xl shadow-teal-900/10 border-r border-teal-200/30">
         <SidebarContent />
       </aside>
     </>

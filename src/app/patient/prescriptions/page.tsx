@@ -364,26 +364,27 @@ export default function PrescriptionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
+    <div className="flex flex-col h-full overflow-hidden">
       <PatientHeader showSearch={false} notificationCount={3} />
       <PatientMobileNav />
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <div className="hidden lg:block">
           <PatientSidebar />
         </div>
 
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto patient-content-scroll w-full">
+          <div className="px-4 lg:px-5 py-4 lg:py-6 pb-20 lg:pb-6">
           {/* Modern Header */}
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Pill className="h-7 w-7 text-blue-600" />
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-700 to-teal-700 bg-clip-text text-transparent mb-2 flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+                  <Pill className="h-7 w-7 text-white" />
                 </div>
                 Medicamentos
               </h1>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-gray-600 text-sm lg:text-base font-medium mt-2">
                 Gerencie suas prescrições e acompanhe sua adesão medicamentosa
               </p>
             </div>
@@ -415,7 +416,7 @@ export default function PrescriptionsPage() {
               </Button>
               <Button 
                 variant="outline" 
-                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                className="border-2 border-blue-300 text-blue-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 font-semibold shadow-sm hover:shadow-md transition-all duration-300"
                 onClick={async () => {
                   try {
                     // Export prescriptions as CSV
@@ -480,59 +481,71 @@ export default function PrescriptionsPage() {
           {/* Statistics Cards */}
           {!loading && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="group relative overflow-hidden border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/30 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   Ativos
                 </CardTitle>
-                <Pill className="h-4 w-4 text-blue-500" />
+                <div className="p-1.5 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                  <Pill className="h-4 w-4 text-blue-600" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{activeMeds.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Medicamentos ativos</p>
+              <CardContent className="relative">
+                <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">{activeMeds.length}</div>
+                <p className="text-xs text-gray-600 mt-2 font-medium">Medicamentos ativos</p>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-teal-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="group relative overflow-hidden border-l-4 border-l-teal-500 bg-gradient-to-br from-white to-teal-50/30 hover:shadow-xl hover:shadow-teal-500/10 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-teal-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   Histórico
                 </CardTitle>
-                <Package className="h-4 w-4 text-teal-500" />
+                <div className="p-1.5 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-colors">
+                  <Package className="h-4 w-4 text-teal-600" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{pastMeds.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Medicamentos anteriores</p>
+              <CardContent className="relative">
+                <div className="text-4xl font-bold bg-gradient-to-r from-teal-600 to-teal-700 bg-clip-text text-transparent">{pastMeds.length}</div>
+                <p className="text-xs text-gray-600 mt-2 font-medium">Medicamentos anteriores</p>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="group relative overflow-hidden border-l-4 border-l-green-500 bg-gradient-to-br from-white to-green-50/30 hover:shadow-xl hover:shadow-green-500/10 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-green-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   Adesão Média
                 </CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-500" />
+                <div className="p-1.5 rounded-lg bg-green-100 group-hover:bg-green-200 transition-colors">
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="relative">
+                <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
                   {activeMeds.length > 0 
                     ? Math.round(activeMeds.reduce((sum, m) => sum + m.adherence, 0) / activeMeds.length)
                     : 0}%
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Taxa de adesão</p>
+                <p className="text-xs text-gray-600 mt-2 font-medium">Taxa de adesão</p>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="group relative overflow-hidden border-l-4 border-l-orange-500 bg-gradient-to-br from-white to-orange-50/30 hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-orange-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   Renovações
                 </CardTitle>
-                <RefreshCw className="h-4 w-4 text-orange-500" />
+                <div className="p-1.5 rounded-lg bg-orange-100 group-hover:bg-orange-200 transition-colors">
+                  <RefreshCw className="h-4 w-4 text-orange-600" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{pendingRefills.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Pendentes</p>
+              <CardContent className="relative">
+                <div className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">{pendingRefills.length}</div>
+                <p className="text-xs text-gray-600 mt-2 font-medium">Pendentes</p>
               </CardContent>
             </Card>
           </div>
@@ -567,7 +580,7 @@ export default function PrescriptionsPage() {
 
           {/* Search and Filters */}
           {!loading && (
-          <Card className="border-l-4 border-l-blue-500 mb-6 bg-white/80 backdrop-blur-sm">
+          <Card className="border-2 border-blue-100/50 mb-6 bg-gradient-to-br from-white to-blue-50/20 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1 relative">
@@ -1365,6 +1378,7 @@ ${selectedMedication.instructions || ''}
               )}
             </DialogContent>
           </Dialog>
+          </div>
         </main>
       </div>
     </div>

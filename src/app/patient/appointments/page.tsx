@@ -520,26 +520,27 @@ export default function PatientAppointmentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
+    <div className="flex flex-col h-full overflow-hidden">
       <PatientHeader showSearch={false} notificationCount={3} />
       <PatientMobileNav />
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <div className="hidden lg:block">
           <PatientSidebar />
         </div>
 
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto patient-content-scroll w-full">
+          <div className="px-4 lg:px-5 py-4 lg:py-6 pb-20 lg:pb-6">
           {/* Modern Header */}
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <CalendarIcon className="h-7 w-7 text-blue-600" />
+              <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-700 to-teal-700 bg-clip-text text-transparent mb-2 flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+                  <CalendarIcon className="h-7 w-7 text-white" />
                 </div>
                 Agendamentos
               </h1>
-              <p className="text-muted-foreground text-sm">
+              <p className="text-gray-600 text-sm lg:text-base font-medium mt-2">
                 Gerencie seus agendamentos e consulte com seus médicos
               </p>
             </div>
@@ -555,7 +556,7 @@ export default function PatientAppointmentsPage() {
               </Button>
               <Button
                 size="lg"
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-md"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
                 onClick={() => setShowBookingModal(true)}
               >
                 <Plus className="h-5 w-5 mr-2" />
@@ -565,20 +566,20 @@ export default function PatientAppointmentsPage() {
           </div>
 
           {/* Filters */}
-          <Card className="mb-6">
+          <Card className="mb-6 border-2 border-blue-100/50 bg-gradient-to-br from-white to-blue-50/20 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Buscar por médico, especialidade ou motivo..."
-                    className="pl-10"
+                    className="pl-10 border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 rounded-lg"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="border-2 border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-200 rounded-lg">
                     <SelectValue placeholder="Filtrar por status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -595,83 +596,95 @@ export default function PatientAppointmentsPage() {
 
           {/* Statistics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="group relative overflow-hidden border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/30 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   Próximos
                 </CardTitle>
-                <CalendarIcon className="h-4 w-4 text-blue-500" />
+                <div className="p-1.5 rounded-lg bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                  <CalendarIcon className="h-4 w-4 text-blue-600" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{upcomingAppointments.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Agendamentos futuros</p>
+              <CardContent className="relative">
+                <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">{upcomingAppointments.length}</div>
+                <p className="text-xs text-gray-600 mt-2 font-medium">Agendamentos futuros</p>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-teal-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="group relative overflow-hidden border-l-4 border-l-teal-500 bg-gradient-to-br from-white to-teal-50/30 hover:shadow-xl hover:shadow-teal-500/10 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-teal-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   Histórico
                 </CardTitle>
-                <FileText className="h-4 w-4 text-teal-500" />
+                <div className="p-1.5 rounded-lg bg-teal-100 group-hover:bg-teal-200 transition-colors">
+                  <FileText className="h-4 w-4 text-teal-600" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{pastAppointments.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">Consultas anteriores</p>
+              <CardContent className="relative">
+                <div className="text-4xl font-bold bg-gradient-to-r from-teal-600 to-teal-700 bg-clip-text text-transparent">{pastAppointments.length}</div>
+                <p className="text-xs text-gray-600 mt-2 font-medium">Consultas anteriores</p>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-green-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="group relative overflow-hidden border-l-4 border-l-green-500 bg-gradient-to-br from-white to-green-50/30 hover:shadow-xl hover:shadow-green-500/10 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-green-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   Confirmados
                 </CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <div className="p-1.5 rounded-lg bg-green-100 group-hover:bg-green-200 transition-colors">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="relative">
+                <div className="text-4xl font-bold bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent">
                   {appointments.filter(a => a.status === 'confirmed' || a.status === 'scheduled').length}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Consultas confirmadas</p>
+                <p className="text-xs text-gray-600 mt-2 font-medium">Consultas confirmadas</p>
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-purple-500 hover:shadow-md transition-shadow bg-white/80 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+            <Card className="group relative overflow-hidden border-l-4 border-l-purple-500 bg-gradient-to-br from-white to-purple-50/30 hover:shadow-xl hover:shadow-purple-500/10 transition-all duration-300 hover:-translate-y-1">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-purple-200/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative">
+                <CardTitle className="text-sm font-semibold text-gray-700">
                   Telemedicina
                 </CardTitle>
-                <Video className="h-4 w-4 text-purple-500" />
+                <div className="p-1.5 rounded-lg bg-purple-100 group-hover:bg-purple-200 transition-colors">
+                  <Video className="h-4 w-4 text-purple-600" />
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
+              <CardContent className="relative">
+                <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-purple-700 bg-clip-text text-transparent">
                   {appointments.filter(a => a.appointment_type === 'telemedicine').length}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Consultas virtuais</p>
+                <p className="text-xs text-gray-600 mt-2 font-medium">Consultas virtuais</p>
               </CardContent>
             </Card>
           </div>
 
           {/* Upcoming Appointments */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-blue-600 mb-4 flex items-center gap-2">
-              <div className="p-1.5 bg-blue-100 rounded-lg">
-                <CalendarIcon className="h-5 w-5" />
+            <h2 className="text-2xl font-bold text-blue-700 mb-4 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+                <CalendarIcon className="h-6 w-6 text-white" />
               </div>
               Próximos Agendamentos ({upcomingAppointments.length})
             </h2>
             {upcomingAppointments.length === 0 ? (
-              <Card className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
+              <Card className="border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/30 hover:shadow-xl transition-all duration-300">
                 <CardContent className="py-12 text-center">
-                  <div className="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                    <CalendarIcon className="h-10 w-10 text-blue-600" />
+                  <div className="p-5 bg-gradient-to-br from-blue-100 to-teal-100 rounded-2xl w-24 h-24 mx-auto mb-5 flex items-center justify-center shadow-lg">
+                    <CalendarIcon className="h-12 w-12 text-blue-600" />
                   </div>
-                  <p className="text-gray-500 mb-4 font-medium">Nenhum agendamento próximo</p>
+                  <p className="text-gray-600 mb-5 font-semibold text-lg">Nenhum agendamento próximo</p>
                   <Button 
                     onClick={() => setShowBookingModal(true)}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-5 w-5 mr-2" />
                     Agendar Consulta
                   </Button>
                 </CardContent>
@@ -681,19 +694,20 @@ export default function PatientAppointmentsPage() {
                 {upcomingAppointments.map((appointment) => (
                   <Card 
                     key={appointment.id} 
-                    className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow bg-white/80 backdrop-blur-sm"
+                    className="group relative overflow-hidden border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/30 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1"
                   >
-                    <CardHeader>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-200/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                    <CardHeader className="relative">
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-4 flex-1">
-                          <Avatar className="h-16 w-16 border-2 border-blue-200">
+                          <Avatar className="h-16 w-16 border-3 border-blue-300 shadow-lg group-hover:scale-105 transition-transform">
                             <AvatarImage src={appointment.doctor.photo} />
-                            <AvatarFallback className="bg-blue-100 text-blue-600">
+                            <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 font-bold">
                               {appointment.doctor.first_name[0]}{appointment.doctor.last_name[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
-                            <CardTitle className="text-lg text-blue-600 mb-1">
+                            <CardTitle className="text-lg font-bold text-blue-700 mb-1">
                               Dr(a). {appointment.doctor.first_name} {appointment.doctor.last_name}
                             </CardTitle>
                             <div className="flex items-center gap-2 mb-2">
@@ -814,9 +828,9 @@ export default function PatientAppointmentsPage() {
           {/* Past Appointments */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-teal-600 flex items-center gap-2">
-                <div className="p-1.5 bg-teal-100 rounded-lg">
-                  <FileText className="h-5 w-5" />
+              <h2 className="text-2xl font-bold text-teal-700 flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 shadow-lg shadow-teal-500/25">
+                  <FileText className="h-6 w-6 text-white" />
                 </div>
                 Histórico de Consultas ({pastAppointments.length})
               </h2>
@@ -1478,6 +1492,7 @@ export default function PatientAppointmentsPage() {
               )}
             </DialogContent>
           </Dialog>
+          </div>
         </main>
       </div>
     </div>

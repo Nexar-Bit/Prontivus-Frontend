@@ -172,15 +172,15 @@ export function PatientHeader({
   return (
     <header
       className={cn(
-        "bg-gradient-to-r from-white via-blue-50/30 to-white border-b border-blue-100/50 sticky top-0 z-50 backdrop-blur-md bg-white/95 shadow-sm",
+        "bg-gradient-to-r from-blue-600 via-blue-600 to-blue-700 border-b border-blue-800/50 z-50 backdrop-blur-md shadow-lg flex-shrink-0",
         className
       )}
     >
       {/* Progress Indicator */}
       {operationProgress?.isOperating && (
-        <div className="h-1 bg-blue-100 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 animate-pulse" style={{ width: '100%' }} />
-          <div className="absolute inset-0 bg-blue-500 animate-[shimmer_2s_infinite] opacity-50" style={{ 
+        <div className="h-1 bg-blue-800 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-300 animate-pulse" style={{ width: '100%' }} />
+          <div className="absolute inset-0 bg-blue-400 animate-[shimmer_2s_infinite] opacity-50" style={{ 
             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
             width: '50%',
             animation: 'shimmer 2s infinite'
@@ -188,23 +188,23 @@ export function PatientHeader({
         </div>
       )}
       {operationProgress?.isOperating && operationProgress.operationMessage && (
-        <div className="px-4 lg:px-6 py-2 bg-blue-50/50 border-b border-blue-100/50 flex items-center gap-2 text-sm text-blue-700">
+        <div className="px-4 lg:px-6 py-2 bg-blue-700/80 border-b border-blue-800/50 flex items-center gap-2 text-sm text-white">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>{operationProgress.operationMessage}</span>
         </div>
       )}
-      <div className="px-4 lg:px-6 py-4">
+      <div className="px-6 lg:px-8 py-5">
         <div className="flex items-center justify-between gap-4">
           {/* Left Section: Logo */}
           <div className="flex items-center gap-4 flex-shrink-0">
             <Link href="/patient/dashboard" className="flex-shrink-0">
-              <div className="relative h-12 w-auto">
+              <div className="relative h-36 w-auto">
                 <Image
-                  src="/Logo/Sublogo PNG Transparente.png"
+                  src="/Logo/Prontivus Horizontal Transparents.png"
                   alt="Prontivus"
-                  width={180}
-                  height={48}
-                  className="h-12 w-auto object-contain"
+                  width={540}
+                  height={144}
+                  className="h-36 w-auto object-contain"
                   priority
                 />
               </div>
@@ -215,13 +215,13 @@ export function PatientHeader({
           {showSearch && (
             <div className="hidden md:flex flex-1 max-w-md mx-4 relative">
               <div className="relative w-full">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-400 z-10" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-300 z-10" />
                 <Input
                   type="search"
                   placeholder="Buscar em registros médicos..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-11 pr-11 h-11 border-2 border-blue-200/50 focus:border-blue-500 rounded-xl bg-white/80 backdrop-blur-sm shadow-sm focus:shadow-md focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
+                  className="pl-11 pr-11 h-11 border-2 border-blue-400/50 focus:border-blue-300 rounded-xl bg-white shadow-sm focus:shadow-md focus:ring-2 focus:ring-blue-300/30 transition-all duration-200"
                 />
                 {searchQuery && (
                   <button
@@ -283,15 +283,15 @@ export function PatientHeader({
             {/* Patient Info & Greeting */}
             <div className="hidden lg:flex items-center gap-3 min-w-0">
               <div className="min-w-0 text-right">
-                <h1 className="text-lg lg:text-xl font-bold text-blue-700 truncate flex items-center justify-end gap-2">
+                <h1 className="text-lg lg:text-xl font-bold text-white truncate flex items-center justify-end gap-2">
                   <span>{getGreeting()}, {user?.first_name || "Paciente"}! 👋</span>
                 </h1>
-                <p className="text-sm text-blue-600/70 truncate flex items-center justify-end gap-1.5 mt-0.5">
+                <p className="text-sm text-blue-100 truncate flex items-center justify-end gap-1.5 mt-0.5">
                   <span>{user?.email || "Seu painel de saúde"}</span>
                 </p>
               </div>
               <div className="relative">
-                <Avatar className="h-14 w-14 border-2 border-blue-200 shadow-md shadow-blue-500/20 flex-shrink-0 ring-2 ring-white">
+                <Avatar className="h-14 w-14 border-2 border-blue-400 shadow-md shadow-blue-900/30 flex-shrink-0 ring-2 ring-blue-500/30">
                   <AvatarImage src={(user as any)?.avatar} alt={user?.username} />
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-base">
                     {getUserInitials()}
@@ -306,7 +306,7 @@ export function PatientHeader({
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden h-11 w-11 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                className="md:hidden h-11 w-11 rounded-xl hover:bg-blue-500/30 hover:text-white text-blue-100 transition-colors"
                 onClick={() => {
                   // Open mobile search
                 }}
@@ -323,11 +323,11 @@ export function PatientHeader({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="relative h-11 w-11 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                  className="relative h-11 w-11 rounded-xl hover:bg-blue-500/30 hover:text-white text-blue-100 transition-colors"
                   aria-label={`Notificações${notificationCount > 0 ? ` (${notificationCount} novas)` : ''}`}
                   title="Notificações"
                 >
-                  <BellRing className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
+                  <BellRing className="h-5 w-5" />
                   {notificationCount > 0 && (
                     <Badge className="absolute top-0.5 right-0.5 h-5 min-w-[20px] px-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] font-semibold border-2 border-white shadow-md">
                       {notificationCount > 99 ? "99+" : notificationCount}
@@ -453,18 +453,18 @@ export function PatientHeader({
             <Button
               variant="outline"
               size="sm"
-              className="hidden lg:flex items-center gap-2 border-2 border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400 rounded-xl font-semibold shadow-sm transition-all duration-200"
+              className="hidden lg:flex items-center gap-2 border-2 border-red-400/50 text-white bg-red-500/20 hover:bg-red-500/30 hover:border-red-400 rounded-xl font-semibold shadow-sm transition-all duration-200 backdrop-blur-sm"
               onClick={handleEmergencyContact}
             >
-              <div className="h-7 w-7 rounded-lg bg-red-100 flex items-center justify-center">
-                <HelpCircle className="h-4 w-4 text-red-600" />
+              <div className="h-7 w-7 rounded-lg bg-red-400/30 flex items-center justify-center">
+                <HelpCircle className="h-4 w-4 text-white" />
               </div>
               <span>Precisa de Ajuda?</span>
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden h-11 w-11 rounded-xl text-red-600 hover:bg-red-50 transition-colors border-2 border-red-200"
+              className="lg:hidden h-11 w-11 rounded-xl text-white hover:bg-red-500/30 transition-colors border-2 border-red-400/50"
               onClick={handleEmergencyContact}
               aria-label="Emergency help"
             >

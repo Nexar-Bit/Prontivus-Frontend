@@ -120,28 +120,112 @@
 	}
 }
 
-/* Modern Scrollbar Styles for Sidebar - Soft blue */
+/* Smooth Scrolling for All Scrollable Areas */
+html {
+	scroll-behavior: smooth;
+}
+
+/* Modern Scrollbar Styles for Sidebar - Soft teal */
 .sidebar-scrollbar {
 	/* For Firefox */
 	scrollbar-width: thin;
-	scrollbar-color: oklch(0.62 0.10 240 / 0.5) transparent;
+	scrollbar-color: oklch(0.55 0.12 180 / 0.6) transparent;
+	scroll-behavior: smooth;
 }
 
 /* For Webkit browsers (Chrome, Safari, Edge) */
 .sidebar-scrollbar::-webkit-scrollbar {
-	width: 6px;
+	width: 8px;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-track {
 	background: transparent;
+	border-radius: 10px;
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-	background: oklch(0.62 0.10 240 / 0.4);
+	background: linear-gradient(180deg, oklch(0.55 0.12 180 / 0.5), oklch(0.50 0.12 180 / 0.6));
 	border-radius: 10px;
-	transition: background 0.2s ease;
+	border: 2px solid transparent;
+	background-clip: padding-box;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-	background: oklch(0.62 0.10 240 / 0.7);
+	background: linear-gradient(180deg, oklch(0.55 0.12 180 / 0.7), oklch(0.50 0.12 180 / 0.8));
+	border: 1px solid transparent;
+	background-clip: padding-box;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:active {
+	background: linear-gradient(180deg, oklch(0.50 0.12 180 / 0.8), oklch(0.45 0.12 180 / 0.9));
+}
+
+/* Modern Scrollbar Styles for Main Content - Positioned at screen edge */
+.patient-content-scroll {
+	scroll-behavior: smooth;
+	scrollbar-width: thin;
+	scrollbar-color: oklch(0.55 0.12 180 / 0.6) transparent;
+	-webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* For Webkit browsers (Chrome, Safari, Edge) - Main Content */
+.patient-content-scroll::-webkit-scrollbar {
+	width: 12px;
+}
+
+.patient-content-scroll::-webkit-scrollbar-track {
+	background: transparent;
+	border-radius: 0;
+	margin: 0;
+}
+
+.patient-content-scroll::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, 
+		oklch(0.60 0.12 180 / 0.5), 
+		oklch(0.55 0.12 180 / 0.6), 
+		oklch(0.50 0.12 180 / 0.7)
+	);
+	border-radius: 6px 0 0 6px;
+	border: none;
+	background-clip: padding-box;
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: inset 0 0 6px oklch(0.55 0.12 180 / 0.3);
+}
+
+.patient-content-scroll::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(180deg, 
+		oklch(0.60 0.12 180 / 0.7), 
+		oklch(0.55 0.12 180 / 0.8), 
+		oklch(0.50 0.12 180 / 0.9)
+	);
+	box-shadow: inset 0 0 8px oklch(0.55 0.12 180 / 0.4);
+	width: 14px;
+}
+
+.patient-content-scroll::-webkit-scrollbar-thumb:active {
+	background: linear-gradient(180deg, 
+		oklch(0.55 0.12 180 / 0.9), 
+		oklch(0.50 0.12 180 / 1), 
+		oklch(0.45 0.12 180 / 1)
+	);
+}
+
+/* Scroll fade effect at top/bottom */
+.patient-content-scroll::before,
+.patient-content-scroll::after {
+	content: '';
+	position: sticky;
+	left: 0;
+	right: 0;
+	height: 20px;
+	pointer-events: none;
+	z-index: 10;
+}
+
+/* Smooth scroll momentum on iOS */
+@supports (-webkit-overflow-scrolling: touch) {
+	.patient-content-scroll {
+		-webkit-overflow-scrolling: touch;
+	}
 }

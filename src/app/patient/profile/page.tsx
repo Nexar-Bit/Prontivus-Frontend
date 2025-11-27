@@ -528,16 +528,17 @@ export default function PatientProfilePage() {
   const hasEmergencyContact = profile.emergency_contact_name && profile.emergency_contact_phone;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-teal-50/30">
+    <div className="flex flex-col h-full overflow-hidden">
       <PatientHeader showSearch={false} notificationCount={0} />
       <PatientMobileNav />
 
-      <div className="flex">
+      <div className="flex flex-1 overflow-hidden">
         <div className="hidden lg:block">
           <PatientSidebar />
         </div>
 
-        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 max-w-7xl mx-auto w-full">
+        <main className="flex-1 overflow-y-auto patient-content-scroll w-full">
+          <div className="px-4 lg:px-5 py-4 lg:py-6 pb-20 lg:pb-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
             <div className="flex items-center gap-4">
@@ -1029,6 +1030,7 @@ export default function PatientProfilePage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
         </main>
       </div>
     </div>
