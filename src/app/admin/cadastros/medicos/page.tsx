@@ -125,7 +125,7 @@ export default function MedicosPage() {
     try {
       setLoading(true);
       // Use the users endpoint with role filter for doctors
-      const data = await api.get<Doctor[]>("/api/users?role=doctor");
+      const data = await api.get<Doctor[]>("/api/v1/users?role=doctor");
       setDoctors(data);
     } catch (error: any) {
       console.error("Failed to load doctors:", error);
@@ -296,7 +296,7 @@ export default function MedicosPage() {
           updateData.password = formData.password;
         }
 
-        await api.patch(`/api/users/${editingDoctor.id}`, updateData);
+        await api.patch(`/api/v1/users/${editingDoctor.id}`, updateData);
         toast.success("Médico atualizado com sucesso!");
       } else {
         // Create new doctor
@@ -309,7 +309,7 @@ export default function MedicosPage() {
           role: "doctor" as const,
         };
 
-        await api.post("/api/users", createData);
+        await api.post("/api/v1/users", createData);
         toast.success("Médico cadastrado com sucesso!");
       }
 
@@ -344,7 +344,7 @@ export default function MedicosPage() {
       setSaving(true);
       // Note: The backend might need a specific endpoint for password changes
       // For now, we'll use the update endpoint
-      await api.patch(`/api/users/${selectedDoctor?.id}`, {
+      await api.patch(`/api/v1/users/${selectedDoctor?.id}`, {
         password: passwordData.new_password,
       });
       toast.success("Senha alterada com sucesso!");
@@ -375,7 +375,7 @@ export default function MedicosPage() {
 
     try {
       setDeleting(true);
-      await api.delete(`/api/users/${doctorToDelete.id}`);
+      await api.delete(`/api/v1/users/${doctorToDelete.id}`);
       toast.success("Médico excluído com sucesso!");
       await loadDoctors();
       setDoctorToDelete(null);
@@ -391,7 +391,7 @@ export default function MedicosPage() {
 
   const handleToggleActive = async (doctor: Doctor) => {
     try {
-      await api.patch(`/api/users/${doctor.id}`, {
+      await api.patch(`/api/v1/users/${doctor.id}`, {
         is_active: !doctor.is_active,
       });
       toast.success(`Médico ${!doctor.is_active ? 'ativado' : 'desativado'} com sucesso!`);

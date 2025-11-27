@@ -128,7 +128,7 @@ export default function PacientesPage() {
     try {
       setLoading(true);
       console.log("Loading patients...");
-      const data = await api.get<Patient[]>("/api/patients");
+      const data = await api.get<Patient[]>("/api/v1/patients");
       console.log("Patients loaded:", data);
       // Ensure we always set the patients, even if data is null or undefined
       const patientsArray = Array.isArray(data) ? data : [];
@@ -334,14 +334,14 @@ export default function PacientesPage() {
 
       if (editingPatient) {
         // Update existing patient
-        await api.put(`/api/patients/${editingPatient.id}`, patientData);
+        await api.put(`/api/v1/patients/${editingPatient.id}`, patientData);
         toast.success("Paciente atualizado com sucesso!");
       } else {
         // Create new patient - with retry logic for phone validation
         patientData.clinic_id = user.clinic_id;
         
         try {
-          await api.post("/api/patients", patientData);
+          await api.post("/api/v1/patients", patientData);
           toast.success("Paciente cadastrado com sucesso!");
         } catch (phoneError: any) {
           // Check if error is related to phone validation
@@ -441,7 +441,7 @@ export default function PacientesPage() {
 
     try {
       setDeleting(true);
-      await api.delete(`/api/patients/${patientToDelete.id}`);
+      await api.delete(`/api/v1/patients/${patientToDelete.id}`);
       toast.success("Paciente excluído com sucesso!");
       await loadPatients();
       setPatientToDelete(null);

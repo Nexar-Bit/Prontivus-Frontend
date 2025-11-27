@@ -59,6 +59,11 @@ const ADMIN_CLINICA_MENU = [
     icon: Users,
     items: [
       {
+        title: "Usuários",
+        icon: Users,
+        url: "/admin/cadastros/usuarios",
+      },
+      {
         title: "Pacientes",
         icon: Users,
         url: "/admin/cadastros/pacientes",
