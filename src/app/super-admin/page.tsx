@@ -4,7 +4,6 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, Building, Key, Users, TrendingUp, Activity } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export default function SuperAdminDashboard() {
   const stats = [
@@ -41,36 +40,6 @@ export default function SuperAdminDashboard() {
     },
   ];
 
-  const quickActions = [
-    {
-      title: "Gestão de Clínicas",
-      description: "Cadastrar e gerenciar clínicas",
-      icon: Building,
-      link: "/super-admin/configuracoes/clinica",
-      color: "bg-blue-600 hover:bg-blue-700",
-    },
-    {
-      title: "Licenciamento",
-      description: "Gerenciar licenças e chaves",
-      icon: Key,
-      link: "/super-admin/configuracoes/licenciamento",
-      color: "bg-green-600 hover:bg-green-700",
-    },
-    {
-      title: "Módulos",
-      description: "Ativar/desativar módulos",
-      icon: Activity,
-      link: "/super-admin/configuracoes/modulos",
-      color: "bg-blue-600 hover:bg-blue-700",
-    },
-    {
-      title: "Integrações",
-      description: "Configurar integrações",
-      icon: ShieldCheck,
-      link: "/super-admin/integracoes/tiss",
-      color: "bg-indigo-600 hover:bg-indigo-700",
-    },
-  ];
 
   return (
     <div className="space-y-6">
@@ -118,36 +87,6 @@ export default function SuperAdminDashboard() {
           return <React.Fragment key={index}>{content}</React.Fragment>;
         })}
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ações Rápidas</CardTitle>
-          <CardDescription>
-            Acesso rápido às principais funcionalidades
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action, index) => {
-              const Icon = action.icon;
-              return (
-                <Link key={index} href={action.link}>
-                  <Card className="hover:shadow-lg transition-all cursor-pointer border-2 hover:border-blue-300">
-                    <CardContent className="p-6">
-                      <div className={`w-12 h-12 ${action.color} rounded-lg flex items-center justify-center mb-4`}>
-                        <Icon className="h-6 w-6 text-white" />
-                      </div>
-                      <h3 className="font-semibold text-lg mb-1">{action.title}</h3>
-                      <p className="text-sm text-gray-600">{action.description}</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Recent Activity */}
       <Card>
