@@ -94,10 +94,17 @@ function LoginForm() {
         const currentUser = getStoredUser();
         const userRole = currentUser?.role;
         
+        // Check if user is SuperAdmin
+        const isSuperAdmin = currentUser?.role === 'admin' && 
+          (currentUser?.role_id === 1 || currentUser?.role_name === 'SuperAdmin');
+        
         // Determine where to redirect based on user role
         if (userRole === 'patient') {
           // Patients go to patient dashboard
           router.push('/patient/dashboard');
+        } else if (isSuperAdmin) {
+          // SuperAdmin users go to super-admin dashboard
+          router.push('/super-admin');
         } else if (userRole === 'admin' || userRole === 'secretary' || userRole === 'doctor') {
           // Staff users: use the redirect URL, defaulting to /dashboard
           if (redirectTo.startsWith('/patient') || redirectTo === '/portal' || !redirectTo || redirectTo === '/') {

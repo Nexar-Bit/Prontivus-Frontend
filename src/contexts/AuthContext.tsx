@@ -220,9 +220,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       justLoggedInRef.current = Date.now();
       verificationAttemptsRef.current = 0; // Reset verification attempts
       
+      // Check if user is SuperAdmin
+      const isSuperAdmin = response.user.role === 'admin' && 
+        (response.user.role_id === 1 || response.user.role_name === 'SuperAdmin');
+      
       // Redirect based on user role
       if (response.user.role === 'patient') {
         router.push('/patient/dashboard');
+      } else if (isSuperAdmin) {
+        router.push('/super-admin');
       } else {
         router.push('/dashboard');
       }

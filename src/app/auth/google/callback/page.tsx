@@ -37,9 +37,15 @@ function GoogleCallbackContent() {
 
         toast.success("Login com Google realizado com sucesso!");
 
+        // Check if user is SuperAdmin
+        const isSuperAdmin = user.role === 'admin' && 
+          (user.role_id === 1 || user.role_name === 'SuperAdmin');
+
         // Redirect based on user role
         if (user.role === "patient") {
           router.push("/patient/dashboard");
+        } else if (isSuperAdmin) {
+          router.push("/super-admin");
         } else {
           router.push("/dashboard");
         }

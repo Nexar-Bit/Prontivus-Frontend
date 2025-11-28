@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { usePatientCalling } from "@/hooks/usePatientCalling";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,7 +20,64 @@ export default function SecretariaPainelPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [clinicName, setClinicName] = useState<string>("Clínica");
   const [lastCalls, setLastCalls] = useState<Array<{ patient_name: string; doctor_name: string; location: string; called_at: string }>>([]);
+  const [appointmentDetails, setAppointmentDetails] = useState<Record<number, { room?: string; location?: string }>>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Generate room code based on doctor_id (fallback)
+  const getRoomCodeFallback = (doctorId: number): string => {
+    // Generate room code based on doctor_id (simple mapping)
+    // PC1, PC2, PC3 for doctors 1, 2, 3, etc.
+    const roomNumber = ((doctorId - 1) % 5) + 1;
+    return `PC${roomNumber}`;
+  };
+
+  // Get room code for a call (with appointment details if available)
+  const getRoomCode = (doctorId: number, appointmentId?: number): string => {
+    // Try to get from cached appointment details
+    if (appointmentId && appointmentDetails[appointmentId]?.room) {
+      return appointmentDetails[appointmentId].room!;
+    }
+    // Fallback to generated code
+    return getRoomCodeFallback(doctorId);
+  };
+
+  // Fetch appointment details for room information
+  useEffect(() => {
+    const fetchAppointmentDetails = async () => {
+      const callsToFetch = activeCalls.filter(call => 
+        call.status === "called" && 
+        !appointmentDetails[call.appointment_id]
+      );
+
+      for (const call of callsToFetch) {
+        try {
+          const appointment = await api.get<any>(`/api/v1/appointments/${call.appointment_id}`);
+          // Extract room/location from appointment_type or notes
+          // If appointment_type exists, use first 3 chars, otherwise generate from doctor_id
+          const room = appointment?.appointment_type 
+            ? appointment.appointment_type.toUpperCase().substring(0, 3)
+            : getRoomCodeFallback(call.doctor_id);
+          
+          setAppointmentDetails(prev => ({
+            ...prev,
+            [call.appointment_id]: { room, location: room }
+          }));
+        } catch (error) {
+          // If fetch fails, use generated room code
+          const room = getRoomCodeFallback(call.doctor_id);
+          setAppointmentDetails(prev => ({
+            ...prev,
+            [call.appointment_id]: { room, location: room }
+          }));
+        }
+      }
+    };
+
+    if (activeCalls.length > 0) {
+      fetchAppointmentDetails();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCalls]);
 
   // Enter fullscreen on mount (for TV display)
   useEffect(() => {
@@ -52,15 +109,16 @@ export default function SecretariaPainelPage() {
   }, []);
 
   // Load clinic name
+  const clinicId = user?.clinic_id ?? null;
   useEffect(() => {
     const loadClinicInfo = async () => {
       try {
-        if (user?.clinic_id) {
+        if (clinicId) {
           // Try to get clinic info from /me endpoint (for admin users)
           try {
             const clinic = await api.get<ClinicInfo>(`/api/v1/admin/clinics/me`);
             if (clinic?.name || clinic?.commercial_name) {
-              setClinicName(clinic.commercial_name || clinic.name);
+              setClinicName(clinic.commercial_name || clinic.name || "Clínica");
               return;
             }
           } catch (meError: any) {
@@ -78,7 +136,7 @@ export default function SecretariaPainelPage() {
       }
     };
     loadClinicInfo();
-  }, [user?.clinic_id]);
+  }, [clinicId]);
 
   // Track last calls for history
   useEffect(() => {
@@ -88,11 +146,16 @@ export default function SecretariaPainelPage() {
         const exists = prev.some(c => c.patient_name === currentCall.patient_name && 
           new Date(c.called_at).getTime() === new Date(currentCall.called_at).getTime());
         if (!exists) {
+          // Get room code - use appointment details if available, otherwise generate
+          const roomCode = currentCall.appointment_id && appointmentDetails[currentCall.appointment_id]?.room
+            ? appointmentDetails[currentCall.appointment_id].room!
+            : getRoomCodeFallback(currentCall.doctor_id);
+          
           return [
             {
               patient_name: currentCall.patient_name,
               doctor_name: currentCall.doctor_name,
-              location: "PC1", // Default location code - can be enhanced with actual location data
+              location: roomCode,
               called_at: currentCall.called_at,
             },
             ...prev.slice(0, 9) // Keep last 10 calls
@@ -101,7 +164,7 @@ export default function SecretariaPainelPage() {
         return prev;
       });
     }
-  }, [activeCalls]);
+  }, [activeCalls, appointmentDetails]);
 
   // Play sound notification for new calls
   useEffect(() => {
@@ -131,7 +194,7 @@ export default function SecretariaPainelPage() {
 
   // Get current active call (most recent "called" status)
   const currentCall = activeCalls
-    .filter((call) => call.status === "called" && call.status !== "completed")
+    .filter((call) => call.status === "called")
     .sort((a, b) => new Date(b.called_at).getTime() - new Date(a.called_at).getTime())[0] || 
     activeCalls
       .filter((call) => call.status !== "completed")
@@ -189,7 +252,11 @@ export default function SecretariaPainelPage() {
               <div className="mt-12">
                 <p className="text-3xl font-semibold text-gray-900 mb-6">LOCAL DE ATENDIMENTO</p>
                 <p className="text-5xl font-bold text-blue-700 uppercase">
-                  Consultório
+                  {currentCall.appointment_id && appointmentDetails[currentCall.appointment_id]?.room
+                    ? `SALA ${appointmentDetails[currentCall.appointment_id].room}`
+                    : getRoomCode(currentCall.doctor_id, currentCall.appointment_id)
+                      ? `SALA ${getRoomCode(currentCall.doctor_id, currentCall.appointment_id)}`
+                      : "CONSULTÓRIO"}
                 </p>
               </div>
             </div>
