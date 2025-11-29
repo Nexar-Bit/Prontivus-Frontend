@@ -75,7 +75,9 @@ export default function Dashboard() {
     try {
       setLoading(true);
       setError(null);
-      const data = await api.get<DashboardStats>("/api/analytics/dashboard/stats");
+      console.log("Fetching dashboard stats from /api/v1/analytics/dashboard/stats");
+      const data = await api.get<DashboardStats>("/api/v1/analytics/dashboard/stats");
+      console.log("Dashboard stats received:", data);
       setStats(data);
     } catch (err) {
       console.error("Failed to fetch dashboard stats:", err);

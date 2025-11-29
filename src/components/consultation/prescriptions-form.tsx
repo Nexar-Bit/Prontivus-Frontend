@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,14 @@ import { Plus, Trash2, Pill } from "lucide-react";
 import { Prescription, PrescriptionCreate } from "@/lib/types";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { api } from "@/lib/api";
 
 interface PrescriptionsFormProps {
   prescriptions: Prescription[];
@@ -26,6 +34,13 @@ interface PrescriptionsFormProps {
   onDelete: (prescriptionId: number) => Promise<void>;
 }
 
+type MedicationProduct = {
+  id: number;
+  name: string;
+  unit_of_measure?: string | null;
+  current_stock?: number | null;
+};
+
 export function PrescriptionsForm({
   prescriptions,
   clinicalRecordId,
@@ -33,6 +48,8 @@ export function PrescriptionsForm({
   onDelete,
 }: PrescriptionsFormProps) {
   const [isAdding, setIsAdding] = useState(false);
+  const [medications, setMedications] = useState<MedicationProduct[]>([]);
+  const [isLoadingMedications, setIsLoadingMedications] = useState(false);
   const [newPrescription, setNewPrescription] = useState({
     medication_name: "",
     dosage: "",
@@ -42,6 +59,32 @@ export function PrescriptionsForm({
   });
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [prescriptionToDelete, setPrescriptionToDelete] = useState<number | null>(null);
+
+  // Load medication list from inventory (stock products)
+  useEffect(() => {
+    const fetchMedications = async () => {
+      try {
+        setIsLoadingMedications(true);
+        // Only medications, active, ordered by name (handled by backend)
+        const products = await api.get<MedicationProduct[]>(
+          "/api/v1/stock/products?category=medication&is_active=true"
+        );
+        setMedications(products || []);
+      } catch (error: any) {
+        console.error("Erro ao carregar medicamentos do estoque:", error);
+        toast.error("Erro ao carregar lista de medicamentos", {
+          description:
+            error?.message ||
+            error?.detail ||
+            "Não foi possível carregar os medicamentos do estoque.",
+        });
+      } finally {
+        setIsLoadingMedications(false);
+      }
+    };
+
+    fetchMedications();
+  }, []);
 
   const handleAdd = async () => {
     if (!newPrescription.medication_name.trim()) {
@@ -160,17 +203,44 @@ export function PrescriptionsForm({
                 <Label htmlFor="medication_name">
                   Medicamento <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  id="medication_name"
+                <Select
                   value={newPrescription.medication_name}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     setNewPrescription({
                       ...newPrescription,
-                      medication_name: e.target.value,
+                      medication_name: value,
                     })
                   }
-                  placeholder="Ex: Paracetamol"
-                />
+                  disabled={isLoadingMedications}
+                >
+                  <SelectTrigger id="medication_name">
+                    <SelectValue
+                      placeholder={
+                        isLoadingMedications
+                          ? "Carregando medicamentos..."
+                          : medications.length === 0
+                          ? "Nenhum medicamento cadastrado no estoque"
+                          : "Selecione um medicamento do estoque"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {medications.map((med) => (
+                      <SelectItem key={med.id} value={med.name}>
+                        {med.name}
+                        {med.unit_of_measure
+                          ? ` (${med.unit_of_measure}${
+                              med.current_stock != null
+                                ? ` • estoque: ${med.current_stock}`
+                                : ""
+                            })`
+                          : med.current_stock != null
+                          ? ` (estoque: ${med.current_stock})`
+                          : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dosage">Dosagem</Label>

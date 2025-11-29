@@ -32,6 +32,7 @@ import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { api } from "@/lib/api";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Dashboard() {
   const { 
@@ -43,6 +44,7 @@ export default function Dashboard() {
     getRoleDisplayName,
     canAccessFinancial,
   } = usePermissions();
+  const { user: authUser } = useAuth();
 
   // Admin-specific state
   const [adminStats, setAdminStats] = React.useState({
@@ -221,57 +223,101 @@ export default function Dashboard() {
     },
   };
 
-  // Mock metrics data for non-admin users - replace with API calls
+  // Fetch real dashboard stats from API
+  const [dashboardStats, setDashboardStats] = React.useState<{
+    patients: { value: number; change: number };
+    appointments: { value: number; change: number };
+    revenue: { value: number; change: number };
+    satisfaction: { value: number; change: number };
+    today_appointments: { value: number; change: number };
+    pending_results: { value: number; change: number };
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!userIsAdmin && user) {
+      const fetchDashboardStats = async () => {
+        try {
+          setStatsLoading(true);
+          const data = await api.get<{
+            patients: { value: number; change: number };
+            appointments: { value: number; change: number };
+            revenue: { value: number; change: number };
+            satisfaction: { value: number; change: number };
+            today_appointments: { value: number; change: number };
+            pending_results: { value: number; change: number };
+          }>("/api/v1/analytics/dashboard/stats");
+          setDashboardStats(data);
+        } catch (error) {
+          console.error("Failed to fetch dashboard stats:", error);
+          // Set default values on error
+          setDashboardStats({
+            patients: { value: 0, change: 0 },
+            appointments: { value: 0, change: 0 },
+            revenue: { value: 0, change: 0 },
+            satisfaction: { value: 0, change: 0 },
+            today_appointments: { value: 0, change: 0 },
+            pending_results: { value: 0, change: 0 },
+          });
+        } finally {
+          setStatsLoading(false);
+        }
+      };
+      fetchDashboardStats();
+    }
+  }, [userIsAdmin, user]);
+
+  // Use real data from API or fallback to defaults
   const metrics = {
     patients: {
-      value: 2847,
-      change: 12.5,
-      trend: 'up' as const,
+      value: dashboardStats?.patients.value ?? 0,
+      change: dashboardStats?.patients.change ?? 0,
+      trend: (dashboardStats?.patients.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Users,
       color: 'blue' as const,
       label: 'Pacientes Ativos',
       subtitle: 'Total cadastrado',
     },
     appointments: {
-      value: 342,
-      change: 8.2,
-      trend: 'up' as const,
+      value: dashboardStats?.appointments.value ?? 0,
+      change: dashboardStats?.appointments.change ?? 0,
+      trend: (dashboardStats?.appointments.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Calendar,
       color: 'orange' as const,
       label: 'Agendamentos Este Mês',
       subtitle: 'Consultas agendadas',
     },
     revenue: {
-      value: 245800,
-      change: -3.1,
-      trend: 'down' as const,
+      value: dashboardStats?.revenue.value ?? 0,
+      change: dashboardStats?.revenue.change ?? 0,
+      trend: (dashboardStats?.revenue.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: DollarSign,
       color: 'green' as const,
       label: 'Receita Mensal',
       subtitle: 'Faturamento total',
     },
     satisfaction: {
-      value: 94.2,
-      change: 2.3,
-      trend: 'up' as const,
+      value: dashboardStats?.satisfaction.value ?? 0,
+      change: dashboardStats?.satisfaction.change ?? 0,
+      trend: (dashboardStats?.satisfaction.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Heart,
       color: 'teal' as const,
       label: 'Satisfação dos Pacientes',
       subtitle: 'Avaliação média',
     },
     todayAppointments: {
-      value: 48,
-      change: 4,
-      trend: 'up' as const,
+      value: dashboardStats?.today_appointments.value ?? 0,
+      change: dashboardStats?.today_appointments.change ?? 0,
+      trend: (dashboardStats?.today_appointments.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Clock,
       color: 'orange' as const,
       label: 'Agendamentos Hoje',
       subtitle: 'Consultas agendadas',
     },
     pendingResults: {
-      value: 23,
-      change: -12,
-      trend: 'down' as const,
+      value: dashboardStats?.pending_results.value ?? 0,
+      change: dashboardStats?.pending_results.change ?? 0,
+      trend: (dashboardStats?.pending_results.change ?? 0) >= 0 ? 'up' as const : 'down' as const,
       icon: Activity,
       color: 'blue' as const,
       label: 'Resultados Pendentes',

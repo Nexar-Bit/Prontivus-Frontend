@@ -39,6 +39,7 @@ import { PatientSidebar } from "@/components/patient/Navigation/PatientSidebar";
 import { PatientMobileNav } from "@/components/patient/Navigation/PatientMobileNav";
 import { LineChart } from "@/components/charts";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -684,15 +685,12 @@ export default function TestResultsPage() {
 
           {/* Empty State */}
           {!loading && reports.length === 0 && (
-            <Card className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
-              <CardContent className="py-12 text-center">
-                <div className="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                  <TestTube className="h-10 w-10 text-blue-600" />
-                </div>
-                <p className="text-gray-500 font-medium mb-2">Nenhum resultado de exame encontrado</p>
-                <p className="text-sm text-gray-400">Seus resultados de exames aparecerão aqui quando estiverem disponíveis.</p>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={TestTube}
+              variant="database"
+              title="Nenhum resultado de exame encontrado"
+              description="Não há resultados de exames armazenados no banco de dados. Seus resultados aparecerão aqui quando estiverem disponíveis."
+            />
           )}
 
           {/* Summary View */}

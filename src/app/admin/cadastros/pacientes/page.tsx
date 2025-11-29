@@ -37,6 +37,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { onlyDigits, validateCPF, validatePhone, maskCPF, maskPhone } from "@/lib/inputMasks";
 
 interface Patient {
@@ -1018,10 +1019,22 @@ export default function PacientesPage() {
                   </TableBody>
                 </Table>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p>{searchTerm ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado"}</p>
-                </div>
+                <EmptyState
+                  icon={Users}
+                  variant={searchTerm ? "filter" : "database"}
+                  title={searchTerm ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado no banco de dados"}
+                  description={searchTerm 
+                    ? "Não há pacientes que correspondam à sua busca. Tente usar outros termos de pesquisa."
+                    : "Não há pacientes cadastrados no banco de dados. Os pacientes aparecerão aqui quando forem adicionados ao sistema."
+                  }
+                  action={searchTerm ? {
+                    label: "Limpar busca",
+                    onClick: () => setSearchTerm("")
+                  } : {
+                    label: "Cadastrar Paciente",
+                    onClick: () => setShowForm(true)
+                  }}
+                />
               )}
             </CardContent>
           </Card>

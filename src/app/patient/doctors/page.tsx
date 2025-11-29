@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import {
@@ -296,28 +297,25 @@ export default function PatientDoctorsPage() {
 
           {/* Doctors Grid */}
           {filteredDoctors.length === 0 ? (
-            <Card className="border-l-4 border-l-blue-500 bg-white/80 backdrop-blur-sm">
-              <CardContent className="py-12 text-center">
-                <div className="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                  <AlertCircle className="h-10 w-10 text-blue-600" />
-                </div>
-                <p className="text-muted-foreground font-medium mb-4">
-                  Nenhum médico encontrado com os filtros selecionados.
-                </p>
-                {(searchQuery || specialtyFilter !== "all") && (
-                  <Button
-                    variant="outline"
-                    className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                    onClick={() => {
-                      setSearchQuery("");
-                      setSpecialtyFilter("all");
-                    }}
-                  >
-                    Limpar filtros
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={AlertCircle}
+              variant={(searchQuery || specialtyFilter !== "all") ? "filter" : "database"}
+              title={(searchQuery || specialtyFilter !== "all") 
+                ? "Nenhum médico encontrado com os filtros selecionados"
+                : "Nenhum médico cadastrado no banco de dados"
+              }
+              description={(searchQuery || specialtyFilter !== "all")
+                ? "Não há médicos que correspondam aos filtros selecionados. Tente ajustar os filtros de busca."
+                : "Não há médicos cadastrados no banco de dados. Os médicos aparecerão aqui quando forem adicionados ao sistema."
+              }
+              action={(searchQuery || specialtyFilter !== "all") ? {
+                label: "Limpar filtros",
+                onClick: () => {
+                  setSearchQuery("");
+                  setSpecialtyFilter("all");
+                }
+              } : undefined}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredDoctors.map((doctor) => (
