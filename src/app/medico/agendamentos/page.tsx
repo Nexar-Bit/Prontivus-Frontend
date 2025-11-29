@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   CalendarDays, Calendar, CalendarRange, Clock, User, Stethoscope, RefreshCw, 
@@ -51,6 +51,7 @@ import { toast } from "sonner";
 import { format, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, addDays, subDays, isToday, isPast, isFuture } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
+import { MedicalCalendar, CalendarEvent as MedicalCalendarEvent } from "@/components/appointments/medical-calendar";
 
 interface Appointment {
   id: number;
@@ -65,6 +66,7 @@ interface Appointment {
   reason?: string | null;
   diagnosis?: string | null;
   treatment_plan?: string | null;
+  duration_minutes?: number;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -92,7 +94,7 @@ export default function AgendamentosPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [activeTab, setActiveTab] = useState("day");
+  const [activeTab, setActiveTab] = useState("calendar");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
@@ -407,6 +409,51 @@ export default function AgendamentosPage() {
     }
   };
 
+  // Transform filtered appointments to calendar events
+  const calendarEvents: MedicalCalendarEvent[] = useMemo(() => {
+    return filteredAppointments.map((apt) => {
+      const startDate = parseISO(apt.scheduled_datetime);
+      const endDate = new Date(startDate);
+      endDate.setMinutes(endDate.getMinutes() + (apt.duration_minutes || 30));
+      
+      // Determine appointment type
+      let type: 'consultation' | 'procedure' | 'follow-up' | 'emergency' = 'consultation';
+      if (apt.appointment_type) {
+        const typeLower = apt.appointment_type.toLowerCase();
+        if (typeLower.includes('procedimento') || typeLower.includes('procedure')) {
+          type = 'procedure';
+        } else if (typeLower.includes('retorno') || typeLower.includes('follow-up')) {
+          type = 'follow-up';
+        } else if (typeLower.includes('emergência') || typeLower.includes('emergency')) {
+          type = 'emergency';
+        }
+      }
+
+      return {
+        id: apt.id,
+        title: apt.appointment_type || 'Consulta',
+        start: startDate,
+        end: endDate,
+        resource: apt as any,
+        status: apt.status as any,
+        type,
+        patientName: apt.patient_name,
+        doctorName: apt.doctor_name,
+        urgent: apt.status === 'in_consultation' || apt.status === 'checked_in',
+      };
+    });
+  }, [filteredAppointments]);
+
+  const handleCalendarEventSelect = (event: MedicalCalendarEvent) => {
+    handleViewDetails(event.id);
+  };
+
+  const handleCalendarSlotSelect = (slot: { start: Date; end: Date }) => {
+    // Optional: Create new appointment on slot selection
+    // For now, just show a toast
+    toast.info("Selecione um agendamento existente ou use o botão 'Novo Agendamento' para criar um novo");
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -516,9 +563,13 @@ export default function AgendamentosPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="day" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="calendar" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
+            Calendário
+          </TabsTrigger>
+          <TabsTrigger value="day" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
             Dia
           </TabsTrigger>
           <TabsTrigger value="week" className="flex items-center gap-2">
@@ -530,6 +581,34 @@ export default function AgendamentosPage() {
             Mês
           </TabsTrigger>
         </TabsList>
+
+        {/* Calendar View */}
+        <TabsContent value="calendar">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Calendário de Agendamentos</CardTitle>
+                  <CardDescription>
+                    Visualize seus agendamentos em formato de calendário
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="text-sm">
+                  {calendarEvents.length} {calendarEvents.length === 1 ? 'agendamento' : 'agendamentos'}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <MedicalCalendar
+                events={calendarEvents}
+                onSelectEvent={handleCalendarEventSelect}
+                onSelectSlot={handleCalendarSlotSelect}
+                defaultView="week"
+                className="rounded-lg border"
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Day View */}
         <TabsContent value="day">
@@ -970,3 +1049,4 @@ export default function AgendamentosPage() {
     </div>
   );
 }
+
