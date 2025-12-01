@@ -426,7 +426,7 @@ export default function ProdutosPage() {
       const movementData: any = {
         product_id: movementFormData.product_id,
         type: movementFormData.type,
-        quantity: movementFormData.type === "out" ? -quantity : quantity,
+        quantity: quantity,
         reason: movementFormData.reason,
         description: movementFormData.description.trim() || undefined,
         reference_number: movementFormData.reference_number.trim() || undefined,

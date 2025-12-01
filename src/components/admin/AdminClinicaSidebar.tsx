@@ -4,8 +4,6 @@ import * as React from "react";
 import {
   Settings2,
   Building,
-  Key,
-  Package,
   Users,
   UserCog2,
   ShoppingCart,
@@ -42,16 +40,6 @@ const ADMIN_CLINICA_MENU = [
         icon: Building,
         url: "/admin/configuracoes/clinica",
       },
-      {
-        title: "Licenciamento",
-        icon: Key,
-        url: "/admin/configuracoes/licenciamento",
-      },
-      {
-        title: "Módulos",
-        icon: Package,
-        url: "/admin/configuracoes/modulos",
-      },
     ],
   },
   {
@@ -77,11 +65,6 @@ const ADMIN_CLINICA_MENU = [
         title: "Produtos",
         icon: ShoppingCart,
         url: "/admin/cadastros/produtos",
-      },
-      {
-        title: "Insumos",
-        icon: Package2,
-        url: "/admin/cadastros/insumos",
       },
       {
         title: "Formas de Pagamento",

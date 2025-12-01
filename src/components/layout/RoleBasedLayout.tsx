@@ -12,7 +12,7 @@ import { SecretarySidebar } from "@/components/secretaria/SecretarySidebar";
 import { DoctorSidebar } from "@/components/medico/DoctorSidebar";
 import { AdminClinicaSidebar } from "@/components/admin/AdminClinicaSidebar";
 import { toast } from "sonner";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 interface RoleBasedLayoutProps {
   children: React.ReactNode;
@@ -77,10 +77,12 @@ export function RoleBasedLayout({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50">
-        <div className="text-center">
-          <Skeleton className="h-12 w-12 rounded-full mx-auto mb-4" />
-          <Skeleton className="h-4 w-32 mx-auto" />
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground">Carregando o painel...</p>
         </div>
       </div>
     );

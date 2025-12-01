@@ -495,28 +495,22 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Header */}
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-xl text-white shadow-xl shadow-blue-500/20">
-                <Settings className="h-6 w-6" />
-              </div>
-              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-800 bg-clip-text text-transparent">
-                Configurações
-              </h1>
-            </div>
-            <p className="text-gray-600 text-lg ml-14">
-              Gerencie suas configurações e preferências da conta
+    <div className="w-full space-y-8">
+      {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <Settings className="h-8 w-8 text-blue-600" />
+              Configurações
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Gerencie suas informações de perfil, segurança e preferências do sistema em um só lugar.
             </p>
           </div>
           <Button 
             onClick={saveSettings} 
             disabled={saving}
-            size="lg"
-            className="gap-2 shrink-0 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 transition-all duration-200"
+            className="flex items-center gap-2"
           >
             {saving ? (
               <>
@@ -533,53 +527,32 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="profile" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-3 h-auto p-2 bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200/50 shadow-lg shadow-gray-200/50">
-          <TabsTrigger 
-            value="profile" 
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
-          >
-            <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Perfil</span>
+          <TabsList>
+          <TabsTrigger value="profile">
+            Perfil
           </TabsTrigger>
-          <TabsTrigger 
-            value="notifications"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="hidden sm:inline">Notificações</span>
+          <TabsTrigger value="notifications">
+            Notificações
           </TabsTrigger>
-          <TabsTrigger 
-            value="privacy"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
-          >
-            <Shield className="h-4 w-4" />
-            <span className="hidden sm:inline">Privacidade</span>
+          <TabsTrigger value="privacy">
+            Privacidade
           </TabsTrigger>
-          <TabsTrigger 
-            value="appearance"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
-          >
-            <Palette className="h-4 w-4" />
-            <span className="hidden sm:inline">Aparência</span>
+          <TabsTrigger value="appearance">
+            Aparência
           </TabsTrigger>
-          <TabsTrigger 
-            value="security"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/30 flex items-center gap-2 rounded-lg transition-all duration-200 hover:bg-gray-100"
-          >
-            <Lock className="h-4 w-4" />
-            <span className="hidden sm:inline">Segurança</span>
+          <TabsTrigger value="security">
+            Segurança
           </TabsTrigger>
         </TabsList>
 
         {/* Profile Settings */}
         <TabsContent value="profile" className="space-y-6">
-          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800"></div>
+          <Card className="border bg-card shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/30">
-                    <User className="h-6 w-6 text-white" />
+                  <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+                    <User className="h-6 w-6" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl font-bold text-gray-900">
@@ -590,7 +563,7 @@ export default function SettingsPage() {
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border-blue-200 shadow-sm px-3 py-1.5">
+                <Badge variant="secondary" className="px-3 py-1.5">
                   <User className="h-3.5 w-3.5 mr-1.5" />
                   Perfil
                 </Badge>
@@ -600,7 +573,7 @@ export default function SettingsPage() {
               {/* Avatar Upload Section */}
               <div className="flex flex-col items-center gap-6 pb-8 border-b border-gray-200">
                 <div className="relative group">
-                  <div className="w-36 h-36 rounded-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 border-4 border-white flex items-center justify-center overflow-hidden shadow-2xl shadow-blue-500/30 ring-4 ring-blue-100 transition-all duration-300 group-hover:scale-105">
+                  <div className="w-36 h-36 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shadow-sm transition-all duration-300 group-hover:scale-105">
                     {avatarPreview || settings.profile.avatar ? (
                       <img
                         src={avatarPreview || settings.profile.avatar}
@@ -608,7 +581,7 @@ export default function SettingsPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <User className="h-16 w-16 text-blue-400" />
+                      <User className="h-16 w-16 text-muted-foreground" />
                     )}
                   </div>
                   {uploadingAvatar && (
@@ -742,13 +715,12 @@ export default function SettingsPage() {
 
         {/* Notification Settings */}
         <TabsContent value="notifications" className="space-y-6">
-          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"></div>
+          <Card className="border bg-card shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg shadow-amber-500/30">
-                    <Bell className="h-6 w-6 text-white" />
+                  <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
+                    <Bell className="h-6 w-6" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl font-bold text-gray-900">
@@ -759,7 +731,7 @@ export default function SettingsPage() {
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border-amber-200 shadow-sm px-3 py-1.5">
+                <Badge variant="secondary" className="px-3 py-1.5">
                   <Bell className="h-3.5 w-3.5 mr-1.5" />
                   Notificações
                 </Badge>
@@ -769,7 +741,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Canais de Notificação</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-muted/50 border border-border/50 hover:shadow-sm transition-all duration-200">
                     <div className="flex items-center space-x-4">
                       <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
                         <Mail className="h-5 w-5 text-white" />
@@ -789,7 +761,7 @@ export default function SettingsPage() {
                     />
                   </div>
                     </div>
-                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-muted/50 border border-border/50 hover:shadow-sm transition-all duration-200">
                     <div className="flex items-center space-x-4">
                       <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
                         <Smartphone className="h-5 w-5 text-white" />
@@ -848,7 +820,7 @@ export default function SettingsPage() {
                     />
                   </div>
                     </div>
-                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-muted/50 border border-border/50 hover:shadow-sm transition-all duration-200">
                     <div className="flex items-center space-x-4">
                       <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-md">
                         <Bell className="h-5 w-5 text-white" />
@@ -876,7 +848,7 @@ export default function SettingsPage() {
               {/* Test Notifications */}
               <div className="space-y-3">
                 {/* Test Email Button */}
-                <div className="p-4 rounded-lg bg-blue-50/30 border border-blue-200/50">
+                <div className="p-4 rounded-lg bg-muted/40 border border-border/40">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-1">Testar Notificações por E-mail</h4>
@@ -913,7 +885,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Test Push Button */}
-                <div className="p-4 rounded-lg bg-blue-50/30 border border-blue-200/50">
+                <div className="p-4 rounded-lg bg-muted/40 border border-border/40">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-1">Testar Notificações Push</h4>
@@ -951,7 +923,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Test SMS Button */}
-                <div className="p-4 rounded-lg bg-blue-50/30 border border-blue-200/50">
+                <div className="p-4 rounded-lg bg-muted/40 border border-border/40">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-1">Testar Notificações SMS</h4>
@@ -994,7 +966,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Tipos de Notificação</h3>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/40 border border-border/40">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Clock className="h-4 w-4 text-blue-600" />
@@ -1007,7 +979,7 @@ export default function SettingsPage() {
                       onCheckedChange={(checked) => handleSettingChange('notifications', 'appointmentReminders', checked)}
                     />
                   </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/40 border border-border/40">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Settings className="h-4 w-4 text-blue-600" />
@@ -1020,7 +992,7 @@ export default function SettingsPage() {
                       onCheckedChange={(checked) => handleSettingChange('notifications', 'systemUpdates', checked)}
                     />
                   </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-blue-50/50 border border-blue-100">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/40 border border-border/40">
                     <div className="flex items-center space-x-3">
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <Bell className="h-4 w-4 text-blue-600" />
@@ -1043,7 +1015,7 @@ export default function SettingsPage() {
                 <h3 className="text-lg font-semibold">Testar Tipos de Notificação</h3>
                 
                 {/* Test Appointment Reminder */}
-                <div className="p-4 rounded-lg bg-blue-50/30 border border-blue-200/50">
+                <div className="p-4 rounded-lg bg-muted/40 border border-border/40">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
@@ -1084,7 +1056,7 @@ export default function SettingsPage() {
                 </div>
                 
                 {/* Test System Update */}
-                <div className="p-4 rounded-lg bg-blue-50/30 border border-blue-200/50">
+                <div className="p-4 rounded-lg bg-muted/40 border border-border/40">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
@@ -1125,7 +1097,7 @@ export default function SettingsPage() {
                 </div>
                 
                 {/* Test Marketing Notification */}
-                <div className="p-4 rounded-lg bg-blue-50/30 border border-blue-200/50">
+                <div className="p-4 rounded-lg bg-muted/40 border border-border/40">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
@@ -1171,13 +1143,12 @@ export default function SettingsPage() {
 
         {/* Privacy Settings */}
         <TabsContent value="privacy" className="space-y-6">
-          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500"></div>
+          <Card className="border bg-card shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg shadow-green-500/30">
-                    <Shield className="h-6 w-6 text-white" />
+                  <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
+                    <Shield className="h-6 w-6" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl font-bold text-gray-900">
@@ -1188,7 +1159,7 @@ export default function SettingsPage() {
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200 shadow-sm px-3 py-1.5">
+                <Badge variant="secondary" className="px-3 py-1.5">
                   <Shield className="h-3.5 w-3.5 mr-1.5" />
                   Privacidade
                 </Badge>
@@ -1214,7 +1185,7 @@ export default function SettingsPage() {
                 </div>
                 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-muted/50 border border-border/50 hover:shadow-sm transition-all duration-200">
                     <Label htmlFor="showOnlineStatus" className="font-semibold text-gray-900">Mostrar Status Online</Label>
                     <Switch
                       id="showOnlineStatus"
@@ -1223,7 +1194,7 @@ export default function SettingsPage() {
                       className="data-[state=checked]:from-green-600 data-[state=checked]:to-emerald-600 data-[state=checked]:shadow-green-500/50"
                     />
                   </div>
-                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-muted/50 border border-border/50 hover:shadow-sm transition-all duration-200">
                     <Label htmlFor="allowDirectMessages" className="font-semibold text-gray-900">Permitir Mensagens Diretas</Label>
                     <Switch
                       id="allowDirectMessages"
@@ -1232,7 +1203,7 @@ export default function SettingsPage() {
                       className="data-[state=checked]:from-green-600 data-[state=checked]:to-emerald-600 data-[state=checked]:shadow-green-500/50"
                     />
                   </div>
-                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-green-50/80 to-emerald-50/80 border border-green-200/50 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-muted/50 border border-border/50 hover:shadow-sm transition-all duration-200">
                     <Label htmlFor="dataSharing" className="font-semibold text-gray-900">Permitir Compartilhamento de Dados</Label>
                     <Switch
                       id="dataSharing"
@@ -1249,7 +1220,7 @@ export default function SettingsPage() {
               {/* Test Privacy Settings */}
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold">Testar Configurações de Privacidade</h3>
-                <div className="p-4 rounded-lg bg-blue-50/30 border border-blue-200/50">
+                <div className="p-4 rounded-lg bg-muted/40 border border-border/40">
                   <div className="flex items-center justify-between">
                     <div>
                       <h4 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
@@ -1308,13 +1279,12 @@ export default function SettingsPage() {
 
         {/* Appearance Settings */}
         <TabsContent value="appearance" className="space-y-6">
-          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700"></div>
+          <Card className="border bg-card shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
-                    <Palette className="h-6 w-6 text-white" />
+                  <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
+                    <Palette className="h-6 w-6" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl font-bold text-gray-900">
@@ -1325,7 +1295,7 @@ export default function SettingsPage() {
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-gradient-to-r from-blue-50 to-blue-50 text-blue-700 border-blue-200 shadow-sm px-3 py-1.5">
+                <Badge variant="secondary" className="px-3 py-1.5">
                   <Palette className="h-3.5 w-3.5 mr-1.5" />
                   Aparência
                 </Badge>
@@ -1430,13 +1400,12 @@ export default function SettingsPage() {
 
         {/* Security Settings */}
         <TabsContent value="security" className="space-y-6">
-          <Card className="border-0 shadow-xl shadow-gray-200/50 bg-white/90 backdrop-blur-sm hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-red-600 via-rose-600 to-pink-600"></div>
+          <Card className="border bg-card shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="pb-6 pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl shadow-lg shadow-red-500/30">
-                    <Lock className="h-6 w-6 text-white" />
+                  <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600">
+                    <Lock className="h-6 w-6" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl font-bold text-gray-900">
@@ -1447,7 +1416,7 @@ export default function SettingsPage() {
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border-red-200 shadow-sm px-3 py-1.5">
+                <Badge variant="secondary" className="px-3 py-1.5">
                   <Lock className="h-3.5 w-3.5 mr-1.5" />
                   Segurança
                 </Badge>
@@ -1455,7 +1424,7 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-red-50/80 to-rose-50/80 border border-red-200/50 hover:shadow-md transition-all duration-200">
+                <div className="flex items-center justify-between p-5 rounded-xl bg-muted/50 border border-border/50 hover:shadow-sm transition-all duration-200">
                   <div className="flex items-center space-x-4">
                     <div className="p-2.5 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg shadow-md">
                       <Key className="h-5 w-5 text-white" />
@@ -1508,7 +1477,7 @@ export default function SettingsPage() {
                   />
                 </div>
                 
-                <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-red-50/80 to-rose-50/80 border border-red-200/50 hover:shadow-md transition-all duration-200">
+                <div className="flex items-center justify-between p-5 rounded-xl bg-muted/50 border border-border/50 hover:shadow-sm transition-all duration-200">
                   <div className="flex items-center space-x-4">
                     <div className="p-2.5 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg shadow-md">
                       <AlertCircle className="h-5 w-5 text-white" />
@@ -1816,7 +1785,6 @@ export default function SettingsPage() {
           </div>
         </DialogContent>
       </Dialog>
-      </div>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   LogOut,
   ShieldCheck,
   UserRound,
+  Home,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
@@ -30,6 +31,17 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 // Super Admin menu structure
 const SUPER_ADMIN_MENU = [
+  {
+    group: "Geral",
+    icon: Home,
+    items: [
+      {
+        title: "Home",
+        icon: Home,
+        url: "/super-admin",
+      },
+    ],
+  },
   {
     group: "Configurações",
     icon: Settings2,

@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRequireAuth } from "@/contexts";
 import { useRouter, usePathname } from "next/navigation";
 import { AccessDenied } from "@/components/layout/AccessDenied";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export interface ProtectedRouteProps {
@@ -156,11 +156,12 @@ export function ProtectedRoute({
     }
 
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-50">
-        <div className="text-center space-y-4">
-          <Skeleton className="h-12 w-12 rounded-full mx-auto" />
-          <Skeleton className="h-4 w-48 mx-auto" />
-          <p className="text-sm text-gray-600">Verificando permissões...</p>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+          <p className="text-sm text-muted-foreground">Verificando permissões...</p>
         </div>
       </div>
     );
