@@ -496,13 +496,13 @@ export default function SettingsPage() {
 
   return (
     <div className="w-full space-y-8">
-      {/* Header */}
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
               <Settings className="h-8 w-8 text-blue-600" />
-              Configurações
-            </h1>
+                Configurações
+              </h1>
             <p className="text-gray-600 mt-2">
               Gerencie suas informações de perfil, segurança e preferências do sistema em um só lugar.
             </p>

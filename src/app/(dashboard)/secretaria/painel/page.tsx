@@ -220,7 +220,7 @@ export default function SecretariaPainelPage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className={`h-3 w-3 rounded-full ${connected ? 'bg-green-300' : 'bg-red-300'}`} />
-          </div>
+        </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.location.href = '/secretaria/dashboard'}
@@ -238,7 +238,7 @@ export default function SecretariaPainelPage() {
             >
               <Settings className="h-6 w-6 text-white" />
             </button>
-            <button
+        <button
               onClick={async () => {
                 try {
                   if (document.fullscreenElement) {
@@ -253,9 +253,9 @@ export default function SecretariaPainelPage() {
               className="p-3 hover:bg-blue-700 rounded-lg transition-all duration-200"
               title="Tela Cheia"
               aria-label="Tela Cheia"
-            >
+        >
               <Maximize2 className="h-6 w-6 text-white" />
-            </button>
+        </button>
           </div>
         </div>
       </div>
@@ -343,17 +343,17 @@ export default function SecretariaPainelPage() {
                   <tbody>
                     {lastCalls.slice(0, 10).map((call, index) => (
                       <tr
-                        key={index}
+                    key={index}
                         className="border-b border-gray-100 last:border-b-0 hover:bg-blue-50 transition-colors"
-                      >
+                  >
                         <td className="px-4 py-4 text-base font-semibold text-gray-900">
-                          {call.patient_name.toUpperCase()}
+                        {call.patient_name.toUpperCase()}
                         </td>
                         <td className="px-4 py-4 text-right text-base font-bold text-blue-600">
-                          {call.location}
+                        {call.location}
                         </td>
                       </tr>
-                    ))}
+                ))}
                   </tbody>
                 </table>
               </div>

@@ -51,6 +51,7 @@ interface Doctor {
   clinic_name?: string;
   is_active?: boolean;
   is_verified?: boolean;
+  consultation_room?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -64,6 +65,7 @@ interface DoctorFormData {
   last_name: string;
   is_active: boolean;
   is_verified: boolean;
+  consultation_room: string;
 }
 
 interface PasswordChangeData {
@@ -105,6 +107,7 @@ export default function MedicosPage() {
     last_name: "",
     is_active: true,
     is_verified: false,
+    consultation_room: "",
   });
 
   const [passwordData, setPasswordData] = useState<PasswordChangeData>({
@@ -172,6 +175,7 @@ export default function MedicosPage() {
       last_name: "",
       is_active: true,
       is_verified: false,
+      consultation_room: "",
     });
     setEditingDoctor(null);
   };
@@ -192,6 +196,7 @@ export default function MedicosPage() {
       last_name: doctor.last_name || "",
       is_active: doctor.is_active ?? true,
       is_verified: doctor.is_verified ?? false,
+      consultation_room: doctor.consultation_room || "",
     });
     setShowForm(true);
   };
@@ -289,6 +294,7 @@ export default function MedicosPage() {
           last_name: formData.last_name.trim(),
           is_active: formData.is_active,
           is_verified: formData.is_verified,
+          consultation_room: formData.consultation_room.trim() || null,
         };
 
         // Only include password if it was provided
@@ -307,6 +313,7 @@ export default function MedicosPage() {
           first_name: formData.first_name.trim(),
           last_name: formData.last_name.trim(),
           role: "doctor" as const,
+          consultation_room: formData.consultation_room.trim() || null,
         };
 
         await api.post("/api/v1/users", createData);
@@ -1190,6 +1197,17 @@ export default function MedicosPage() {
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                   placeholder="Sobrenome do médico"
+                />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="consultation_room">Sala / Local de atendimento padrão</Label>
+                <Input
+                  id="consultation_room"
+                  value={formData.consultation_room}
+                  onChange={(e) =>
+                    setFormData({ ...formData, consultation_room: e.target.value })
+                  }
+                  placeholder="Ex.: Pré-consulta 1, Consultório 3"
                 />
               </div>
             </div>

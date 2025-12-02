@@ -67,6 +67,11 @@ const ADMIN_CLINICA_MENU = [
         url: "/admin/cadastros/produtos",
       },
       {
+        title: "Exames",
+        icon: Package2,
+        url: "/admin/cadastros/exames",
+      },
+      {
         title: "Formas de Pagamento",
         icon: CreditCard,
         url: "/admin/cadastros/formas-pagamento",

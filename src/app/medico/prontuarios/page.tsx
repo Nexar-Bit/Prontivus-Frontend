@@ -2,11 +2,27 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  FileText, Search, Calendar, User, Eye, RefreshCw, Filter, Edit, 
-  CheckCircle2, XCircle, Clock, Stethoscope, Pill, TestTube, 
-  FileCheck, AlertCircle, ChevronLeft, ChevronRight, Download, 
-  Plus, Trash2, Save, X
+import {
+  FileText,
+  Search,
+  Calendar,
+  User,
+  Eye,
+  RefreshCw,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Stethoscope,
+  Pill,
+  TestTube,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Trash2,
+  X,
+  FileCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,9 +133,6 @@ export default function ProntuariosPage() {
   const [dateFilter, setDateFilter] = useState<string>("all");
   const [selectedRecord, setSelectedRecord] = useState<ClinicalRecordItem | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<ClinicalRecord | null>(null);
-  const [saving, setSaving] = useState(false);
   const [selectedDateRange, setSelectedDateRange] = useState({
     start: format(subMonths(new Date(), 1), "yyyy-MM-dd"),
     end: format(new Date(), "yyyy-MM-dd"),
@@ -229,58 +242,6 @@ export default function ProntuariosPage() {
       setSelectedRecord(record);
     }
     setShowDetails(true);
-  };
-
-  const handleEdit = (record: ClinicalRecordItem) => {
-    if (record.clinical_record) {
-      setEditingRecord({ ...record.clinical_record });
-    } else {
-      setEditingRecord({
-        subjective: "",
-        objective: "",
-        assessment: "",
-        plan: "",
-        plan_soap: "",
-        prescriptions: [],
-        exam_requests: [],
-        diagnoses: [],
-      });
-    }
-    setSelectedRecord(record);
-    setShowEditDialog(true);
-  };
-
-  const handleSaveRecord = async () => {
-    if (!selectedRecord) return;
-
-    try {
-      setSaving(true);
-      const recordData = {
-        subjective: editingRecord?.subjective || null,
-        objective: editingRecord?.objective || null,
-        assessment: editingRecord?.assessment || null,
-        plan: editingRecord?.plan || null,
-        plan_soap: editingRecord?.plan_soap || null,
-      };
-
-      await api.post(
-        `/api/v1/appointments/${selectedRecord.appointment_id}/clinical-record`,
-        recordData
-      );
-
-      toast.success("Prontuário salvo com sucesso!");
-      await loadRecords();
-      setShowEditDialog(false);
-      setEditingRecord(null);
-      setSelectedRecord(null);
-    } catch (error: any) {
-      console.error("Failed to save record:", error);
-      toast.error("Erro ao salvar prontuário", {
-        description: error?.message || error?.detail || "Não foi possível salvar o prontuário",
-      });
-    } finally {
-      setSaving(false);
-    }
   };
 
   const formatDate = (dateString: string) => {
@@ -490,7 +451,7 @@ export default function ProntuariosPage() {
                     <TableHead>Tipo</TableHead>
                     <TableHead>Conteúdo</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="text-right">Ação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -527,30 +488,14 @@ export default function ProntuariosPage() {
                           {getStatusBadge(hasRecord)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleViewDetails(record)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Ver
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEdit(record)}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              {hasRecord ? "Editar" : "Criar"}
-                            </Button>
-                            <Link href={`/medico/atendimento/${record.appointment_id}`}>
-                              <Button variant="ghost" size="sm">
-                                <FileCheck className="h-4 w-4 mr-2" />
-                                Atender
-                              </Button>
-                            </Link>
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewDetails(record)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -793,22 +738,8 @@ export default function ProntuariosPage() {
                   <p className="font-medium">Prontuário ainda não foi preenchido</p>
                   <p className="text-sm mt-2">
                     Este agendamento ainda não possui prontuário médico associado.
+                    O preenchimento deve ser feito na tela de atendimento.
                   </p>
-                  <div className="mt-6 flex gap-3 justify-center">
-                    <Button onClick={() => {
-                      setShowDetails(false);
-                      handleEdit(selectedRecord);
-                    }}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Criar Prontuário
-                    </Button>
-                    <Link href={`/medico/atendimento/${selectedRecord.appointment_id}`}>
-                      <Button variant="outline">
-                        <FileCheck className="h-4 w-4 mr-2" />
-                        Ir para Atendimento
-                      </Button>
-                    </Link>
-                  </div>
                 </div>
               )}
             </div>
@@ -816,123 +747,6 @@ export default function ProntuariosPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDetails(false)}>
               Fechar
-            </Button>
-            {selectedRecord && (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowDetails(false);
-                    handleEdit(selectedRecord);
-                  }}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  {selectedRecord.clinical_record ? "Editar" : "Criar"}
-                </Button>
-                <Link href={`/medico/atendimento/${selectedRecord.appointment_id}`}>
-                  <Button>
-                    <FileCheck className="h-4 w-4 mr-2" />
-                    Atender
-                  </Button>
-                </Link>
-              </>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit/Create Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedRecord?.clinical_record ? "Editar Prontuário" : "Criar Prontuário"}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedRecord && (
-                <>
-                  {selectedRecord.patient_name} • {formatDateTime(selectedRecord.appointment_date)}
-                </>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          {editingRecord && (
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="subjective">Subjetivo</Label>
-                <Textarea
-                  id="subjective"
-                  placeholder="Queixas e sintomas relatados pelo paciente..."
-                  value={editingRecord.subjective || ""}
-                  onChange={(e) => setEditingRecord({ ...editingRecord, subjective: e.target.value })}
-                  rows={4}
-                />
-              </div>
-              <div>
-                <Label htmlFor="objective">Objetivo</Label>
-                <Textarea
-                  id="objective"
-                  placeholder="Achados do exame físico, sinais vitais..."
-                  value={editingRecord.objective || ""}
-                  onChange={(e) => setEditingRecord({ ...editingRecord, objective: e.target.value })}
-                  rows={4}
-                />
-              </div>
-              <div>
-                <Label htmlFor="assessment">Avaliação</Label>
-                <Textarea
-                  id="assessment"
-                  placeholder="Diagnóstico ou impressão clínica..."
-                  value={editingRecord.assessment || ""}
-                  onChange={(e) => setEditingRecord({ ...editingRecord, assessment: e.target.value })}
-                  rows={4}
-                />
-              </div>
-              <div>
-                <Label htmlFor="plan_soap">Plano</Label>
-                <Textarea
-                  id="plan_soap"
-                  placeholder="Plano de tratamento, orientações, próximos passos..."
-                  value={editingRecord.plan_soap || editingRecord.plan || ""}
-                  onChange={(e) => setEditingRecord({ ...editingRecord, plan_soap: e.target.value, plan: e.target.value })}
-                  rows={4}
-                />
-              </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">Nota:</p>
-                    <p>Para adicionar prescrições, exames e diagnósticos, acesse a página de atendimento da consulta.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowEditDialog(false);
-                setEditingRecord(null);
-                setSelectedRecord(null);
-              }}
-              disabled={saving}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveRecord} disabled={saving}>
-              {saving ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Salvar
-                </>
-              )}
             </Button>
           </DialogFooter>
         </DialogContent>
