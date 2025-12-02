@@ -31,13 +31,15 @@ interface RequestOptions extends RequestInit {
 }
 
 /**
- * Generic API request handler
+ * Generic API request handler with retry logic and timeout
  */
 async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
   const { token, skipAuth, ...fetchOptions } = options;
+  const maxRetries = 3;
+  const retryDelay = 1000; // Start with 1 second
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -57,100 +59,157 @@ async function apiRequest<T>(
     }
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...fetchOptions,
-    headers,
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    // Handle 401 Unauthorized - redirect to login
-    if (response.status === 401) {
-      clearAuthData();
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
-    }
-    
-    let errorMessage = `HTTP error! status: ${response.status}`;
-    let errorData: any = null;
-    
+  // Retry logic for transient failures
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        errorData = await response.json();
-        // FastAPI validation errors typically have 'detail' as an array or string
-        if (errorData.detail) {
-          if (Array.isArray(errorData.detail)) {
-            // Pydantic validation errors
-            errorMessage = errorData.detail.map((err: any) => 
-              `${err.loc?.join('.') || 'field'}: ${err.msg}`
-            ).join(', ');
-          } else if (typeof errorData.detail === 'string') {
-            errorMessage = errorData.detail;
-          } else {
-            errorMessage = JSON.stringify(errorData.detail);
-          }
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        } else if (errorData.error) {
-          // Some APIs return error object
-          errorMessage = typeof errorData.error === 'string' 
-            ? errorData.error 
-            : errorData.error.message || JSON.stringify(errorData.error);
-        } else {
-          errorMessage = JSON.stringify(errorData);
-        }
-      } else {
-        // Try to read as text if not JSON
-        const text = await response.text();
-        if (text) {
-          errorMessage = text;
-        }
-      }
-    } catch (parseError) {
-      // If response is not JSON or parsing fails, use status text
-      errorMessage = response.statusText || errorMessage;
+      // Create AbortController for timeout (30 seconds)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        ...fetchOptions,
+        headers,
+        signal: controller.signal,
+      });
       
-      // For 404 errors, provide more helpful message
-      if (response.status === 404) {
-        errorMessage = `Not Found: ${endpoint}. The endpoint may not exist or the backend server may need to be restarted.`;
-      }
-    }
-    
-    // Handle 403 Forbidden - especially for "Inactive user"
-    if (response.status === 403) {
-      // Check if it's an inactive user error
-      if (errorMessage.toLowerCase().includes('inactive user') || 
-          (errorData?.detail && typeof errorData.detail === 'string' && errorData.detail.toLowerCase().includes('inactive user'))) {
-        clearAuthData();
-        if (typeof window !== 'undefined') {
-          // Show a message before redirecting
-          console.warn('User account is inactive. Redirecting to login...');
-          window.location.href = '/login?error=inactive';
+      clearTimeout(timeoutId);
+      
+      // If successful, process response
+      if (response.ok) {
+        if (response.status === 204) {
+          return null as T;
         }
+        return await response.json();
+      }
+
+      // Don't retry on client errors (4xx) except 408 (Request Timeout) and 429 (Too Many Requests)
+      if (response.status >= 400 && response.status < 500 && 
+          response.status !== 408 && response.status !== 429) {
+        // Process error response
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        let errorData: any = null;
+        
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            errorData = await response.json();
+            if (errorData.detail) {
+              if (Array.isArray(errorData.detail)) {
+                errorMessage = errorData.detail.map((err: any) => 
+                  `${err.loc?.join('.') || 'field'}: ${err.msg}`
+                ).join(', ');
+              } else if (typeof errorData.detail === 'string') {
+                errorMessage = errorData.detail;
+              } else {
+                errorMessage = JSON.stringify(errorData.detail);
+              }
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            }
+          }
+        } catch {
+          errorMessage = response.statusText || errorMessage;
+        }
+
+        // Handle 401 Unauthorized - redirect to login
+        if (response.status === 401) {
+          clearAuthData();
+          if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+          }
+        }
+
+        // Handle 403 Forbidden - especially for "Inactive user"
+        if (response.status === 403) {
+          if (errorMessage.toLowerCase().includes('inactive user') || 
+              (errorData?.detail && typeof errorData.detail === 'string' && errorData.detail.toLowerCase().includes('inactive user'))) {
+            clearAuthData();
+            if (typeof window !== 'undefined') {
+              console.warn('User account is inactive. Redirecting to login...');
+              window.location.href = '/login?error=inactive';
+            }
+          }
+        }
+
+        // Handle 404 errors
+        if (response.status === 404) {
+          errorMessage = `Not Found: ${endpoint}. The endpoint may not exist or the backend server may need to be restarted.`;
+        }
+
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        (error as any).statusText = response.statusText;
+        (error as any).data = errorData;
+        (error as any).detail = errorData?.detail;
+        throw error;
+      }
+
+      // For server errors (5xx) or retryable client errors, retry if not last attempt
+      if (attempt < maxRetries) {
+        const error = new Error(`Server error: ${response.status}`);
+        (error as any).status = response.status;
+        throw error;
+      }
+
+      // Last attempt failed, process error
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      let errorData: any = null;
+      
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          errorData = await response.json();
+          if (errorData.detail) {
+            errorMessage = typeof errorData.detail === 'string' 
+              ? errorData.detail 
+              : JSON.stringify(errorData.detail);
+          }
+        }
+      } catch {
+        errorMessage = response.statusText || errorMessage;
+      }
+
+      const error = new Error(errorMessage);
+      (error as any).status = response.status;
+      throw error;
+
+    } catch (error: any) {
+      lastError = error;
+      
+      // Don't retry on abort (timeout) - throw immediately
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout: The server did not respond in time. Please check your connection and try again.');
+      }
+
+      // Don't retry on last attempt
+      if (attempt >= maxRetries) {
+        break;
+      }
+
+      // Don't retry on certain client errors
+      if (error.status && error.status >= 400 && error.status < 500 && 
+          error.status !== 408 && error.status !== 429) {
+        throw error;
+      }
+
+      // Wait before retrying with exponential backoff
+      const delay = retryDelay * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      if (typeof window !== 'undefined') {
+        console.warn(`API request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`, error.message);
       }
     }
-    
-    // Create error object with all relevant information
-    const error = new Error(errorMessage);
-    (error as any).status = response.status;
-    (error as any).statusText = response.statusText;
-    (error as any).data = errorData;
-    (error as any).detail = errorData?.detail;
-    (error as any).response = {
-      status: response.status,
-      statusText: response.statusText,
-      data: errorData,
-    };
-    throw error;
   }
 
-  // Handle 204 No Content
-  if (response.status === 204) {
-    return null as T;
+  // All retries exhausted
+  if (lastError) {
+    throw lastError;
   }
 
-  return response.json();
+  throw new Error('Request failed after all retries');
 }
 
 /**
@@ -202,55 +261,68 @@ export const api = {
       }
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...fetchOptions,
-      headers,
-    });
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    if (!response.ok) {
-      // Handle 401 Unauthorized - redirect to login
-      if (response.status === 401) {
-        clearAuthData();
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
-      }
-      
-      let errorMessage = `HTTP error! status: ${response.status}`;
-      let errorData: any = null;
-      try {
-        errorData = await response.json();
-        if (errorData.detail) {
-          errorMessage = typeof errorData.detail === 'string' 
-            ? errorData.detail 
-            : JSON.stringify(errorData.detail);
-        } else if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      } catch {
-        errorMessage = response.statusText || errorMessage;
-      }
-      
-      // Handle 403 Forbidden - especially for "Inactive user"
-      if (response.status === 403) {
-        // Check if it's an inactive user error
-        if (errorMessage.toLowerCase().includes('inactive user') || 
-            (errorData?.detail && typeof errorData.detail === 'string' && errorData.detail.toLowerCase().includes('inactive user'))) {
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        ...fetchOptions,
+        headers,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // Handle 401 Unauthorized - redirect to login
+        if (response.status === 401) {
           clearAuthData();
           if (typeof window !== 'undefined') {
-            // Show a message before redirecting
-            console.warn('User account is inactive. Redirecting to login...');
-            window.location.href = '/login?error=inactive';
+            window.location.href = '/login';
           }
         }
+        
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        let errorData: any = null;
+        try {
+          errorData = await response.json();
+          if (errorData.detail) {
+            errorMessage = typeof errorData.detail === 'string' 
+              ? errorData.detail 
+              : JSON.stringify(errorData.detail);
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch {
+          errorMessage = response.statusText || errorMessage;
+        }
+        
+        // Handle 403 Forbidden - especially for "Inactive user"
+        if (response.status === 403) {
+          if (errorMessage.toLowerCase().includes('inactive user') || 
+              (errorData?.detail && typeof errorData.detail === 'string' && errorData.detail.toLowerCase().includes('inactive user'))) {
+            clearAuthData();
+            if (typeof window !== 'undefined') {
+              console.warn('User account is inactive. Redirecting to login...');
+              window.location.href = '/login?error=inactive';
+            }
+          }
+        }
+        
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        throw error;
       }
-      
-      const error = new Error(errorMessage);
-      (error as any).status = response.status;
+
+      return response.blob();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Download timeout: The server did not respond in time.');
+      }
       throw error;
     }
-
-    return response.blob();
   },
 };
 
@@ -262,4 +334,3 @@ export async function checkHealth() {
     '/api/health'
   );
 }
-

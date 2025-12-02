@@ -78,27 +78,24 @@ export default function MedicoExamesPage() {
     }
     try {
       setLoadingExams(true);
-      // Reuse patient dashboard exam-results endpoint filtered client-side by appointment if needed
+      // Get exam requests for the selected appointment
       const exams = await api.get<any[]>(
-        `/api/v1/patient-dashboard/exam-results`
+        `/api/v1/clinical/exam-requests?appointment_id=${selectedAppointmentId}`
       ).catch(() => [] as any[]);
 
-      const filtered = (exams || []).filter(
-        (e: any) => e.appointment_id === selectedAppointmentId
-      );
-
+      // Map backend response to frontend interface
       setExamRequests(
-        filtered.map((e: any) => ({
+        exams.map((e: any) => ({
           id: e.id,
-          clinical_record_id: e.clinical_record_id ?? 0,
+          clinical_record_id: e.clinical_record_id,
           exam_type: e.exam_type,
           description: e.description,
           reason: e.reason,
-          urgency: (e.urgency as UrgencyLevel) || UrgencyLevel.ROUTINE,
-          is_completed: e.status === "available",
-          created_at: e.created_at || new Date().toISOString(),
+          urgency: e.urgency || UrgencyLevel.ROUTINE,
+          is_completed: e.completed || false,
+          completed_at: e.completed_date || undefined,
+          created_at: e.created_at,
           updated_at: e.updated_at,
-          completed_at: e.completed_at,
         }))
       );
     } catch {
