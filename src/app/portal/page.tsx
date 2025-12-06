@@ -45,15 +45,6 @@ export default function PortalDashboard() {
   // Cache busting
   const cacheBuster = Math.random();
   const version = Date.now();
-  console.log("🔥 CACHE BUSTER:", cacheBuster);
-  console.log("🔥 VERSION:", version);
-  console.log("🔥 FORCE RELOAD - ROLE FIX APPLIED 🔥");
-  console.log("🔥🔥🔥 CRITICAL DEBUG - CHECKING USER ROLE 🔥🔥🔥");
-  console.log("User object:", user);
-  console.log("User role:", user?.role);
-  console.log("User role type:", typeof user?.role);
-  console.log("Is user a patient?", user?.role === 'patient');
-  console.log("🔥🔥🔥 END CRITICAL DEBUG 🔥🔥🔥");
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -72,61 +63,28 @@ export default function PortalDashboard() {
 
   const loadAppointments = async () => {
     try {
-      console.log("🔥🔥🔥 LOADING APPOINTMENTS - CACHE BUSTED 🔥🔥🔥");
-      console.log("Loading appointments...");
-      console.log("User:", user);
-      console.log("User role:", user?.role);
-      console.log("User role type:", typeof user?.role);
-      console.log("Is authenticated:", isAuthenticated);
-      console.log("Timestamp:", new Date().toISOString());
-      console.log("🔥🔥🔥 END DEBUG INFO 🔥🔥🔥");
-      
-      // CRITICAL: Show the actual user object structure
-      console.log("🔍 FULL USER OBJECT:", JSON.stringify(user, null, 2));
-      
-      // Additional debugging for role checking
-      console.log("=== ROLE DEBUGGING ===");
-      console.log("user?.role === 'patient':", user?.role === 'patient');
-      console.log("user?.role === UserRole.PATIENT:", user?.role === 'patient');
-      console.log("user?.role value:", JSON.stringify(user?.role));
-      console.log("Available roles: admin, secretary, doctor, patient");
-      console.log("=== END ROLE DEBUGGING ===");
-      
       // Wait for user to be loaded if not available yet
       if (!user) {
-        console.log("User not loaded yet, skipping appointments load");
         return;
       }
 
       let response;
-      console.log("Checking user role...");
-      console.log("user.role === 'patient':", user.role === 'patient');
-      console.log("user.role value:", JSON.stringify(user.role));
-      console.log("user.role === UserRole.PATIENT:", user.role === 'patient');
-      console.log("Available roles: admin, secretary, doctor, patient");
       
       // More robust role checking
       const isPatient = user.role === 'patient';
-      console.log(`Final role check - isPatient: ${isPatient}, role: ${user.role}`);
-      console.log(`🔥 CRITICAL: User role is "${user.role}", isPatient = ${isPatient}`);
       
       if (isPatient) {
         // For patients, use the patient-appointments endpoint
-        console.log("🔥 Using PATIENT endpoint: /api/appointments/patient-appointments");
         response = await api.get(`/api/appointments/patient-appointments?v=${version}&cb=${cacheBuster}`);
       } else {
         // For staff (admin, secretary, doctor), use the general appointments endpoint
         // with patient_id filter to get appointments for the current user
-        console.log(`🔥 Using STAFF endpoint: /api/appointments?patient_id=${user.id}`);
-        console.log(`User role is: ${user.role}, not patient`);
         response = await api.get(`/api/appointments?patient_id=${user.id}&v=${version}&cb=${cacheBuster}`);
       }
       
-      console.log("Appointments response:", response);
       setAppointments((response as any).data || []);
     } catch (err: any) {
       console.error("Failed to load appointments:", err);
-      console.error("Error details:", err.response);
       setError("Failed to load appointments. Please try again.");
     } finally {
       setLoading(false);
