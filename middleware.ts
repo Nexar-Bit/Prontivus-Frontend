@@ -17,13 +17,14 @@ const ROUTE_ROLES: Record<string, {
     roleEnums: ['admin'],
     redirectTo: '/dashboard',
   },
-  
+
   '/admin': {
     roleIds: [2],
     roleNames: ['AdminClinica'],
     roleEnums: ['admin'],
     redirectTo: '/dashboard',
   },
+  
   '/medico': {
     roleIds: [3],
     roleNames: ['Medico'],
