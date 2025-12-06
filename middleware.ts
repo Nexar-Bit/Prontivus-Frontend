@@ -17,6 +17,7 @@ const ROUTE_ROLES: Record<string, {
     roleEnums: ['admin'],
     redirectTo: '/dashboard',
   },
+  
   '/admin': {
     roleIds: [2],
     roleNames: ['AdminClinica'],
