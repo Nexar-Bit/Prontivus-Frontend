@@ -98,9 +98,12 @@ function getUserFromToken(request: NextRequest): {
       return null;
     }
 
-    const payload = JSON.parse(
-      Buffer.from(parts[1], 'base64').toString('utf-8')
-    );
+    // Use Web API atob for Edge Runtime compatibility
+    // JWT uses URL-safe base64, so we need to convert it
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+    const decoded = atob(padded);
+    const payload = JSON.parse(decoded);
 
     return {
       role_id: payload.role_id,
