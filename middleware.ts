@@ -37,7 +37,13 @@ const ROUTE_ROLES: Record<string, {
     roleEnums: ['secretary'],
     redirectTo: '/dashboard',
   },
-  '/pacient': {
+  '/paciente': {
+    roleIds: [5],
+    roleNames: ['Paciente'],
+    roleEnums: ['patient'],
+    redirectTo: '/dashboard',
+  },
+  '/patient': {
     roleIds: [5],
     roleNames: ['Paciente'],
     roleEnums: ['patient'],
@@ -100,9 +106,15 @@ function getUserFromToken(request: NextRequest): {
 
     // Use Web API atob for Edge Runtime compatibility
     // JWT uses URL-safe base64, so we need to convert it
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
-    const decoded = atob(padded);
+    let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Add padding if needed (base64 strings must be multiples of 4)
+    const paddingLength = (4 - (base64.length % 4)) % 4;
+    if (paddingLength > 0) {
+      base64 += '='.repeat(paddingLength);
+    }
+    
+    const decoded = atob(base64);
     const payload = JSON.parse(decoded);
 
     return {
