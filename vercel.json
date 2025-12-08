@@ -1,14 +1,14 @@
 {
   "env": {
     "NEXT_SKIP_TURBOPACK": "1",
-    "NEXT_PUBLIC_API_URL": "https://prontivus-clinic-backend.onrender.com"
+    "NEXT_PUBLIC_API_URL": "https://prontivus-backend-8ef1.onrender.com"
   },
   "build": {
     "env": {
       "TAILWIND_DISABLE_OXIDE": "1",
       "TAILWIND_DISABLE_LIGHTNINGCSS": "1",
       "NEXT_SKIP_TURBOPACK": "1",
-      "NEXT_PUBLIC_API_URL": "https://prontivus-clinic-backend.onrender.com"
+      "NEXT_PUBLIC_API_URL": "https://prontivus-backend-8ef1.onrender.com"
     }
   }
 }

@@ -27,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { getAccessToken, verifyToken } from "@/lib/auth";
+import { API_URL } from "@/lib/api";
 
 const locales = {
   "en-US": enUS,
@@ -108,7 +109,11 @@ export default function SecretariaLancamentoPage() {
         if (!token) return;
         const ok = await verifyToken();
         if (!ok) return;
-        const url = `ws://localhost:8000/api/appointments/ws/appointments?token=${encodeURIComponent(token)}`;
+        // Convert HTTP/HTTPS URL to WebSocket URL
+        const apiUrl = API_URL || 'http://localhost:8000';
+        const wsProtocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
+        const wsHost = apiUrl.replace(/^https?:\/\//, '');
+        const url = `${wsProtocol}://${wsHost}/api/appointments/ws/appointments?token=${encodeURIComponent(token)}`;
         ws = new WebSocket(url);
         ws.onopen = () => {
           console.log('WebSocket connected');
