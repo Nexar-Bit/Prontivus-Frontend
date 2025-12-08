@@ -52,6 +52,7 @@ interface Doctor {
   is_active?: boolean;
   is_verified?: boolean;
   consultation_room?: string | null;
+  consultation_fee?: number | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -66,6 +67,7 @@ interface DoctorFormData {
   is_active: boolean;
   is_verified: boolean;
   consultation_room: string;
+  consultation_fee: string;
 }
 
 interface PasswordChangeData {
@@ -108,6 +110,7 @@ export default function MedicosPage() {
     is_active: true,
     is_verified: false,
     consultation_room: "",
+    consultation_fee: "",
   });
 
   const [passwordData, setPasswordData] = useState<PasswordChangeData>({
@@ -176,6 +179,7 @@ export default function MedicosPage() {
       is_active: true,
       is_verified: false,
       consultation_room: "",
+      consultation_fee: "",
     });
     setEditingDoctor(null);
   };
@@ -197,6 +201,7 @@ export default function MedicosPage() {
       is_active: doctor.is_active ?? true,
       is_verified: doctor.is_verified ?? false,
       consultation_room: doctor.consultation_room || "",
+      consultation_fee: doctor.consultation_fee?.toString() || "",
     });
     setShowForm(true);
   };
@@ -295,6 +300,7 @@ export default function MedicosPage() {
           is_active: formData.is_active,
           is_verified: formData.is_verified,
           consultation_room: formData.consultation_room.trim() || null,
+          consultation_fee: formData.consultation_fee ? parseFloat(formData.consultation_fee) : null,
         };
 
         // Only include password if it was provided
@@ -314,6 +320,7 @@ export default function MedicosPage() {
           last_name: formData.last_name.trim(),
           role: "doctor" as const,
           consultation_room: formData.consultation_room.trim() || null,
+          consultation_fee: formData.consultation_fee ? parseFloat(formData.consultation_fee) : null,
         };
 
         await api.post("/api/v1/users", createData);
@@ -1209,6 +1216,23 @@ export default function MedicosPage() {
                   }
                   placeholder="Ex.: Pré-consulta 1, Consultório 3"
                 />
+              </div>
+              <div className="col-span-2">
+                <Label htmlFor="consultation_fee">Taxa de Consulta Padrão (R$)</Label>
+                <Input
+                  id="consultation_fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.consultation_fee}
+                  onChange={(e) =>
+                    setFormData({ ...formData, consultation_fee: e.target.value })
+                  }
+                  placeholder="Ex.: 150.00"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Valor padrão da consulta para este médico (opcional)
+                </p>
               </div>
             </div>
             {editingDoctor && (

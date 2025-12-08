@@ -37,13 +37,7 @@ const ROUTE_ROLES: Record<string, {
     roleEnums: ['secretary'],
     redirectTo: '/dashboard',
   },
-  '/paciente': {
-    roleIds: [5],
-    roleNames: ['Paciente'],
-    roleEnums: ['patient'],
-    redirectTo: '/dashboard',
-  },
-  '/patient': {
+  '/pacient': {
     roleIds: [5],
     roleNames: ['Paciente'],
     roleEnums: ['patient'],
@@ -104,33 +98,9 @@ function getUserFromToken(request: NextRequest): {
       return null;
     }
 
-    // Use Web API atob for Edge Runtime compatibility
-    // JWT uses URL-safe base64, so we need to convert it
-    let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    
-    // Add padding if needed (base64 strings must be multiples of 4)
-    const paddingLength = (4 - (base64.length % 4)) % 4;
-    if (paddingLength > 0) {
-      base64 += '='.repeat(paddingLength);
-    }
-    
-    // Decode base64 - handle potential errors
-    let decoded: string;
-    try {
-      decoded = atob(base64);
-    } catch (e) {
-      // Invalid base64, return null
-      return null;
-    }
-    
-    // Parse JSON payload - handle potential errors
-    let payload: any;
-    try {
-      payload = JSON.parse(decoded);
-    } catch (e) {
-      // Invalid JSON, return null
-      return null;
-    }
+    const payload = JSON.parse(
+      Buffer.from(parts[1], 'base64').toString('utf-8')
+    );
 
     return {
       role_id: payload.role_id,
@@ -138,7 +108,7 @@ function getUserFromToken(request: NextRequest): {
       role: payload.role,
     };
   } catch (error) {
-    // Silently fail - don't log in Edge Runtime to avoid deployment issues
+    console.error('Error decoding token:', error);
     return null;
   }
 }
@@ -206,53 +176,47 @@ function getRedirectUrl(pathname: string): string {
 }
 
 export function middleware(request: NextRequest) {
-  try {
-    const { pathname } = request.nextUrl;
+  const { pathname } = request.nextUrl;
 
-    // Create response
-    const response = NextResponse.next();
+  // Create response
+  const response = NextResponse.next();
 
-    // Add cache-control headers to prevent caching of HTML pages
-    if (!pathname.startsWith('/_next/') && !pathname.startsWith('/api/')) {
-      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-      response.headers.set('Pragma', 'no-cache');
-      response.headers.set('Expires', '0');
-    }
-
-    // Allow public routes
-    if (isPublicRoute(pathname)) {
-      return response;
-    }
-
-    // Check authentication
-    const user = getUserFromToken(request);
-
-    // If not authenticated, redirect to login
-    if (!user) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      const redirectResponse = NextResponse.redirect(loginUrl);
-      redirectResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-      return redirectResponse;
-    }
-
-    // Check route access
-    if (!hasRouteAccess(pathname, user)) {
-      const redirectUrl = getRedirectUrl(pathname);
-      const url = new URL(redirectUrl, request.url);
-      url.searchParams.set('error', 'access_denied');
-      url.searchParams.set('from', pathname);
-      const redirectResponse = NextResponse.redirect(url);
-      redirectResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-      return redirectResponse;
-    }
-
-    return response;
-  } catch (error) {
-    // If middleware fails, allow request to proceed
-    // This prevents deployment failures from middleware errors
-    return NextResponse.next();
+  // Add cache-control headers to prevent caching of HTML pages
+  if (!pathname.startsWith('/_next/') && !pathname.startsWith('/api/')) {
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
   }
+
+  // Allow public routes
+  if (isPublicRoute(pathname)) {
+    return response;
+  }
+
+  // Check authentication
+  const user = getUserFromToken(request);
+
+  // If not authenticated, redirect to login
+  if (!user) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('redirect', pathname);
+    const redirectResponse = NextResponse.redirect(loginUrl);
+    redirectResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return redirectResponse;
+  }
+
+  // Check route access
+  if (!hasRouteAccess(pathname, user)) {
+    const redirectUrl = getRedirectUrl(pathname);
+    const url = new URL(redirectUrl, request.url);
+    url.searchParams.set('error', 'access_denied');
+    url.searchParams.set('from', pathname);
+    const redirectResponse = NextResponse.redirect(url);
+    redirectResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return redirectResponse;
+  }
+
+  return response;
 }
 
 /**

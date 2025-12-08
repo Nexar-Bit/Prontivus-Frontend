@@ -131,6 +131,9 @@ export interface AppointmentCreate {
   patient_id: number;
   doctor_id: number;
   clinic_id: number;
+  consultation_price?: number;
+  payment_method?: "cash" | "credit_card" | "debit_card" | "bank_transfer" | "pix" | "check" | "insurance" | "other";
+  create_invoice?: boolean;
 }
 
 export interface AppointmentUpdate {
@@ -151,6 +154,8 @@ export interface Doctor {
   first_name: string;
   last_name: string;
   full_name?: string;
+  consultation_fee?: number | null;
+  consultation_room?: string | null;
 }
 
 // ==================== Financial Types ====================

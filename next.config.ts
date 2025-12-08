@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
 	/* config options here */
@@ -7,6 +8,10 @@ const nextConfig: NextConfig = {
 		"react-big-calendar",
 		"uncontrollable",
 	],
+	// Disable Turbopack temporarily to avoid caching issues
+	// turbopack: {
+	//   root: path.resolve(__dirname),
+	// },
 	// Add headers to prevent caching of HTML pages
 	async headers() {
 		return [

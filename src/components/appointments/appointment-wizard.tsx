@@ -45,6 +45,7 @@ interface AppointmentWizardProps {
 }
 
 type AppointmentType = 'consultation' | 'procedure' | 'follow-up' | 'emergency';
+type PaymentMethod = "cash" | "credit_card" | "debit_card" | "bank_transfer" | "pix" | "check" | "insurance" | "other";
 
 const steps = [
   { label: "Paciente", description: "Selecione o paciente" },
@@ -78,6 +79,9 @@ export function AppointmentWizard({
   const [reason, setReason] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [urgent, setUrgent] = React.useState(false);
+  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod | "">("");
+  const [consultationPrice, setConsultationPrice] = React.useState<string>("");
+  const [createInvoice, setCreateInvoice] = React.useState(false);
 
   // Mock doctor schedule - replace with API
   const doctorSchedule = React.useMemo(() => {
@@ -134,6 +138,9 @@ export function AppointmentWizard({
       appointment_type: appointmentType,
       reason: reason || undefined,
       notes: notes || undefined,
+      consultation_price: consultationPrice ? parseFloat(consultationPrice) : (selectedDoctor?.consultation_fee || undefined),
+      payment_method: paymentMethod ? (paymentMethod as PaymentMethod) : undefined,
+      create_invoice: createInvoice,
     };
 
     try {
@@ -316,6 +323,72 @@ export function AppointmentWizard({
                   Marcar como urgente
                 </label>
               </div>
+
+              {/* Payment Information */}
+              {selectedDoctor && (
+                <div className="space-y-4 p-4 rounded-lg border-2 border-blue-200 bg-blue-50/30">
+                  <h3 className="font-semibold text-gray-900">Informações de Pagamento</h3>
+                  
+                  {selectedDoctor.consultation_fee && (
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">
+                        Valor da Consulta (R$)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={consultationPrice || selectedDoctor.consultation_fee}
+                          onChange={(e) => setConsultationPrice(e.target.value)}
+                          className="flex-1 px-3 py-2 rounded-lg border-2 border-gray-200 focus:border-[#0F4C75] focus:outline-none"
+                          placeholder={selectedDoctor.consultation_fee?.toString() || "0.00"}
+                        />
+                        <span className="text-sm text-gray-500">
+                          (Padrão: R$ {selectedDoctor.consultation_fee?.toFixed(2)})
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Método de Pagamento
+                    </label>
+                    <Select 
+                      value={paymentMethod} 
+                      onValueChange={(value) => setPaymentMethod(value as PaymentMethod | "")}
+                    >
+                      <SelectTrigger className="rounded-lg border-2">
+                        <SelectValue placeholder="Selecione o método de pagamento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Dinheiro</SelectItem>
+                        <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                        <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                        <SelectItem value="pix">PIX</SelectItem>
+                        <SelectItem value="bank_transfer">Transferência Bancária</SelectItem>
+                        <SelectItem value="check">Cheque</SelectItem>
+                        <SelectItem value="insurance">Convênio</SelectItem>
+                        <SelectItem value="other">Outro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="create_invoice"
+                      checked={createInvoice}
+                      onChange={(e) => setCreateInvoice(e.target.checked)}
+                      className="h-4 w-4 text-[#0F4C75] focus:ring-[#0F4C75] rounded"
+                    />
+                    <label htmlFor="create_invoice" className="text-sm font-medium text-gray-700 cursor-pointer">
+                      Criar fatura automaticamente
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
           </FormCard>
         )}
@@ -346,6 +419,11 @@ export function AppointmentWizard({
                       <p className="font-semibold text-gray-900">
                         Dr(a). {selectedDoctor?.first_name} {selectedDoctor?.last_name}
                       </p>
+                      {selectedDoctor?.consultation_fee && (
+                        <p className="text-sm text-gray-600">
+                          Taxa padrão: R$ {selectedDoctor.consultation_fee.toFixed(2)}
+                        </p>
+                      )}
                       {(selectedDoctor as any)?.specialty && (
                         <p className="text-sm text-gray-600">{(selectedDoctor as any).specialty}</p>
                       )}
@@ -365,6 +443,45 @@ export function AppointmentWizard({
                     </div>
                   </div>
                 </div>
+
+                {/* Payment Information */}
+                {(consultationPrice || selectedDoctor?.consultation_fee || paymentMethod) && (
+                  <div className="p-4 rounded-lg border-2 border-green-200 bg-green-50">
+                    <h4 className="font-semibold text-gray-900 mb-3">Informações de Pagamento</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {(consultationPrice || selectedDoctor?.consultation_fee) && (
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Valor da Consulta</p>
+                          <p className="font-semibold text-green-700 text-lg">
+                            R$ {(consultationPrice ? parseFloat(consultationPrice) : selectedDoctor?.consultation_fee || 0).toFixed(2)}
+                          </p>
+                        </div>
+                      )}
+                      {paymentMethod && (
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Método de Pagamento</p>
+                          <p className="font-semibold text-gray-900">
+                            {paymentMethod === "cash" && "Dinheiro"}
+                            {paymentMethod === "credit_card" && "Cartão de Crédito"}
+                            {paymentMethod === "debit_card" && "Cartão de Débito"}
+                            {paymentMethod === "pix" && "PIX"}
+                            {paymentMethod === "bank_transfer" && "Transferência Bancária"}
+                            {paymentMethod === "check" && "Cheque"}
+                            {paymentMethod === "insurance" && "Convênio"}
+                            {paymentMethod === "other" && "Outro"}
+                          </p>
+                        </div>
+                      )}
+                      {createInvoice && (
+                        <div className="col-span-2">
+                          <Badge className="bg-blue-500 text-white">
+                            Fatura será criada automaticamente
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {reason && (
                   <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
