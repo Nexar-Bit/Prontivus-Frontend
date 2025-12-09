@@ -64,9 +64,11 @@ async function apiRequest<T>(
   // Retry logic for transient failures
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      // Create AbortController for timeout (30 seconds)
+      // Create AbortController for timeout (60 seconds for analytics endpoints)
+      const isAnalyticsEndpoint = endpoint.includes('/analytics/') || endpoint.includes('/dashboard/');
+      const timeoutDuration = isAnalyticsEndpoint ? 60000 : 30000; // 60s for analytics, 30s for others
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
       const response = await fetch(`${API_URL}${endpoint}`, {
         ...fetchOptions,
