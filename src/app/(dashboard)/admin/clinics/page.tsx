@@ -131,8 +131,9 @@ export default function AdminClinicsPage() {
       // Check if admin user was created
       if ((newClinic as any).admin_user) {
         const adminUser = (newClinic as any).admin_user;
-        toast.success("Clínica criada com sucesso", {
-          description: `Usuário AdminClinica criado automaticamente. Username: ${adminUser.username}, Email: ${adminUser.email}, Senha: ${adminUser.password}`,
+        const recipientEmail = newClinic.email || adminUser.email;
+        toast.success("Clínica cadastrada com sucesso!", {
+          description: `Usuário AdminClinica criado automaticamente. As credenciais foram enviadas por e-mail para ${recipientEmail}.`,
           duration: 10000,
         });
       } else {
