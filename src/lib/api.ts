@@ -64,9 +64,22 @@ async function apiRequest<T>(
   // Retry logic for transient failures
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      // Create AbortController for timeout (60 seconds for analytics endpoints)
+      // Create AbortController for timeout
+      // Longer timeouts for heavy operations:
+      // - Analytics/dashboard: 60s
+      // - Settings/notifications: 60s
+      // - POST/PUT/PATCH (form submissions): 60s (may involve complex operations)
+      // - GET/DELETE: 30s
       const isAnalyticsEndpoint = endpoint.includes('/analytics/') || endpoint.includes('/dashboard/');
-      const timeoutDuration = isAnalyticsEndpoint ? 60000 : 30000; // 60s for analytics, 30s for others
+      const isSettingsEndpoint = endpoint.includes('/settings/');
+      const isNotificationsEndpoint = endpoint.includes('/notifications');
+      // Check method from fetchOptions (after destructuring, method is passed in options)
+      const requestMethod = (fetchOptions.method || '').toUpperCase();
+      const isWriteOperation = ['POST', 'PUT', 'PATCH'].includes(requestMethod);
+      // Use 90 seconds for write operations to handle complex operations like clinic creation
+      // 60 seconds for analytics/settings/notifications
+      // 30 seconds for simple GET/DELETE operations
+      const timeoutDuration = isWriteOperation ? 90000 : (isAnalyticsEndpoint || isSettingsEndpoint || isNotificationsEndpoint) ? 60000 : 30000;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 

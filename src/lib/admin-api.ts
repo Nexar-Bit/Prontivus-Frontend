@@ -124,36 +124,36 @@ export const adminApi = {
     if (params?.is_active !== undefined) searchParams.append('is_active', params.is_active.toString());
     if (params?.license_expired !== undefined) searchParams.append('license_expired', params.license_expired.toString());
     
-    const url = `/api/admin/clinics${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    const url = `/api/v1/admin/clinics${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
     return api.get<Clinic[]>(url);
   },
 
   getClinic: async (id: number): Promise<Clinic> => {
-    return api.get<Clinic>(`/api/admin/clinics/${id}`);
+    return api.get<Clinic>(`/api/v1/admin/clinics/${id}`);
   },
 
   createClinic: async (data: ClinicCreate): Promise<Clinic> => {
-    return api.post<Clinic>('/api/admin/clinics', data);
+    return api.post<Clinic>('/api/v1/admin/clinics', data);
   },
 
   updateClinic: async (id: number, data: ClinicUpdate): Promise<Clinic> => {
-    return api.put<Clinic>(`/api/admin/clinics/${id}`, data);
+    return api.put<Clinic>(`/api/v1/admin/clinics/${id}`, data);
   },
 
   updateClinicLicense: async (id: number, data: ClinicLicenseUpdate): Promise<Clinic> => {
-    return api.patch<Clinic>(`/api/admin/clinics/${id}/license`, data);
+    return api.patch<Clinic>(`/api/v1/admin/clinics/${id}/license`, data);
   },
 
   deleteClinic: async (id: number): Promise<void> => {
-    return api.delete<void>(`/api/admin/clinics/${id}`);
+    return api.delete<void>(`/api/v1/admin/clinics/${id}`);
   },
 
   getClinicStats: async (): Promise<ClinicStats> => {
-    return api.get<ClinicStats>('/api/admin/clinics/stats');
+    return api.get<ClinicStats>('/api/v1/admin/clinics/stats');
   },
 
   getAvailableModules: async (): Promise<string[]> => {
-    return api.get<string[]>('/api/admin/modules');
+    return api.get<string[]>('/api/v1/admin/modules');
   },
 
   // Logs management
@@ -163,16 +163,16 @@ export const adminApi = {
     if (params?.source && params.source !== 'all') sp.append('source', params.source);
     if (params?.search) sp.append('search', params.search);
     if (params?.limit) sp.append('limit', String(params.limit));
-    return api.get(`/api/admin/logs${sp.toString() ? `?${sp.toString()}` : ''}`);
+    return api.get(`/api/v1/admin/logs${sp.toString() ? `?${sp.toString()}` : ''}`);
   },
   createLog: async (data: { level: string; message: string; source: string; details?: string }) => {
-    return api.post('/api/admin/logs', data);
+    return api.post('/api/v1/admin/logs', data);
   },
   updateLog: async (id: number, data: Partial<{ level: string; message: string; source: string; details: string }>) => {
-    return api.put(`/api/admin/logs/${id}`, data);
+    return api.put(`/api/v1/admin/logs/${id}`, data);
   },
   deleteLog: async (id: number) => {
-    return api.delete(`/api/admin/logs/${id}`);
+    return api.delete(`/api/v1/admin/logs/${id}`);
   },
 
   testDatabaseConnections: async (): Promise<{
@@ -192,6 +192,6 @@ export const adminApi = {
       };
     };
   }> => {
-    return api.get('/api/admin/database/test-connections');
+    return api.get('/api/v1/admin/database/test-connections');
   },
 };
