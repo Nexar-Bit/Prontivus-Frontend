@@ -59,7 +59,7 @@ export interface ProfileUpdate {
  * Get current user's settings from the backend
  */
 export async function getUserSettings(): Promise<UserSettings> {
-  return api.get<UserSettings>('/api/settings/me');
+  return api.get<UserSettings>('/api/v1/settings/me');
 }
 
 /**

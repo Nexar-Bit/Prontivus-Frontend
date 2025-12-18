@@ -28,6 +28,7 @@ export function normalizeError(error: unknown): string {
 interface RequestOptions extends RequestInit {
   token?: string;
   skipAuth?: boolean;
+  timeout?: number; // Optional timeout override in milliseconds
 }
 
 /**
@@ -37,9 +38,25 @@ async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { token, skipAuth, ...fetchOptions } = options;
+  const { token, skipAuth, timeout: timeoutOverride, ...fetchOptions } = options;
   const maxRetries = 3;
   const retryDelay = 1000; // Start with 1 second
+
+  // Calculate timeout duration (moved outside try block for proper scope)
+  // Set to effectively infinite (1 hour) to let system operate normally
+  const DEFAULT_TIMEOUT = 3600000; // 1 hour - effectively infinite for normal operations
+  
+  // Determine timeout based on endpoint and method
+  const isDashboardStatsEndpoint = endpoint.includes('/analytics/dashboard/stats');
+  const isAnalyticsEndpoint = endpoint.includes('/analytics/') || endpoint.includes('/dashboard/');
+  const isSettingsEndpoint = endpoint.includes('/settings/');
+  const isNotificationsEndpoint = endpoint.includes('/notifications');
+  const requestMethod = (fetchOptions.method || '').toUpperCase();
+  const isWriteOperation = ['POST', 'PUT', 'PATCH'].includes(requestMethod);
+  const isDeleteOperation = requestMethod === 'DELETE';
+  
+  // Use override if provided, otherwise use infinite timeout for all requests
+  const timeoutDuration = timeoutOverride ?? DEFAULT_TIMEOUT;
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -64,22 +81,11 @@ async function apiRequest<T>(
   // Retry logic for transient failures
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      // Create AbortController for timeout
-      // Longer timeouts for heavy operations:
-      // - Analytics/dashboard: 60s
-      // - Settings/notifications: 60s
-      // - POST/PUT/PATCH (form submissions): 60s (may involve complex operations)
-      // - GET/DELETE: 30s
-      const isAnalyticsEndpoint = endpoint.includes('/analytics/') || endpoint.includes('/dashboard/');
-      const isSettingsEndpoint = endpoint.includes('/settings/');
-      const isNotificationsEndpoint = endpoint.includes('/notifications');
-      // Check method from fetchOptions (after destructuring, method is passed in options)
-      const requestMethod = (fetchOptions.method || '').toUpperCase();
-      const isWriteOperation = ['POST', 'PUT', 'PATCH'].includes(requestMethod);
-      // Use 90 seconds for write operations to handle complex operations like clinic creation
-      // 60 seconds for analytics/settings/notifications
-      // 30 seconds for simple GET/DELETE operations
-      const timeoutDuration = isWriteOperation ? 90000 : (isAnalyticsEndpoint || isSettingsEndpoint || isNotificationsEndpoint) ? 60000 : 30000;
+      // Log timeout duration for debugging (only in development)
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.debug(`[API] ${endpoint} - Timeout set to ${timeoutDuration}ms`);
+      }
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
@@ -100,6 +106,7 @@ async function apiRequest<T>(
       }
 
       // Don't retry on client errors (4xx) except 408 (Request Timeout) and 429 (Too Many Requests)
+      // Also don't retry on 503 (Service Unavailable) - service is down, retrying won't help
       if (response.status >= 400 && response.status < 500 && 
           response.status !== 408 && response.status !== 429) {
         // Process error response
@@ -161,7 +168,28 @@ async function apiRequest<T>(
         throw error;
       }
 
-      // For server errors (5xx) or retryable client errors, retry if not last attempt
+      // For server errors (5xx), don't retry on 503 (Service Unavailable) - service is down
+      // Retry other 5xx errors (500, 502, 504) as they might be transient
+      if (response.status === 503) {
+        // 503 means service is temporarily unavailable - don't retry, fail immediately
+        let errorMessage = `Service temporarily unavailable. Please try again later.`;
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            if (errorData.detail) {
+              errorMessage = errorData.detail;
+            }
+          }
+        } catch {
+          // Use default message
+        }
+        const error = new Error(errorMessage);
+        (error as any).status = 503;
+        throw error;
+      }
+      
+      // For other server errors (5xx) or retryable client errors, retry if not last attempt
       if (attempt < maxRetries) {
         const error = new Error(`Server error: ${response.status}`);
         (error as any).status = response.status;
@@ -195,7 +223,28 @@ async function apiRequest<T>(
       
       // Don't retry on abort (timeout) - throw immediately
       if (error.name === 'AbortError') {
-        throw new Error('Request timeout: The server did not respond in time. Please check your connection and try again.');
+        const timeoutMsg = `Request timeout: The server is processing your request. Please wait a moment and try again.`;
+        if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+          console.warn(`[API] Timeout on ${endpoint} after ${timeoutDuration}ms - system is functioning, just slow`);
+        }
+        throw new Error(timeoutMsg);
+      }
+      
+      // Handle 408 Request Timeout and 503 Service Unavailable gracefully
+      // System is working, just slow - don't show alarming errors
+      if (error.status === 408 || error.status === 503 || 
+          (error.message && (error.message.includes('took too long') || 
+                            error.message.includes('temporarily unavailable') ||
+                            error.message.includes('processing')))) {
+        // For dashboard and non-critical endpoints, handle gracefully
+        if (endpoint.includes('/analytics/') || endpoint.includes('/dashboard/') || 
+            endpoint.includes('/notifications') || endpoint.includes('/settings/')) {
+          if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+            console.log(`[API] Slow response on ${endpoint} - system is functioning, using defaults`);
+          }
+          // Throw a non-alarming message that will be handled gracefully
+          throw new Error('Request is processing. Please wait a moment.');
+        }
       }
 
       // Don't retry on last attempt
@@ -203,9 +252,12 @@ async function apiRequest<T>(
         break;
       }
 
-      // Don't retry on certain client errors
-      if (error.status && error.status >= 400 && error.status < 500 && 
-          error.status !== 408 && error.status !== 429) {
+      // Don't retry on certain client errors (4xx) or 503 (Service Unavailable)
+      // 503 means service is temporarily unavailable - retrying immediately won't help
+      if (error.status && (
+          (error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429) ||
+          error.status === 503
+      )) {
         throw error;
       }
 

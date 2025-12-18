@@ -67,8 +67,24 @@ export default function SuperAdminDashboard() {
       });
     } catch (error: any) {
       console.error("Failed to load dashboard data:", error);
-      toast.error("Erro ao carregar dados do dashboard", {
-        description: error?.message || "Não foi possível carregar as informações",
+      
+      // Provide user-friendly error message based on error type
+      let errorMessage = "Não foi possível carregar as informações do dashboard";
+      let errorDescription = "Tente recarregar a página em alguns instantes.";
+      
+      if (error?.message?.includes("Service temporarily unavailable") || error?.status === 503) {
+        errorMessage = "Serviço temporariamente indisponível";
+        errorDescription = "O servidor está sobrecarregado. Por favor, tente novamente em alguns instantes.";
+      } else if (error?.message?.includes("timeout")) {
+        errorMessage = "Tempo de resposta excedido";
+        errorDescription = "A requisição demorou muito para responder. Verifique sua conexão e tente novamente.";
+      } else if (error?.message) {
+        errorDescription = error.message;
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 5000,
       });
     } finally {
       setLoading(false);

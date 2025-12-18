@@ -121,9 +121,8 @@
 }
 
 /* Smooth Scrolling for All Scrollable Areas */
-html {
-	scroll-behavior: smooth;
-}
+/* Note: Removed from html element to prevent Next.js route transition conflicts */
+/* Smooth scrolling is applied to specific scrollable containers below */
 
 /* Modern Scrollbar Styles for Sidebar - Soft teal */
 .sidebar-scrollbar {

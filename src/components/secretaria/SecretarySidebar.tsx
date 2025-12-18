@@ -106,7 +106,10 @@ export function SecretarySidebar() {
           setAvatarUrl(null);
         }
       } catch (error) {
-        console.error('Failed to load avatar:', error);
+        // Avatar loading is non-critical - fail silently
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Avatar not available:', error instanceof Error ? error.message : 'Unknown error');
+        }
         setAvatarUrl(null);
       }
     };

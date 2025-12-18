@@ -25,10 +25,15 @@ export function NotificationDropdown() {
     try {
       setLoading(true);
       const data = await notificationsApi.getAll();
-      setNotifications(data);
-    } catch (e) {
-      // fail silently in header
-      console.warn('Failed to load notifications');
+      setNotifications(data || []);
+    } catch (e: any) {
+      // fail silently in header - notifications are non-critical
+      // Only log in development to avoid console spam
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to load notifications:', e?.message || 'Unknown error');
+      }
+      // Set empty array on error to prevent UI issues
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

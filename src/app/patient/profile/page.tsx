@@ -189,7 +189,10 @@ export default function PatientProfilePage() {
           setAvatarUrl(null);
         }
       } catch (avatarError) {
-        console.warn("Failed to load avatar:", avatarError);
+        // Avatar loading is non-critical - fail silently
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Avatar not available:', avatarError instanceof Error ? avatarError.message : 'Unknown error');
+        }
         setAvatarUrl(null);
       }
       

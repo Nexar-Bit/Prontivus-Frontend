@@ -137,7 +137,11 @@ export function SuperAdminSidebar() {
           setAvatarUrl(null);
         }
       } catch (error) {
-        console.error('Failed to load avatar:', error);
+        // Avatar loading is non-critical - fail silently
+        // Only log in development mode for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('Avatar not available:', error instanceof Error ? error.message : 'Unknown error');
+        }
         setAvatarUrl(null);
       }
     };

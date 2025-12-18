@@ -1,113 +1,70 @@
 /**
- * Test Users Configuration
- * Predefined test users for each role for development and testing
+ * Test Users for Development
+ * Only used in development mode for quick testing
  */
 
 export interface TestUser {
   id: number;
   username: string;
-  email: string;
   password: string;
-  role_id: number;
   role_name: string;
-  role: 'admin' | 'secretary' | 'doctor' | 'patient';
-  first_name: string;
-  last_name: string;
-  clinic_id: number;
+  email?: string;
 }
 
 /**
  * Test users for each role
- * These should match users created in the backend seed data
+ * These are development-only test accounts
  */
 export const TEST_USERS: Record<string, TestUser> = {
-  superadmin: {
+  SuperAdmin: {
     id: 1,
-    username: 'superadmin',
-    email: 'superadmin@prontivus.com',
-    password: 'SuperAdmin123!',
-    role_id: 1,
-    role_name: 'SuperAdmin',
-    role: 'admin',
-    first_name: 'Super',
-    last_name: 'Admin',
-    clinic_id: 1,
+    username: "superadmin",
+    password: "admin123",
+    role_name: "SuperAdmin",
+    email: "superadmin@test.com",
   },
-  adminclinica: {
+  AdminClinica: {
     id: 2,
-    username: 'adminclinica',
-    email: 'admin@prontivus.com',
-    password: 'Admin123!',
-    role_id: 2,
-    role_name: 'AdminClinica',
-    role: 'admin',
-    first_name: 'Admin',
-    last_name: 'Clinica',
-    clinic_id: 1,
+    username: "admin",
+    password: "admin123",
+    role_name: "AdminClinica",
+    email: "admin@test.com",
   },
-  medico: {
+  Medico: {
     id: 3,
-    username: 'medico',
-    email: 'medico@prontivus.com',
-    password: 'Medico123!',
-    role_id: 3,
-    role_name: 'Medico',
-    role: 'doctor',
-    first_name: 'Dr.',
-    last_name: 'Medico',
-    clinic_id: 1,
+    username: "medico",
+    password: "medico123",
+    role_name: "Medico",
+    email: "medico@test.com",
   },
-  secretaria: {
+  Secretaria: {
     id: 4,
-    username: 'secretaria',
-    email: 'secretaria@prontivus.com',
-    password: 'Secretaria123!',
-    role_id: 4,
-    role_name: 'Secretaria',
-    role: 'secretary',
-    first_name: 'Secretaria',
-    last_name: 'Test',
-    clinic_id: 1,
+    username: "secretaria",
+    password: "secretaria123",
+    role_name: "Secretaria",
+    email: "secretaria@test.com",
   },
-  paciente: {
+  Paciente: {
     id: 5,
-    username: 'paciente',
-    email: 'patient@prontivus.com',
-    password: 'Patient123!',
-    role_id: 5,
-    role_name: 'Paciente',
-    role: 'patient',
-    first_name: 'Paciente',
-    last_name: 'Test',
-    clinic_id: 1,
+    username: "paciente",
+    password: "paciente123",
+    role_name: "Paciente",
+    email: "paciente@test.com",
   },
 };
 
 /**
  * Get test user by role name
  */
-export function getTestUser(roleName: string): TestUser | undefined {
-  const key = roleName.toLowerCase().replace(/\s+/g, '');
-  return TEST_USERS[key];
+export function getTestUser(roleName: string): TestUser | null {
+  return TEST_USERS[roleName] || null;
 }
 
 /**
- * Get all test users
+ * Get all test user role names
  */
-export function getAllTestUsers(): TestUser[] {
-  return Object.values(TEST_USERS);
+export function getTestUserRoles(): string[] {
+  return Object.keys(TEST_USERS);
 }
 
-/**
- * Get test user credentials for login
- */
-export function getTestUserCredentials(roleName: string): { username: string; password: string } | undefined {
-  const user = getTestUser(roleName);
-  if (!user) return undefined;
-  
-  return {
-    username: user.username,
-    password: user.password,
-  };
-}
 
