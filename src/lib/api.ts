@@ -102,7 +102,12 @@ async function apiRequest<T>(
         if (response.status === 204) {
           return null as T;
         }
-        return await response.json();
+        const jsonData = await response.json();
+        // Handle case where response is an empty array
+        if (Array.isArray(jsonData) && jsonData.length === 0) {
+          return [] as T;
+        }
+        return jsonData as T;
       }
 
       // Don't retry on client errors (4xx) except 408 (Request Timeout) and 429 (Too Many Requests)
@@ -117,21 +122,40 @@ async function apiRequest<T>(
           const contentType = response.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
             errorData = await response.json();
-            if (errorData.detail) {
-              if (Array.isArray(errorData.detail)) {
-                errorMessage = errorData.detail.map((err: any) => 
-                  `${err.loc?.join('.') || 'field'}: ${err.msg}`
-                ).join(', ');
-              } else if (typeof errorData.detail === 'string') {
-                errorMessage = errorData.detail;
-              } else {
-                errorMessage = JSON.stringify(errorData.detail);
+            
+            // Handle case where errorData itself is an empty array
+            if (Array.isArray(errorData) && errorData.length === 0) {
+              errorMessage = `Validation error: Please check all required fields are filled correctly (status: ${response.status})`;
+              // Log for debugging
+              if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+                console.warn('[API] Empty array error response:', { endpoint, status: response.status, method: fetchOptions.method });
               }
-            } else if (errorData.message) {
-              errorMessage = errorData.message;
+            } else if (errorData && typeof errorData === 'object') {
+              if (errorData.detail) {
+                if (Array.isArray(errorData.detail)) {
+                  if (errorData.detail.length === 0) {
+                    errorMessage = `Validation error: Please check all required fields are filled correctly (status: ${response.status})`;
+                    // Log for debugging
+                    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+                      console.warn('[API] Empty detail array in error response:', { endpoint, status: response.status, method: fetchOptions.method, errorData });
+                    }
+                  } else {
+                    errorMessage = errorData.detail.map((err: any) => 
+                      `${err.loc?.join('.') || 'field'}: ${err.msg || err.message || 'Invalid value'}`
+                    ).join(', ');
+                  }
+                } else if (typeof errorData.detail === 'string') {
+                  errorMessage = errorData.detail;
+                } else {
+                  errorMessage = JSON.stringify(errorData.detail);
+                }
+              } else if (errorData.message) {
+                errorMessage = errorData.message;
+              }
             }
           }
-        } catch {
+        } catch (parseError) {
+          // If JSON parsing fails, use status text or default message
           errorMessage = response.statusText || errorMessage;
         }
 
@@ -160,6 +184,11 @@ async function apiRequest<T>(
           errorMessage = `Not Found: ${endpoint}. The endpoint may not exist or the backend server may need to be restarted.`;
         }
 
+        // Ensure errorMessage is never empty or just brackets
+        if (!errorMessage || errorMessage.trim() === '' || errorMessage === '[]') {
+          errorMessage = `HTTP error! status: ${response.status}`;
+        }
+        
         const error = new Error(errorMessage);
         (error as any).status = response.status;
         (error as any).statusText = response.statusText;
@@ -184,6 +213,11 @@ async function apiRequest<T>(
         } catch {
           // Use default message
         }
+        // Ensure errorMessage is never empty or just brackets
+        if (!errorMessage || errorMessage.trim() === '' || errorMessage === '[]') {
+          errorMessage = 'Service temporarily unavailable. Please try again later.';
+        }
+        
         const error = new Error(errorMessage);
         (error as any).status = 503;
         throw error;
@@ -204,16 +238,32 @@ async function apiRequest<T>(
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           errorData = await response.json();
-          if (errorData.detail) {
-            errorMessage = typeof errorData.detail === 'string' 
-              ? errorData.detail 
-              : JSON.stringify(errorData.detail);
+          // Handle case where errorData is an empty array
+          if (Array.isArray(errorData) && errorData.length === 0) {
+            errorMessage = 'Validation error: No details provided';
+          } else if (errorData && typeof errorData === 'object') {
+            if (errorData.detail) {
+              if (Array.isArray(errorData.detail) && errorData.detail.length === 0) {
+                errorMessage = 'Validation error: No details provided';
+              } else {
+                errorMessage = typeof errorData.detail === 'string' 
+                  ? errorData.detail 
+                  : JSON.stringify(errorData.detail);
+              }
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            }
           }
         }
       } catch {
         errorMessage = response.statusText || errorMessage;
       }
 
+      // Ensure errorMessage is never empty or just brackets
+      if (!errorMessage || errorMessage.trim() === '' || errorMessage === '[]') {
+        errorMessage = `HTTP error! status: ${response.status}`;
+      }
+      
       const error = new Error(errorMessage);
       (error as any).status = response.status;
       throw error;
@@ -354,14 +404,33 @@ export const api = {
         let errorData: any = null;
         try {
           errorData = await response.json();
-          if (errorData.detail) {
-            errorMessage = typeof errorData.detail === 'string' 
-              ? errorData.detail 
-              : JSON.stringify(errorData.detail);
-          } else if (errorData.message) {
-            errorMessage = errorData.message;
+          
+          // Handle case where errorData itself is an empty array
+          if (Array.isArray(errorData) && errorData.length === 0) {
+            errorMessage = 'Validation error: No details provided';
+          } else if (errorData && typeof errorData === 'object') {
+            if (errorData.detail) {
+              if (Array.isArray(errorData.detail)) {
+                if (errorData.detail.length === 0) {
+                  errorMessage = `Validation error: Please check all required fields are filled correctly (status: ${response.status})`;
+                } else {
+                  errorMessage = errorData.detail.map((err: any) => 
+                    `${err.loc?.join('.') || 'field'}: ${err.msg || err.message || 'Invalid value'}`
+                  ).join(', ');
+                }
+              } else if (typeof errorData.detail === 'string') {
+                errorMessage = errorData.detail;
+              } else {
+                errorMessage = JSON.stringify(errorData.detail);
+              }
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            } else if (Array.isArray(errorData) && errorData.length === 0) {
+              errorMessage = `Validation error: Please check all required fields are filled correctly (status: ${response.status})`;
+            }
           }
-        } catch {
+        } catch (parseError) {
+          // If JSON parsing fails, use status text or default message
           errorMessage = response.statusText || errorMessage;
         }
         

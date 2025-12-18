@@ -211,7 +211,7 @@ export function AppHeader({
           <span>{operationProgress.operationMessage}</span>
         </div>
       )}
-      <div className="flex h-20 items-center gap-6 px-6 lg:px-8">
+      <div className="flex h-16 sm:h-20 items-center gap-3 sm:gap-6 px-4 sm:px-6 lg:px-8">
         {/* Center: Breadcrumb Navigation */}
         <nav className="flex-1 hidden lg:flex items-center gap-2 min-w-0">
           <ol className="flex items-center gap-2 text-sm">
@@ -242,7 +242,7 @@ export function AppHeader({
         </nav>
 
         {/* Right Section: Search, Notifications, User, Primary Action */}
-        <div className="flex items-center gap-3 ml-auto">
+        <div className="flex items-center gap-2 sm:gap-3 ml-auto">
           {/* Global Search Bar */}
         {showSearch && (
           <form

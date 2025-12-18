@@ -160,14 +160,14 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <ShieldCheck className="h-8 w-8 text-blue-600" />
-          Super Administrador
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+          <ShieldCheck className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
+          <span className="truncate">Super Administrador</span>
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600 mt-2 text-sm sm:text-base">
           Painel de controle do sistema - Gestão centralizada de todas as clínicas
         </p>
       </div>
@@ -211,7 +211,7 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Recent Clinics and System Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Clinics */}
         <Card>
           <CardHeader>

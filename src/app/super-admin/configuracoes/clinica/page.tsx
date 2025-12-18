@@ -290,19 +290,40 @@ export default function ClinicaPage() {
     try {
       setSaving(true);
 
+      // Prepare clinic data, ensuring no empty strings are sent
       const clinicData: any = {
         name: formData.name.trim(),
         legal_name: formData.legal_name.trim(),
         tax_id: onlyDigits(formData.tax_id.trim()), // Remove mask before sending
-        address: formData.address.trim() || undefined,
-        phone: onlyDigits(formData.phone.trim()) || undefined, // Remove mask before sending
-        email: formData.email.trim() || undefined,
-        license_key: formData.license_key.trim() || undefined,
-        expiration_date: formData.expiration_date || undefined,
         max_users: parseInt(formData.max_users) || 10,
-        active_modules: formData.active_modules,
+        active_modules: formData.active_modules || [],
         is_active: formData.is_active,
       };
+      
+      // Only include optional fields if they have values
+      if (formData.address?.trim()) {
+        clinicData.address = formData.address.trim();
+      }
+      if (formData.phone?.trim()) {
+        const phoneDigits = onlyDigits(formData.phone.trim());
+        if (phoneDigits) {
+          clinicData.phone = phoneDigits;
+        }
+      }
+      if (formData.email?.trim()) {
+        clinicData.email = formData.email.trim();
+      }
+      if (formData.license_key?.trim()) {
+        clinicData.license_key = formData.license_key.trim();
+      }
+      if (formData.expiration_date) {
+        clinicData.expiration_date = formData.expiration_date;
+      }
+      
+      // Log data being sent in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Clinic Form] Sending data:', { ...clinicData, tax_id: '***masked***' });
+      }
 
       if (editingClinic) {
         const updatedClinic = await api.put<Clinic>(`/api/v1/admin/clinics/${editingClinic.id}`, clinicData);
@@ -332,24 +353,53 @@ export default function ClinicaPage() {
     } catch (error: any) {
       console.error("Failed to save clinic:", error);
       
+      // Log full error details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[Clinic Form] Full error details:', {
+          message: error?.message,
+          status: error?.status,
+          data: error?.data,
+          detail: error?.detail,
+          response: error?.response,
+        });
+      }
+      
       // Extract error message from various possible locations
       let errorMessage = "Não foi possível salvar a clínica";
       if (error?.message) {
         errorMessage = error.message;
+        // Handle empty array error messages
+        if (errorMessage === '[]' || errorMessage.trim() === '' || errorMessage.includes('No details provided') || errorMessage.includes('Validation error')) {
+          errorMessage = "Erro de validação: Verifique se todos os campos obrigatórios estão preenchidos corretamente. Campos obrigatórios: Nome, Razão Social e CNPJ/CPF.";
+        }
       } else if (error?.data?.detail) {
         if (typeof error.data.detail === 'string') {
           errorMessage = error.data.detail;
         } else if (Array.isArray(error.data.detail)) {
-          errorMessage = error.data.detail.map((err: any) => 
-            `${err.loc?.join('.') || 'field'}: ${err.msg}`
-          ).join(', ');
+          if (error.data.detail.length === 0) {
+            errorMessage = "Erro de validação: Verifique os dados informados";
+          } else {
+            errorMessage = error.data.detail.map((err: any) => 
+              `${err.loc?.join('.') || 'campo'}: ${err.msg || err.message || 'valor inválido'}`
+            ).join(', ');
+          }
+        } else {
+          errorMessage = JSON.stringify(error.data.detail);
         }
       } else if (error?.detail) {
-        errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        if (Array.isArray(error.detail) && error.detail.length === 0) {
+          errorMessage = "Erro de validação: Verifique os dados informados";
+        } else {
+          errorMessage = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        }
       } else if (error?.response?.data?.detail) {
-        errorMessage = typeof error.response.data.detail === 'string' 
-          ? error.response.data.detail 
-          : JSON.stringify(error.response.data.detail);
+        if (Array.isArray(error.response.data.detail) && error.response.data.detail.length === 0) {
+          errorMessage = "Erro de validação: Verifique os dados informados";
+        } else {
+          errorMessage = typeof error.response.data.detail === 'string' 
+            ? error.response.data.detail 
+            : JSON.stringify(error.response.data.detail);
+        }
       }
       
       toast.error(editingClinic ? "Erro ao atualizar clínica" : "Erro ao cadastrar clínica", {
@@ -498,14 +548,14 @@ export default function ClinicaPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Building className="h-8 w-8 text-blue-600" />
-            Gestão de Clínicas
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
+            <Building className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
+            <span className="truncate">Gestão de Clínicas</span>
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">
             Gerencie todas as clínicas cadastradas no sistema
           </p>
         </div>
@@ -514,6 +564,7 @@ export default function ClinicaPage() {
           size="sm"
           onClick={loadData}
           disabled={loading}
+          className="w-full sm:w-auto"
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Atualizar
@@ -522,7 +573,7 @@ export default function ClinicaPage() {
 
       {/* Stats Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -578,25 +629,25 @@ export default function ClinicaPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4">
             <div>
               <CardTitle>Clínicas Cadastradas</CardTitle>
               <CardDescription>
                 Lista de todas as clínicas no sistema ({filteredClinics.length} {filteredClinics.length === 1 ? 'clínica' : 'clínicas'})
               </CardDescription>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="relative">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Buscar clínica..."
-                  className="pl-10 w-64"
+                  className="pl-10 w-full sm:w-64"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-full sm:w-40">
                   <SelectValue placeholder="Todos os status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -607,16 +658,17 @@ export default function ClinicaPage() {
                   <SelectItem value="expiring">Expirando</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="bg-blue-600 hover:bg-blue-700" onClick={openCreateForm}>
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto" onClick={openCreateForm}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Clínica
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           {filteredClinics.length > 0 ? (
-            <Table>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
@@ -679,7 +731,7 @@ export default function ClinicaPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1 sm:gap-2 flex-wrap">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -723,6 +775,7 @@ export default function ClinicaPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Building className="h-12 w-12 mx-auto mb-3 text-gray-300" />
@@ -734,7 +787,7 @@ export default function ClinicaPage() {
 
       {/* Create/Edit Clinic Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>
               {editingClinic ? "Editar Clínica" : "Cadastrar Nova Clínica"}
@@ -752,7 +805,7 @@ export default function ClinicaPage() {
               </TabsList>
               
               <TabsContent value="basic" className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome *</Label>
                     <Input
@@ -772,7 +825,7 @@ export default function ClinicaPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="tax_id">CNPJ/CPF *</Label>
                     <Input
@@ -812,7 +865,7 @@ export default function ClinicaPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Telefone</Label>
                     <Input
@@ -863,7 +916,7 @@ export default function ClinicaPage() {
               </TabsContent>
               
               <TabsContent value="license" className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="license_key">Chave de Licença</Label>
                     <Input
@@ -937,7 +990,7 @@ export default function ClinicaPage() {
 
       {/* Clinic Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Detalhes da Clínica</DialogTitle>
             <DialogDescription>
@@ -954,7 +1007,7 @@ export default function ClinicaPage() {
                 </TabsList>
                 
                 <TabsContent value="info" className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm text-gray-500">Nome</Label>
                       <p className="font-medium">{selectedClinic.name}</p>
@@ -1003,7 +1056,7 @@ export default function ClinicaPage() {
                 </TabsContent>
                 
                 <TabsContent value="license" className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm text-gray-500">Chave de Licença</Label>
                       <p className="font-medium font-mono text-sm">{selectedClinic.license_key || "-"}</p>

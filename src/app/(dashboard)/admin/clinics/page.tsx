@@ -314,15 +314,15 @@ export default function AdminClinicsPage() {
               Nova Clínica
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Criar Nova Clínica</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-xl sm:text-2xl">Criar Nova Clínica</DialogTitle>
+              <DialogDescription className="text-sm">
                 Adicione uma nova clínica ao sistema com configuração de licença e módulos
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Nome da Clínica</Label>
                   <Input
@@ -344,7 +344,7 @@ export default function AdminClinicsPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="tax_id">CNPJ</Label>
                   <Input
@@ -377,7 +377,7 @@ export default function AdminClinicsPage() {
                   className="border-blue-200 focus:border-blue-500"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="phone">Telefone</Label>
                   <Input
@@ -403,7 +403,7 @@ export default function AdminClinicsPage() {
               </div>
               <div>
                 <Label>Módulos Ativos</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto p-2 border rounded-lg border-blue-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 max-h-48 overflow-y-auto p-2 border rounded-lg border-blue-200">
                   {AVAILABLE_MODULES.map((module) => (
                     <div key={module.id} className="flex items-center space-x-2">
                       <Checkbox
@@ -440,7 +440,7 @@ export default function AdminClinicsPage() {
 
       {/* Statistics Cards */}
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -586,9 +586,9 @@ export default function AdminClinicsPage() {
                       : "border-gray-200 bg-gray-50/30"
                   )}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-3 flex-1">
-                      <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                    <div className="space-y-3 flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                         <div className="p-2 bg-blue-100 rounded-lg">
                           <Building2 className="h-5 w-5 text-blue-600" />
                         </div>
@@ -618,7 +618,7 @@ export default function AdminClinicsPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">{clinic.legal_name}</p>
                       <p className="text-sm text-muted-foreground">CNPJ: {clinic.tax_id}</p>
-                      <div className="flex items-center gap-6 text-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm">
                         <div className="flex items-center gap-2">
                           <Users className="h-4 w-4 text-blue-600" />
                           <span className="text-muted-foreground">
@@ -641,7 +641,7 @@ export default function AdminClinicsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:ml-4 w-full sm:w-auto">
                       <Button
                         variant="outline"
                         size="sm"
@@ -687,7 +687,7 @@ export default function AdminClinicsPage() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Clínica</DialogTitle>
             <DialogDescription>
@@ -695,7 +695,7 @@ export default function AdminClinicsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-name">Nome da Clínica</Label>
                 <Input
@@ -715,7 +715,7 @@ export default function AdminClinicsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-tax_id">CNPJ</Label>
                 <Input
@@ -745,7 +745,7 @@ export default function AdminClinicsPage() {
                 className="border-blue-200 focus:border-blue-500"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-phone">Telefone</Label>
                 <Input
@@ -797,7 +797,7 @@ export default function AdminClinicsPage() {
 
       {/* License Dialog */}
       <Dialog open={isLicenseDialogOpen} onOpenChange={setIsLicenseDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Atualizar Licença</DialogTitle>
             <DialogDescription>
@@ -805,7 +805,7 @@ export default function AdminClinicsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="license-key">Chave de Licença</Label>
                 <Input

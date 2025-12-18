@@ -79,12 +79,14 @@ export default function SuperAdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-gradient-to-br from-blue-50 to-blue-50">
+    <div className="flex min-h-screen w-full bg-gradient-to-br from-blue-50 to-blue-50 overflow-x-hidden">
       <SuperAdminSidebar />
-      <main className="flex-1 flex flex-col lg:ml-[240px] transition-all duration-300">
+      <main className="flex-1 flex flex-col lg:ml-[240px] transition-all duration-300 min-w-0 w-full">
         <AppHeader />
-        <div className="flex-1 p-4 lg:p-6">
-          {children}
+        <div className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+          <div className="w-full max-w-full overflow-x-hidden">
+            {children}
+          </div>
         </div>
       </main>
     </div>

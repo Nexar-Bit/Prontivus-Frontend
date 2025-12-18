@@ -68,8 +68,13 @@
 	:root {
 		--radius: 0.5rem;
 	}
-	body {
+	html, body {
 		@apply bg-background text-foreground antialiased;
+		overflow-x: hidden;
+		max-width: 100vw;
+	}
+	body {
+		position: relative;
 	}
 }
 
