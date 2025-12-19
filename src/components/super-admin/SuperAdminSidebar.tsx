@@ -158,7 +158,19 @@ export function SuperAdminSidebar() {
   };
 
   const renderNavItem = (item: { title: string; icon: any; url: string }, groupName: string) => {
-    const active = pathname === item.url || pathname?.startsWith(item.url + '/');
+    // Find all menu items to determine the most specific match
+    const allMenuItems = SUPER_ADMIN_MENU.flatMap(group => group.items);
+    
+    // Find all items that match the current pathname
+    const matchingItems = allMenuItems.filter(menuItem => 
+      pathname === menuItem.url || pathname?.startsWith(menuItem.url + '/')
+    );
+    
+    // Sort by URL length (longest first) to find the most specific match
+    const mostSpecificMatch = matchingItems.sort((a, b) => b.url.length - a.url.length)[0];
+    
+    // Only mark as active if this is the most specific match
+    const active = mostSpecificMatch?.url === item.url;
     const Icon = item.icon;
 
     return (
