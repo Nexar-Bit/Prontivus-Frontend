@@ -8,10 +8,8 @@ const nextConfig: NextConfig = {
 		"react-big-calendar",
 		"uncontrollable",
 	],
-	// Disable Turbopack temporarily to avoid caching issues
-	// turbopack: {
-	//   root: path.resolve(__dirname),
-	// },
+	// Turbopack is disabled via NEXT_SKIP_TURBOPACK environment variable
+	// This prevents HMR chunk loading errors
 	// Add headers to prevent caching of HTML pages
 	async headers() {
 		return [
