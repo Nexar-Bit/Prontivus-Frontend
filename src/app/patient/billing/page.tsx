@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { financialApi } from "@/lib/financial-api";
 import { normalizeError, api } from "@/lib/api";
-import { Invoice as InvoiceType } from "@/lib/types";
+import { Invoice as InvoiceType, InvoiceStatus } from "@/lib/types";
+import { OnlinePaymentDialog } from "@/components/patient/OnlinePaymentDialog";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,8 @@ export default function PatientBillingPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [showOnlinePayment, setShowOnlinePayment] = useState(false);
+  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = useState<Invoice | null>(null);
 
   useEffect(() => {
     loadInvoices();
@@ -551,6 +554,20 @@ export default function PatientBillingPage() {
                                   <Download className="h-4 w-4 mr-1" />
                                   PDF
                                 </Button>
+                                {(invoice.status === InvoiceStatus.DRAFT || invoice.status === InvoiceStatus.ISSUED) && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedInvoiceForPayment(invoice);
+                                      setShowOnlinePayment(true);
+                                    }}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CreditCard className="h-4 w-4 mr-1" />
+                                    Pagar
+                                  </Button>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -713,6 +730,27 @@ export default function PatientBillingPage() {
             </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* Online Payment Dialog */}
+      {selectedInvoiceForPayment && (
+        <OnlinePaymentDialog
+          open={showOnlinePayment}
+          onOpenChange={(open) => {
+            setShowOnlinePayment(open);
+            if (!open) {
+              setSelectedInvoiceForPayment(null);
+            }
+          }}
+          invoiceId={selectedInvoiceForPayment.id}
+          amount={Number(selectedInvoiceForPayment.total_amount || 0)}
+          description={`Fatura #${selectedInvoiceForPayment.id}`}
+          onPaymentSuccess={() => {
+            setRefreshKey(prev => prev + 1);
+            setSelectedInvoiceForPayment(null);
+            setShowOnlinePayment(false);
+          }}
+        />
       )}
 
       {/* Payment History Dialog */}

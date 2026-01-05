@@ -51,21 +51,6 @@ const SUPER_ADMIN_MENU = [
         icon: Building,
         url: "/super-admin/configuracoes/clinica",
       },
-      {
-        title: "Usuários",
-        icon: Users,
-        url: "/super-admin/configuracoes/usuarios",
-      },
-      {
-        title: "Licenciamento",
-        icon: Key,
-        url: "/super-admin/configuracoes/licenciamento",
-      },
-      {
-        title: "Módulos",
-        icon: Package,
-        url: "/super-admin/configuracoes/modulos",
-      },
     ],
   },
   {

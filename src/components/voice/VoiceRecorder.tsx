@@ -10,6 +10,7 @@ import { API_URL } from '@/lib/api';
 interface VoiceRecorderProps {
   onTranscriptionComplete: (result: any) => void;
   consultationId?: number;
+  appointmentId?: number;  // Alternative prop name for appointment ID
   language?: string;
   enhanceMedicalTerms?: boolean;
   structureSoap?: boolean;
@@ -18,10 +19,13 @@ interface VoiceRecorderProps {
 export function VoiceRecorder({ 
   onTranscriptionComplete, 
   consultationId,
+  appointmentId,
   language = 'pt-BR',
   enhanceMedicalTerms = true,
   structureSoap = true,
 }: VoiceRecorderProps) {
+  // Use appointmentId if provided, otherwise fall back to consultationId
+  const activeAppointmentId = appointmentId || consultationId;
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -203,6 +207,11 @@ export function VoiceRecorder({
       formData.append('language', language);
       formData.append('enhance_medical_terms', String(enhanceMedicalTerms));
       formData.append('structure_soap', String(structureSoap));
+      
+      // Add appointment_id if available (for patient recordings)
+      if (activeAppointmentId) {
+        formData.append('appointment_id', activeAppointmentId.toString());
+      }
 
       const response = await fetch(`${API_URL}/api/v1/voice/transcribe`, {
         method: 'POST',

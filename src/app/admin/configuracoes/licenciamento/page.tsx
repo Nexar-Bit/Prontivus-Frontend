@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -113,6 +114,7 @@ const LICENSE_STATUSES = [
 
 export default function LicenciamentoPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [licenseInfo, setLicenseInfo] = useState<LicenseInfo | null>(null);
@@ -134,12 +136,21 @@ export default function LicenciamentoPage() {
   // Check if user is SuperAdmin
   const isSuperAdmin = user?.role === 'admin' && (user?.role_id === 1 || user?.role_name === 'SuperAdmin');
 
+  // Redirect AdminClínica users - this page is only for SuperAdmin
   useEffect(() => {
+    if (user && !isSuperAdmin) {
+      toast.error("Acesso negado. Apenas Super Administradores podem acessar esta página.");
+      router.push("/admin/configuracoes/clinica");
+    }
+  }, [user, isSuperAdmin, router]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
     loadLicenseInfo();
     if (licenseInfo?.has_license) {
       loadEntitlements();
     }
-  }, []);
+  }, [isSuperAdmin]);
 
   const loadLicenseInfo = async () => {
     try {

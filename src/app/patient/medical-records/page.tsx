@@ -91,11 +91,9 @@ const mockRecords: MedicalRecord[] = [];
 
 const mockVitalSigns: VitalSignData[] = [];
 
-const mockMedications: MedicationAdherence[] = [
-  { medication: 'Losartana 50mg', prescribed: 30, taken: 28, adherence: 93, status: 'good' },
-  { medication: 'Ácido Acetilsalicílico 100mg', prescribed: 30, taken: 30, adherence: 100, status: 'good' },
-  { medication: 'Metformina 500mg', prescribed: 60, taken: 48, adherence: 80, status: 'fair' },
-];
+// Medication adherence data - requires medication tracking system
+// This would be populated from prescription tracking data
+const mockMedications: MedicationAdherence[] = [];
 
 const recordTypeConfig = {
   consultation: {
@@ -598,37 +596,43 @@ export default function MedicalRecordsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockMedications.map((med, idx) => (
-                      <div key={idx} className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">{med.medication}</span>
-                          <Badge
-                            className={cn(
-                              med.status === 'good' && 'bg-green-100 text-green-700',
-                              med.status === 'fair' && 'bg-yellow-100 text-yellow-700',
-                              med.status === 'poor' && 'bg-red-100 text-red-700'
-                            )}
-                          >
-                            {med.adherence}%
-                          </Badge>
+                    {mockMedications.length > 0 ? (
+                      mockMedications.map((med, idx) => (
+                        <div key={idx} className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">{med.medication}</span>
+                            <Badge
+                              className={cn(
+                                med.status === 'good' && 'bg-green-100 text-green-700',
+                                med.status === 'fair' && 'bg-yellow-100 text-yellow-700',
+                                med.status === 'poor' && 'bg-red-100 text-red-700'
+                              )}
+                            >
+                              {med.adherence}%
+                            </Badge>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            {/* eslint-disable-next-line react/forbid-dom-props */}
+                            <div
+                              className={cn(
+                                "h-2 rounded-full transition-all",
+                                med.status === 'good' && 'bg-green-500',
+                                med.status === 'fair' && 'bg-yellow-500',
+                                med.status === 'poor' && 'bg-red-500'
+                              )}
+                              style={{ width: `${med.adherence}%` } as React.CSSProperties}
+                            />
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {med.taken} de {med.prescribed} doses
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          {/* eslint-disable-next-line react/forbid-dom-props */}
-                          <div
-                            className={cn(
-                              "h-2 rounded-full transition-all",
-                              med.status === 'good' && 'bg-green-500',
-                              med.status === 'fair' && 'bg-yellow-500',
-                              med.status === 'poor' && 'bg-red-500'
-                            )}
-                            style={{ width: `${med.adherence}%` } as React.CSSProperties}
-                          />
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {med.taken} de {med.prescribed} doses
-                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-sm text-muted-foreground py-4">
+                        Nenhum dado de aderência medicamentosa disponível. Este recurso requer um sistema de rastreamento de medicação.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>

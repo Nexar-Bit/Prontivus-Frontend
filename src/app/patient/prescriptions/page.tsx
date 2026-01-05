@@ -1056,7 +1056,7 @@ ${medication.instructions || ''}
                   Farmácias Próximas
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {mockPharmacies.map((pharmacy) => (
+                  {mockPharmacies.length > 0 ? mockPharmacies.map((pharmacy) => (
                     <Card
                       key={pharmacy.id}
                       className="border-l-4 border-l-teal-500 hover:shadow-lg transition-shadow cursor-pointer bg-white/80 backdrop-blur-sm"
@@ -1102,7 +1102,11 @@ ${medication.instructions || ''}
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                  )) : (
+                    <div className="col-span-full text-center text-muted-foreground py-8">
+                      Nenhuma farmácia disponível. Este recurso requer integração com um serviço de diretório de farmácias.
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -1119,7 +1123,7 @@ ${medication.instructions || ''}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 max-h-[500px] overflow-y-auto">
-                {mockPharmacies.map((pharmacy) => (
+                {mockPharmacies.length > 0 ? mockPharmacies.map((pharmacy) => (
                   <Card
                     key={pharmacy.id}
                     className={cn(
@@ -1174,7 +1178,11 @@ ${medication.instructions || ''}
                       )}
                     </CardContent>
                   </Card>
-                ))}
+                )) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    Nenhuma farmácia disponível. Este recurso requer integração com um serviço de diretório de farmácias.
+                  </div>
+                )}
               </div>
               <div className="flex gap-2 pt-4 border-t border-gray-200">
                 <Button variant="outline" onClick={() => setShowPharmacyDialog(false)}>

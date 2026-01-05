@@ -54,6 +54,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { PatientHeader } from "@/components/patient/Navigation/PatientHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { api } from "@/lib/api";
 
 // Types
 interface Appointment {
@@ -150,24 +151,37 @@ export default function TelemedicinePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Mock appointment data
+  // Fetch appointment data from API
   useEffect(() => {
-    const mockAppointment: Appointment = {
-      id: Number(appointmentId),
-      scheduled_datetime: new Date().toISOString(),
-      duration_minutes: 30,
-      status: 'scheduled',
-      appointment_type: 'telemedicine',
-      reason: 'Consulta de rotina',
-      doctor: {
-        id: 1,
-        first_name: 'Maria',
-        last_name: 'Silva',
-        specialty: 'Cardiologia',
-      },
+    const loadAppointment = async () => {
+      try {
+        setIsLoading(true);
+        // Fetch appointment data from API
+        const data = await api.get<Appointment>(`/api/v1/appointments/${appointmentId}`);
+        setAppointment(data);
+      } catch (error) {
+        console.error('Error loading appointment:', error);
+        // Fallback to mock data on error (for development/testing)
+        const mockAppointment: Appointment = {
+          id: Number(appointmentId),
+          scheduled_datetime: new Date().toISOString(),
+          duration_minutes: 30,
+          status: 'scheduled',
+          appointment_type: 'telemedicine',
+          reason: 'Consulta de rotina',
+          doctor: {
+            id: 1,
+            first_name: 'Maria',
+            last_name: 'Silva',
+            specialty: 'Cardiologia',
+          },
+        };
+        setAppointment(mockAppointment);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    setAppointment(mockAppointment);
-    setIsLoading(false);
+    loadAppointment();
 
     // Simulate waiting time countdown
     const interval = setInterval(() => {

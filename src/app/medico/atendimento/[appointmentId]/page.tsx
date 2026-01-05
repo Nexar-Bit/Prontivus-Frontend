@@ -56,6 +56,7 @@ import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { PDFGenerator } from "@/components/documents/PDFGenerator";
+import { DocumentSignatureButton } from "@/components/documents/DocumentSignatureButton";
 import { VoiceRecorder } from "@/components/voice/VoiceRecorder";
 import { TranscriptionResult } from "@/components/voice/TranscriptionResult";
 import { SoapFormRef } from "@/components/consultation/soap-form";
@@ -633,17 +634,41 @@ export default function ConsultationPage() {
                   buttonVariant="default"
                 />
                 {prescriptions.length > 0 && (
-                  <PDFGenerator
-                    prescriptionId={prescriptions[0].id}
-                    documentType="prescription"
-                    buttonVariant="outline"
-                  />
+                  <>
+                    <PDFGenerator
+                      prescriptionId={prescriptions[0].id}
+                      documentType="prescription"
+                      buttonVariant="outline"
+                    />
+                    <DocumentSignatureButton
+                      documentType="prescription"
+                      documentId={prescriptions[0].id}
+                      buttonVariant="outline"
+                      buttonSize="default"
+                    />
+                  </>
                 )}
                 {patient && (
-                  <PDFGenerator
-                    patientId={patient.id}
-                    documentType="certificate"
+                  <>
+                    <PDFGenerator
+                      patientId={patient.id}
+                      documentType="certificate"
+                      buttonVariant="outline"
+                    />
+                    <DocumentSignatureButton
+                      documentType="certificate"
+                      documentId={patient.id}
+                      buttonVariant="outline"
+                      buttonSize="default"
+                    />
+                  </>
+                )}
+                {clinicalRecord && (
+                  <DocumentSignatureButton
+                    documentType="consultation_report"
+                    documentId={appointmentId}
                     buttonVariant="outline"
+                    buttonSize="default"
                   />
                 )}
               </div>

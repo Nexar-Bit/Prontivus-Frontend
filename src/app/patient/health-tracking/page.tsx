@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { telemetryApi, TelemetryRecord, TelemetryCreate, TelemetryStats } from "@/lib/telemetry-api";
+import { toast } from "sonner";
+import { api } from "@/lib/api";
 import {
   Heart,
   Activity,
@@ -85,21 +88,108 @@ const generateVitalData = (days: number, base: number, variance: number) => {
 
 export default function HealthTrackingPage() {
   const [activeTab, setActiveTab] = useState("vitals");
+  const [loading, setLoading] = useState(true);
+  const [telemetryRecords, setTelemetryRecords] = useState<TelemetryRecord[]>([]);
+  const [telemetryStats, setTelemetryStats] = useState<TelemetryStats | null>(null);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Mock vital signs data
-  const vitalDates = generateDates(30);
-  const bpSystolic = generateVitalData(30, 120, 15);
-  const bpDiastolic = generateVitalData(30, 80, 10);
-  const heartRate = generateVitalData(30, 72, 12);
-  const temperature = generateVitalData(30, 98.6, 1.2);
-  const oxygen = generateVitalData(30, 98, 2);
+  // Load telemetry data from API
+  useEffect(() => {
+    loadTelemetryData();
+  }, [refreshKey]);
+
+  const loadTelemetryData = async () => {
+    try {
+      setLoading(true);
+      // Load last 30 days of data
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      
+      // Load telemetry records and stats in parallel
+      const [records, stats] = await Promise.all([
+        telemetryApi.getMyRecords({
+          start_date: startDate.toISOString().split('T')[0],
+          end_date: endDate.toISOString().split('T')[0],
+          limit: 100,
+        }),
+        telemetryApi.getMyStats('last_30_days').catch(() => null), // Stats optional
+      ]);
+      
+      // Sort by date (oldest first)
+      const sortedRecords = records.sort((a, b) => 
+        new Date(a.measured_at).getTime() - new Date(b.measured_at).getTime()
+      );
+      setTelemetryRecords(sortedRecords);
+      if (stats) setTelemetryStats(stats);
+
+      // Load prescriptions for medication adherence
+      try {
+        const prescData = await api.get<any[]>('/api/v1/patient/prescriptions');
+        setPrescriptions(prescData || []);
+      } catch (prescError) {
+        console.warn("Could not load prescriptions:", prescError);
+        setPrescriptions([]);
+      }
+    } catch (error: any) {
+      console.error("Error loading telemetry data:", error);
+      toast.error("Erro ao carregar dados de telemetria", {
+        description: error?.message || "Não foi possível carregar os dados",
+      });
+      setTelemetryRecords([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Process telemetry data for charts
+  const vitalDates = telemetryRecords.length > 0
+    ? telemetryRecords
+        .filter(r => r.systolic_bp || r.diastolic_bp || r.heart_rate || r.temperature || r.oxygen_saturation)
+        .map(r => format(parseISO(r.measured_at), "MMM dd"))
+        .slice(-30)
+    : generateDates(30);
+
+  const bpSystolic = telemetryRecords
+    .filter(r => r.systolic_bp !== undefined && r.systolic_bp !== null)
+    .map(r => r.systolic_bp!)
+    .slice(-30);
+  
+  const bpDiastolic = telemetryRecords
+    .filter(r => r.diastolic_bp !== undefined && r.diastolic_bp !== null)
+    .map(r => r.diastolic_bp!)
+    .slice(-30);
+  
+  const heartRate = telemetryRecords
+    .filter(r => r.heart_rate !== undefined && r.heart_rate !== null)
+    .map(r => r.heart_rate!)
+    .slice(-30);
+  
+  // Temperature conversion: API stores in °C, display in °F
+  const temperature = telemetryRecords
+    .filter(r => r.temperature !== undefined && r.temperature !== null)
+    .map(r => (r.temperature! * 9/5) + 32) // Convert °C to °F
+    .slice(-30);
+  
+  const oxygen = telemetryRecords
+    .filter(r => r.oxygen_saturation !== undefined && r.oxygen_saturation !== null)
+    .map(r => r.oxygen_saturation!)
+    .slice(-30);
+
+  // Fallback to mock data if no real data
+  const finalBpSystolic = bpSystolic.length > 0 ? bpSystolic : generateVitalData(30, 120, 15);
+  const finalBpDiastolic = bpDiastolic.length > 0 ? bpDiastolic : generateVitalData(30, 80, 10);
+  const finalHeartRate = heartRate.length > 0 ? heartRate : generateVitalData(30, 72, 12);
+  const finalTemperature = temperature.length > 0 ? temperature : generateVitalData(30, 98.6, 1.2);
+  const finalOxygen = oxygen.length > 0 ? oxygen : generateVitalData(30, 98, 2);
 
   const vitalSignsChartData = {
     labels: vitalDates.slice(-14), // Last 14 days
     datasets: [
       {
         label: "Systolic BP",
-        data: bpSystolic.slice(-14),
+        data: finalBpSystolic.slice(-14),
         borderColor: "#EF4444",
         backgroundColor: "rgba(239, 68, 68, 0.1)",
         tension: 0.4,
@@ -107,7 +197,7 @@ export default function HealthTrackingPage() {
       },
       {
         label: "Diastolic BP",
-        data: bpDiastolic.slice(-14),
+        data: finalBpDiastolic.slice(-14),
         borderColor: "#F59E0B",
         backgroundColor: "rgba(245, 158, 11, 0.1)",
         tension: 0.4,
@@ -121,7 +211,7 @@ export default function HealthTrackingPage() {
     datasets: [
       {
         label: "Heart Rate (bpm)",
-        data: heartRate.slice(-14),
+        data: finalHeartRate.slice(-14),
         borderColor: "#1B9AAA",
         backgroundColor: "rgba(27, 154, 170, 0.1)",
         tension: 0.4,
@@ -135,7 +225,7 @@ export default function HealthTrackingPage() {
     datasets: [
       {
         label: "Temperature (°F)",
-        data: temperature.slice(-14),
+        data: finalTemperature.slice(-14),
         borderColor: "#10B981",
         backgroundColor: "rgba(16, 185, 129, 0.1)",
         tension: 0.4,
@@ -149,7 +239,7 @@ export default function HealthTrackingPage() {
     datasets: [
       {
         label: "Oxygen Saturation (%)",
-        data: oxygen.slice(-14),
+        data: finalOxygen.slice(-14),
         borderColor: "#3B82F6",
         backgroundColor: "rgba(59, 130, 246, 0.1)",
         tension: 0.4,
@@ -186,13 +276,86 @@ export default function HealthTrackingPage() {
     },
   };
 
-  // Medication adherence data
+  // Process activity data from telemetry records (steps, calories)
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return date.toISOString().split('T')[0];
+  });
+
+  const activityData = (() => {
+    const stepsData = last7Days.map(date => {
+      const dayRecords = telemetryRecords.filter(r => {
+        const recordDate = new Date(r.measured_at).toISOString().split('T')[0];
+        return recordDate === date;
+      });
+      return dayRecords.reduce((sum, r) => sum + (r.steps || 0), 0);
+    });
+
+    const caloriesData = last7Days.map(date => {
+      const dayRecords = telemetryRecords.filter(r => {
+        const recordDate = new Date(r.measured_at).toISOString().split('T')[0];
+        return recordDate === date;
+      });
+      return dayRecords.reduce((sum, r) => sum + (r.calories_burned || 0), 0);
+    });
+
+    return {
+      labels: last7Days.map(d => format(parseISO(d), "EEE")),
+      datasets: [
+        {
+          label: "Steps",
+          data: stepsData.length > 0 && stepsData.some(s => s > 0) ? stepsData : [0, 0, 0, 0, 0, 0, 0],
+          backgroundColor: "rgba(27, 154, 170, 0.8)",
+          borderColor: "rgb(27, 154, 170)",
+          borderWidth: 2,
+        },
+        {
+          label: "Calories",
+          data: caloriesData.length > 0 && caloriesData.some(c => c > 0) ? caloriesData : [0, 0, 0, 0, 0, 0, 0],
+          backgroundColor: "rgba(239, 68, 68, 0.8)",
+          borderColor: "rgb(239, 68, 68)",
+          borderWidth: 2,
+          yAxisID: "y1",
+        },
+      ],
+    };
+  })();
+
+  // Process sleep data from telemetry records
+  const sleepData = (() => {
+    const sleepHoursData = last7Days.map(date => {
+      const dayRecords = telemetryRecords.filter(r => {
+        const recordDate = new Date(r.measured_at).toISOString().split('T')[0];
+        return recordDate === date;
+      });
+      if (dayRecords.length === 0) return null;
+      const avgSleep = dayRecords.reduce((sum, r) => sum + (r.sleep_hours || 0), 0) / dayRecords.length;
+      return avgSleep > 0 ? avgSleep : null;
+    });
+
+    return {
+      labels: last7Days.map(d => format(parseISO(d), "EEE")),
+      datasets: [
+        {
+          label: "Sleep Hours",
+          data: sleepHoursData.map(s => s !== null ? s : 0),
+          backgroundColor: "rgba(139, 92, 246, 0.8)",
+          borderColor: "rgb(139, 92, 246)",
+          borderWidth: 2,
+        },
+      ],
+    };
+  })();
+
+  // Medication adherence - Note: This requires prescription tracking data which may not be available
+  // For now, we'll show empty/placeholder data with a note that this feature requires additional tracking
   const medicationAdherenceData = {
     labels: ["This Week", "Last Week", "2 Weeks Ago", "3 Weeks Ago"],
     datasets: [
       {
         label: "Adherence Rate (%)",
-        data: [92, 88, 95, 87],
+        data: [0, 0, 0, 0], // Placeholder - requires medication tracking system
         backgroundColor: [
           "rgba(16, 185, 129, 0.8)",
           "rgba(16, 185, 129, 0.8)",
@@ -214,7 +377,7 @@ export default function HealthTrackingPage() {
     labels: ["Taken", "Missed", "Late"],
     datasets: [
       {
-        data: [28, 2, 1],
+        data: [0, 0, 0], // Placeholder - requires medication tracking system
         backgroundColor: [
           "rgba(16, 185, 129, 0.8)",
           "rgba(239, 68, 68, 0.8)",
@@ -230,46 +393,20 @@ export default function HealthTrackingPage() {
     ],
   };
 
-  // Activity data
-  const activityData = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    datasets: [
-      {
-        label: "Steps",
-        data: [8234, 10234, 9432, 11234, 8734, 5432, 7234],
-        backgroundColor: "rgba(27, 154, 170, 0.8)",
-        borderColor: "rgb(27, 154, 170)",
-        borderWidth: 2,
-      },
-      {
-        label: "Calories",
-        data: [340, 420, 380, 460, 360, 280, 320],
-        backgroundColor: "rgba(239, 68, 68, 0.8)",
-        borderColor: "rgb(239, 68, 68)",
-        borderWidth: 2,
-        yAxisID: "y1",
-      },
-    ],
-  };
-
-  const sleepData = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    datasets: [
-      {
-        label: "Sleep Hours",
-        data: [7.5, 8, 7, 7.5, 6.5, 9, 8.5],
-        backgroundColor: "rgba(139, 92, 246, 0.8)",
-        borderColor: "rgb(139, 92, 246)",
-        borderWidth: 2,
-      },
-    ],
-  };
+  // Get latest values for current vitals
+  const latestRecord = telemetryRecords.length > 0 
+    ? telemetryRecords[telemetryRecords.length - 1]
+    : null;
 
   // Current vital signs
   const currentVitals = [
     {
       label: "Blood Pressure",
-      value: `${bpSystolic[bpSystolic.length - 1]}/${bpDiastolic[bpDiastolic.length - 1]}`,
+      value: latestRecord && latestRecord.systolic_bp && latestRecord.diastolic_bp
+        ? `${latestRecord.systolic_bp}/${latestRecord.diastolic_bp}`
+        : finalBpSystolic.length > 0 && finalBpDiastolic.length > 0
+        ? `${finalBpSystolic[finalBpSystolic.length - 1]}/${finalBpDiastolic[finalBpDiastolic.length - 1]}`
+        : "120/80",
       unit: "mmHg",
       icon: Heart,
       status: "normal" as const,
@@ -278,7 +415,8 @@ export default function HealthTrackingPage() {
     },
     {
       label: "Heart Rate",
-      value: heartRate[heartRate.length - 1].toString(),
+      value: latestRecord?.heart_rate?.toString() || 
+        (finalHeartRate.length > 0 ? finalHeartRate[finalHeartRate.length - 1].toString() : "72"),
       unit: "bpm",
       icon: Activity,
       status: "normal" as const,
@@ -287,7 +425,9 @@ export default function HealthTrackingPage() {
     },
     {
       label: "Temperature",
-      value: temperature[temperature.length - 1].toFixed(1),
+      value: latestRecord?.temperature 
+        ? ((latestRecord.temperature * 9/5) + 32).toFixed(1)
+        : (finalTemperature.length > 0 ? finalTemperature[finalTemperature.length - 1].toFixed(1) : "98.6"),
       unit: "°F",
       icon: Thermometer,
       status: "normal" as const,
@@ -296,7 +436,8 @@ export default function HealthTrackingPage() {
     },
     {
       label: "Oxygen Saturation",
-      value: oxygen[oxygen.length - 1].toString(),
+      value: latestRecord?.oxygen_saturation?.toString() ||
+        (finalOxygen.length > 0 ? finalOxygen[finalOxygen.length - 1].toString() : "98"),
       unit: "%",
       icon: Wind,
       status: "normal" as const,
@@ -326,6 +467,150 @@ export default function HealthTrackingPage() {
         return "bg-red-100 text-red-700 border-red-300";
     }
   };
+
+  // Vital Signs Entry Dialog Component
+  function VitalSignsEntryDialog({ onSave }: { onSave: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [formData, setFormData] = useState({
+      systolic_bp: "",
+      diastolic_bp: "",
+      heart_rate: "",
+      temperature: "",
+      oxygen_saturation: "",
+      notes: "",
+    });
+
+    const handleSave = async () => {
+      try {
+        setSaving(true);
+        const createData: TelemetryCreate = {
+          measured_at: new Date().toISOString(),
+        };
+
+        if (formData.systolic_bp) createData.systolic_bp = Number(formData.systolic_bp);
+        if (formData.diastolic_bp) createData.diastolic_bp = Number(formData.diastolic_bp);
+        if (formData.heart_rate) createData.heart_rate = Number(formData.heart_rate);
+        // Temperature: user enters in °F, convert to °C for API
+        if (formData.temperature) createData.temperature = (Number(formData.temperature) - 32) * 5/9;
+        if (formData.oxygen_saturation) createData.oxygen_saturation = Number(formData.oxygen_saturation);
+        if (formData.notes) createData.notes = formData.notes;
+
+        await telemetryApi.create(createData);
+        toast.success("Sinais vitais registrados com sucesso!");
+        setOpen(false);
+        setFormData({
+          systolic_bp: "",
+          diastolic_bp: "",
+          heart_rate: "",
+          temperature: "",
+          oxygen_saturation: "",
+          notes: "",
+        });
+        onSave();
+      } catch (error: any) {
+        console.error("Error saving vital signs:", error);
+        toast.error("Erro ao salvar sinais vitais", {
+          description: error?.message || "Não foi possível salvar os dados",
+        });
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button className="bg-[#0F4C75] hover:bg-[#0F4C75]/90">
+            <Plus className="h-4 w-4 mr-2" />
+            Quick Vital Entry
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Record Vital Signs</DialogTitle>
+            <DialogDescription>
+              Quickly log your vital signs with smart defaults
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div>
+              <Label htmlFor="bp-sys">Systolic BP</Label>
+              <Input
+                id="bp-sys"
+                type="number"
+                placeholder="120"
+                value={formData.systolic_bp}
+                onChange={(e) => setFormData({ ...formData, systolic_bp: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="bp-dia">Diastolic BP</Label>
+              <Input
+                id="bp-dia"
+                type="number"
+                placeholder="80"
+                value={formData.diastolic_bp}
+                onChange={(e) => setFormData({ ...formData, diastolic_bp: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="hr">Heart Rate</Label>
+              <Input
+                id="hr"
+                type="number"
+                placeholder="72"
+                value={formData.heart_rate}
+                onChange={(e) => setFormData({ ...formData, heart_rate: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label htmlFor="temp">Temperature (°F)</Label>
+              <Input
+                id="temp"
+                type="number"
+                placeholder="98.6"
+                step="0.1"
+                value={formData.temperature}
+                onChange={(e) => setFormData({ ...formData, temperature: e.target.value })}
+              />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="oxygen">Oxygen Saturation (%)</Label>
+              <Input
+                id="oxygen"
+                type="number"
+                placeholder="98"
+                value={formData.oxygen_saturation}
+                onChange={(e) => setFormData({ ...formData, oxygen_saturation: e.target.value })}
+              />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="notes">Notes (optional)</Label>
+              <Input
+                id="notes"
+                placeholder="Additional notes..."
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#0F4C75] hover:bg-[#0F4C75]/90"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFBFC]">
@@ -418,13 +703,19 @@ export default function HealthTrackingPage() {
                           <Info className="h-4 w-4 text-blue-600" />
                           <span className="text-blue-800">
                             Normal range: 120/80 mmHg. Your average:{" "}
-                            {Math.round(
-                              bpSystolic.slice(-14).reduce((a, b) => a + b, 0) / 14
-                            )}{" "}
+                            {finalBpSystolic.length > 0
+                              ? Math.round(
+                                  finalBpSystolic.slice(-14).reduce((a, b) => a + b, 0) /
+                                    Math.max(finalBpSystolic.slice(-14).length, 1)
+                                )
+                              : 120}{" "}
                             /{" "}
-                            {Math.round(
-                              bpDiastolic.slice(-14).reduce((a, b) => a + b, 0) / 14
-                            )}{" "}
+                            {finalBpDiastolic.length > 0
+                              ? Math.round(
+                                  finalBpDiastolic.slice(-14).reduce((a, b) => a + b, 0) /
+                                    Math.max(finalBpDiastolic.slice(-14).length, 1)
+                                )
+                              : 80}{" "}
                             mmHg
                           </span>
                         </div>
@@ -504,48 +795,11 @@ export default function HealthTrackingPage() {
                 </div>
 
                 {/* Quick Entry Dialog */}
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="bg-[#0F4C75] hover:bg-[#0F4C75]/90">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Quick Vital Entry
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Record Vital Signs</DialogTitle>
-                      <DialogDescription>
-                        Quickly log your vital signs with smart defaults
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid grid-cols-2 gap-4 py-4">
-                      <div>
-                        <Label htmlFor="bp-sys">Systolic BP</Label>
-                        <Input id="bp-sys" type="number" placeholder="120" defaultValue="120" />
-                      </div>
-                      <div>
-                        <Label htmlFor="bp-dia">Diastolic BP</Label>
-                        <Input id="bp-dia" type="number" placeholder="80" defaultValue="80" />
-                      </div>
-                      <div>
-                        <Label htmlFor="hr">Heart Rate</Label>
-                        <Input id="hr" type="number" placeholder="72" defaultValue="72" />
-                      </div>
-                      <div>
-                        <Label htmlFor="temp">Temperature</Label>
-                        <Input id="temp" type="number" placeholder="98.6" defaultValue="98.6" />
-                      </div>
-                      <div className="col-span-2">
-                        <Label htmlFor="oxygen">Oxygen Saturation</Label>
-                        <Input id="oxygen" type="number" placeholder="98" defaultValue="98" />
-                      </div>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline">Cancel</Button>
-                      <Button className="bg-[#0F4C75] hover:bg-[#0F4C75]/90">Save</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <VitalSignsEntryDialog
+                  onSave={() => {
+                    setRefreshKey(prev => prev + 1);
+                  }}
+                />
               </TabsContent>
 
               {/* Symptoms Tab */}
@@ -667,92 +921,107 @@ export default function HealthTrackingPage() {
                   <Card className="medical-card">
                     <CardHeader>
                       <CardTitle className="text-[#0F4C75]">This Week's Adherence</CardTitle>
-                      <CardDescription>31 doses scheduled</CardDescription>
+                      <CardDescription>
+                        {prescriptions.length > 0 
+                          ? `${prescriptions.length} prescrição(ões) ativa(s)` 
+                          : "Nenhuma prescrição ativa"}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-64">
-                        <Pie data={medicationPieData} options={chartOptions} />
-                      </div>
-                      <div className="mt-4 flex items-center justify-center gap-6">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-green-600">28</div>
-                          <div className="text-sm text-gray-600">Taken</div>
+                      {prescriptions.length > 0 ? (
+                        <>
+                          <div className="h-64">
+                            <Pie data={medicationPieData} options={chartOptions} />
+                          </div>
+                          <div className="mt-4 flex items-center justify-center gap-6">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-green-600">
+                                {medicationPieData.datasets[0].data[0] || 0}
+                              </div>
+                              <div className="text-sm text-gray-600">Taken</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-red-600">
+                                {medicationPieData.datasets[0].data[1] || 0}
+                              </div>
+                              <div className="text-sm text-gray-600">Missed</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-yellow-600">
+                                {medicationPieData.datasets[0].data[2] || 0}
+                              </div>
+                              <div className="text-sm text-gray-600">Late</div>
+                            </div>
+                          </div>
+                          <div className="mt-4 text-center text-sm text-muted-foreground">
+                            <p>Nota: Os dados de aderência medicamentosa requerem um sistema de rastreamento de medicação.</p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="h-64 flex items-center justify-center text-center text-muted-foreground">
+                          <p>Nenhuma prescrição ativa. Os dados de aderência serão exibidos aqui quando houver prescrições e rastreamento de medicação.</p>
                         </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-red-600">2</div>
-                          <div className="text-sm text-gray-600">Missed</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-yellow-600">1</div>
-                          <div className="text-sm text-gray-600">Late</div>
-                        </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[
-                    {
-                      name: "Metformin",
-                      dosage: "500mg",
-                      frequency: "Twice daily",
-                      adherence: 95,
-                      nextDose: "2 hours",
-                    },
-                    {
-                      name: "Aspirin",
-                      dosage: "81mg",
-                      frequency: "Once daily",
-                      adherence: 100,
-                      nextDose: "8 hours",
-                    },
-                    {
-                      name: "Lisinopril",
-                      dosage: "10mg",
-                      frequency: "Once daily",
-                      adherence: 87,
-                      nextDose: "12 hours",
-                    },
-                  ].map((med, idx) => (
-                    <Card key={idx} className="medical-card">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg text-[#0F4C75]">{med.name}</CardTitle>
-                          <Pill className="h-5 w-5 text-[#1B9AAA]" />
-                        </div>
-                        <CardDescription>{med.dosage} • {med.frequency}</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm text-gray-600">Adherence</span>
-                              <span className="text-sm font-semibold">{med.adherence}%</span>
+                  {prescriptions.length > 0 ? (
+                    prescriptions.slice(0, 6).map((presc: any, idx: number) => {
+                      // Calculate next dose time (simplified - would need actual schedule data)
+                      const nextDose = "N/A"; // This would require medication schedule tracking
+                      const adherence = 85; // Placeholder - requires medication tracking system
+                      
+                      return (
+                        <Card key={presc.id || idx} className="medical-card">
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-lg text-[#0F4C75]">
+                                {presc.medication_name || presc.name || "Medicamento"}
+                              </CardTitle>
+                              <Pill className="h-5 w-5 text-[#1B9AAA]" />
                             </div>
-                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-green-500 transition-all"
-                                style={{ width: `${med.adherence}%` }}
-                                aria-label={`Medication adherence: ${med.adherence}%`}
-                              />
+                            <CardDescription>
+                              {presc.dosage || "N/A"} • {presc.frequency || "N/A"}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-3">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-sm text-gray-600">Adherence</span>
+                                  <span className="text-sm font-semibold">{adherence}%</span>
+                                </div>
+                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-green-500 transition-all"
+                                    style={{ width: `${adherence}%` }}
+                                    aria-label={`Medication adherence: ${adherence}%`}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <Clock className="h-4 w-4" />
+                                <span>Next dose in {nextDose}</span>
+                              </div>
+                              <Button
+                                variant="outline"
+                                className="w-full border-[#1B9AAA] text-[#1B9AAA]"
+                              >
+                                <ScanLine className="h-4 w-4 mr-2" />
+                                Log Dose
+                              </Button>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Clock className="h-4 w-4" />
-                            <span>Next dose in {med.nextDose}</span>
-                          </div>
-                          <Button
-                            variant="outline"
-                            className="w-full border-[#1B9AAA] text-[#1B9AAA]"
-                          >
-                            <ScanLine className="h-4 w-4 mr-2" />
-                            Log Dose
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full text-center text-muted-foreground py-8">
+                      Nenhuma prescrição encontrada. As informações de aderência medicamentosa serão exibidas aqui quando houver prescrições ativas.
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 

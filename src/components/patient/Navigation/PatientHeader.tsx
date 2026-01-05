@@ -31,6 +31,9 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useOperationProgress } from "@/contexts/OperationProgressContext";
 import { Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { patientCallingApi } from "@/lib/patient-calling-api";
+import { toast } from "sonner";
 
 interface PatientHeaderProps {
   className?: string;
@@ -58,6 +61,8 @@ export function PatientHeader({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
+  const [callingSecretary, setCallingSecretary] = useState(false);
   
   // Get operation progress state
   let operationProgress: ReturnType<typeof useOperationProgress> | null = null;
@@ -163,10 +168,28 @@ export function PatientHeader({
   };
 
   const handleEmergencyContact = () => {
-    // Open emergency contact modal or dial number
+    setShowHelpDialog(true);
+  };
+
+  const handleCallSecretary = async () => {
+    try {
+      setCallingSecretary(true);
+      await patientCallingApi.callSecretary();
+      toast.success("Chamada enviada! A secretária será notificada.");
+      setShowHelpDialog(false);
+    } catch (error: any) {
+      console.error("Error calling secretary:", error);
+      toast.error(error?.message || "Erro ao chamar secretária. Tente novamente.");
+    } finally {
+      setCallingSecretary(false);
+    }
+  };
+
+  const handleEmergencyCall = () => {
     if (typeof window !== "undefined") {
       window.location.href = "tel:192";
     }
+    setShowHelpDialog(false);
   };
 
   return (
@@ -473,6 +496,61 @@ export function PatientHeader({
           </div>
         </div>
       </div>
+
+      {/* Help Dialog */}
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Precisa de Ajuda?</DialogTitle>
+            <DialogDescription>
+              Escolha como deseja receber ajuda
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Button
+              onClick={handleCallSecretary}
+              disabled={callingSecretary}
+              className="w-full justify-start h-auto py-4"
+              variant="outline"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-100">
+                  <Phone className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-semibold">Chamar Secretária</div>
+                  <div className="text-sm text-muted-foreground">
+                    Solicite ajuda da equipe da clínica
+                  </div>
+                </div>
+                {callingSecretary && <Loader2 className="h-4 w-4 animate-spin" />}
+              </div>
+            </Button>
+            <Button
+              onClick={handleEmergencyCall}
+              className="w-full justify-start h-auto py-4"
+              variant="outline"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-100">
+                  <HelpCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="font-semibold">Emergência (192)</div>
+                  <div className="text-sm text-muted-foreground">
+                    Ligue para serviços de emergência
+                  </div>
+                </div>
+              </div>
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowHelpDialog(false)}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

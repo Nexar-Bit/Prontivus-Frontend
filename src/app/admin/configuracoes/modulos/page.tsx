@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 interface Module {
   id: string;
@@ -83,6 +84,7 @@ const REQUIRED_MODULES = ["patients", "appointments", "clinical"];
 
 export default function ModulosPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [modules, setModules] = useState<Module[]>([]);
@@ -95,9 +97,18 @@ export default function ModulosPage() {
   // Check if user is SuperAdmin
   const isSuperAdmin = user?.role === 'admin' && (user?.role_id === 1 || user?.role_name === 'SuperAdmin');
 
+  // Redirect AdminClínica users - this page is only for SuperAdmin
   useEffect(() => {
+    if (user && !isSuperAdmin) {
+      toast.error("Acesso negado. Apenas Super Administradores podem acessar esta página.");
+      router.push("/admin/configuracoes/clinica");
+    }
+  }, [user, isSuperAdmin, router]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
     loadData();
-  }, []);
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     // Check for changes whenever modules state changes
