@@ -45,6 +45,12 @@ self.addEventListener("fetch", (event) => {
 	
 	const url = new URL(request.url);
 	
+	// CRITICAL: Never intercept JavaScript files - they can cause "script behind redirect" errors
+	if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') || request.destination === 'script') {
+		// Let browser handle JS files directly (no service worker intervention)
+		return;
+	}
+	
 	// For navigation requests (HTML pages), always fetch fresh (no cache)
 	if (request.mode === "navigate" || request.destination === "document") {
 		event.respondWith(

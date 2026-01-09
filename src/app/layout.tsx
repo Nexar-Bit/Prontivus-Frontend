@@ -4,7 +4,8 @@ import "./globals.css";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import { Providers } from "@/components/providers";
-import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+// import ServiceWorkerRegister from "@/components/ServiceWorkerRegister"; // Temporarily disabled to fix script redirect issue
+import ServiceWorkerUnregister from "@/components/ServiceWorkerUnregister";
 import A11yLiveAnnouncer from "@/components/accessibility/A11yLiveAnnouncer";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,7 +16,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-background text-foreground antialiased">
         <A11yLiveAnnouncer />
-        <ServiceWorkerRegister />
+        <ServiceWorkerUnregister />
+        {/* <ServiceWorkerRegister /> Temporarily disabled */}
         <Providers>{children}</Providers>
       </body>
     </html>
