@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
 	// Turbopack is disabled via NEXT_SKIP_TURBOPACK environment variable
 	// This prevents HMR chunk loading errors
 	// Add headers to prevent caching of HTML pages
-	async headers() {
+	async headers() {   
 		return [
 			{
 				// Apply to all routes
