@@ -734,7 +734,7 @@ export function AppSidebar() {
             alt="Prontivus"
             width={240}
             height={240}
-            priority
+            loading="lazy"
             className="w-full h-auto object-contain"
           />
         </Link>

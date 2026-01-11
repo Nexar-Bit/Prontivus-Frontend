@@ -181,7 +181,7 @@ export function PacienteSidebar() {
             alt="Prontivus"
             width={240}
             height={240}
-            priority
+            loading="lazy"
             className="w-full h-auto object-contain transition-transform duration-300 group-hover:scale-105"
           />
         </Link>
