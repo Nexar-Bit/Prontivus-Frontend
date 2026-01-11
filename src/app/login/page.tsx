@@ -175,6 +175,7 @@ function LoginForm() {
                 width={600}
                 height={180}
                 priority
+                loading="eager"
                 className="h-36 w-auto mx-auto"
               />
             </Link>

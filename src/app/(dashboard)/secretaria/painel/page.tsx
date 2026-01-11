@@ -317,6 +317,7 @@ export default function SecretariaPainelPage() {
                 height={200}
                 className="w-auto h-32 object-contain"
                 priority
+                loading="eager"
               />
             </div>
           </div>
