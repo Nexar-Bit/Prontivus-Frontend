@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AIChatAssistant } from "@/components/support/AIChatAssistant";
 
 interface HelpArticle {
   id: number;
@@ -649,6 +650,13 @@ export default function PatientHelpPage() {
           </Dialog>
         </main>
       </div>
+
+      {/* AI Chat Assistant */}
+      <AIChatAssistant
+        systemPrompt="You are a helpful customer service assistant for Prontivus, a healthcare management system. Help patients with questions about using the system, finding features, troubleshooting issues, scheduling appointments, viewing medical records, and general support. Be friendly, professional, and concise. Always prioritize patient privacy and security. If you cannot answer a question, suggest creating a support ticket."
+        placeholder="Pergunte sobre o sistema, agendamentos, prontuários..."
+        title="Assistente de IA - Suporte"
+      />
     </div>
   );
 }

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ProntivusLogo } from "@/components/assets";
 import Link from "next/link";
+import { AIChatAssistant } from "@/components/support/AIChatAssistant";
 
 export default function HelpPage() {
   const helpSections = [
@@ -262,6 +263,13 @@ export default function HelpPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Chat Assistant */}
+      <AIChatAssistant
+        systemPrompt="You are a helpful customer service assistant for Prontivus, a healthcare management system. Help staff members (doctors, secretaries, administrators) with questions about using the system, finding features, troubleshooting issues, managing patients, appointments, clinical records, and general support. Be friendly, professional, and concise. If you cannot answer a question, suggest creating a support ticket or contacting the system administrator."
+        placeholder="Pergunte sobre funcionalidades, configurações, relatórios..."
+        title="Assistente de IA - Suporte"
+      />
     </div>
   );
 }
