@@ -14,6 +14,7 @@ import {
 	ExamRequest,
 	ExamRequestCreate,
 	ExamRequestUpdate,
+	PatientClinicalHistoryResponse,
 } from './types';
 
 /**
@@ -42,7 +43,7 @@ export const clinicalRecordsApi = {
 	},
 
 	// Get patient's clinical history (staff access)
-	getPatientHistoryById: async (patientId: number): Promise<ClinicalRecord[]> => {
+	getPatientHistoryById: async (patientId: number): Promise<PatientClinicalHistoryResponse[]> => {
 		return api.get(`/api/patients/${patientId}/clinical-records`);
 	},
 

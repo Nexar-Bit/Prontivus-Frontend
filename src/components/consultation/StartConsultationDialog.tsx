@@ -90,10 +90,15 @@ export function StartConsultationDialog({
           const settings = audioTrack.getSettings();
           const deviceId = settings.deviceId;
           
-          const currentDevice = audioInputs.find((d) => d.deviceId === deviceId);
-          if (currentDevice) {
-            setCurrentAudioDevice(currentDevice);
-            setSelectedAudioDeviceId(deviceId);
+          if (deviceId) {
+            const currentDevice = audioInputs.find((d) => d.deviceId === deviceId);
+            if (currentDevice) {
+              setCurrentAudioDevice(currentDevice);
+              setSelectedAudioDeviceId(deviceId);
+            } else if (audioInputs.length > 0) {
+              setCurrentAudioDevice(audioInputs[0]);
+              setSelectedAudioDeviceId(audioInputs[0].deviceId);
+            }
           } else if (audioInputs.length > 0) {
             setCurrentAudioDevice(audioInputs[0]);
             setSelectedAudioDeviceId(audioInputs[0].deviceId);

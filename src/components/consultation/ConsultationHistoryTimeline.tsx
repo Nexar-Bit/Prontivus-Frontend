@@ -9,18 +9,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { clinicalRecordsApi } from "@/lib/clinical-api";
 import { generateConsultationPDF, downloadPDF } from "@/lib/documents-api";
+import { PatientClinicalHistoryResponse } from "@/lib/types";
 import { toast } from "sonner";
-
-interface ConsultationHistoryItem {
-  appointment_id: number;
-  appointment_date: string;
-  doctor_name: string;
-  appointment_type?: string;
-  clinical_record?: {
-    id: number;
-    appointment_id: number;
-  } | null;
-}
 
 interface ConsultationHistoryTimelineProps {
   patientId: number;
@@ -31,7 +21,7 @@ export function ConsultationHistoryTimeline({
   patientId,
   currentAppointmentId,
 }: ConsultationHistoryTimelineProps) {
-  const [history, setHistory] = useState<ConsultationHistoryItem[]>([]);
+  const [history, setHistory] = useState<PatientClinicalHistoryResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [downloadingIds, setDownloadingIds] = useState<Set<number>>(new Set());
 
@@ -48,7 +38,7 @@ export function ConsultationHistoryTimeline({
       
       // Filter to only show completed consultations with clinical records
       // Exclude current appointment
-      const filtered = (data as ConsultationHistoryItem[])
+      const filtered = data
         .filter(
           (item) =>
             item.clinical_record &&

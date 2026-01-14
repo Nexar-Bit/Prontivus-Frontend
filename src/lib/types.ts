@@ -414,6 +414,16 @@ export interface ClinicalRecord {
   updated_at?: string;
 }
 
+export interface PatientClinicalHistoryResponse {
+  appointment_id: number;
+  appointment_date: string;
+  doctor_name: string;
+  patient_name?: string;
+  appointment_type?: string;
+  status?: string;
+  clinical_record?: ClinicalRecord | null;
+}
+
 export interface ClinicalRecordCreate {
   appointment_id: number;
   subjective?: string;

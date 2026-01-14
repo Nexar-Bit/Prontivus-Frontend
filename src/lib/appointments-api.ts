@@ -129,7 +129,10 @@ export const appointmentsApi = {
     approver_name?: string;
   }>> => {
     const params = new URLSearchParams();
-    if (status) params.append('status_filter', status);
+    if (status) {
+      // Ensure status is lowercase to match backend enum
+      params.append('status_filter', status.toLowerCase());
+    }
     const url = `/api/appointments/return-approval-requests${params.toString() ? `?${params.toString()}` : ''}`;
     return api.get(url);
   },

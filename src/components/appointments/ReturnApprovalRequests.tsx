@@ -65,7 +65,7 @@ export function ReturnApprovalRequests({ doctorId, onApprovalChange }: ReturnApp
     try {
       setLoading(true);
       const data = await appointmentsApi.getReturnApprovalRequests(doctorId ? undefined : "pending");
-      setRequests(data.filter(r => r.status === "pending"));
+      setRequests(data.filter(r => r.status?.toLowerCase() === "pending"));
     } catch (error) {
       console.error("Failed to load approval requests:", error);
       toast.error("Erro ao carregar solicitações de aprovação");
