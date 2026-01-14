@@ -72,7 +72,6 @@ interface AppointmentFormData {
   doctor_id: number | null;
   scheduled_datetime: string;
   appointment_type: string;
-  reason: string;
 }
 
 interface CalendarEvent extends Event {
@@ -103,7 +102,6 @@ export default function AgendamentosPage() {
     doctor_id: null,
     scheduled_datetime: "",
     appointment_type: "consultation",
-    reason: "",
   });
   const [saving, setSaving] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -273,12 +271,16 @@ export default function AgendamentosPage() {
   // Custom event style
   const eventStyleGetter = (event: any) => {
     const calEvent = event as CalendarEvent;
-    const color = getStatusColor(calEvent.appointment?.status || "scheduled");
+    const appointmentType = calEvent.appointment?.appointment_type?.toLowerCase() || "";
+    const isReturn = appointmentType === 'return' || appointmentType === 'retorno' || appointmentType.includes('retorno') || appointmentType.includes('follow-up');
+    
+    // Use orange color for return appointments, otherwise use status color
+    const baseColor = isReturn ? "#f97316" : getStatusColor(calEvent.appointment?.status || "scheduled");
     const isDraggable = calEvent.appointment?.status?.toLowerCase() !== "cancelled";
     return {
       style: {
-        backgroundColor: color,
-        borderColor: color,
+        backgroundColor: baseColor,
+        borderColor: baseColor,
         borderWidth: "0px",
         borderStyle: "none",
         color: "white",
@@ -377,7 +379,6 @@ export default function AgendamentosPage() {
         clinic_id: user.clinic_id,
         scheduled_datetime: new Date(formData.scheduled_datetime).toISOString(),
         appointment_type: formData.appointment_type,
-        reason: formData.reason || undefined,
       };
 
       await api.post("/api/appointments", appointmentData);
@@ -403,7 +404,6 @@ export default function AgendamentosPage() {
       doctor_id: appointment.doctor_id,
       scheduled_datetime: format(appointmentDate, "yyyy-MM-dd'T'HH:mm"),
       appointment_type: appointment.appointment_type || "consultation",
-      reason: "",
     });
     setShowEditModal(true);
   };
@@ -419,7 +419,6 @@ export default function AgendamentosPage() {
       const updateData = {
         scheduled_datetime: new Date(formData.scheduled_datetime).toISOString(),
         appointment_type: formData.appointment_type,
-        reason: formData.reason || undefined,
         patient_id: formData.patient_id,
         doctor_id: formData.doctor_id,
       };
@@ -487,7 +486,6 @@ export default function AgendamentosPage() {
       doctor_id: null,
       scheduled_datetime: "",
       appointment_type: "consultation",
-      reason: "",
     });
   };
 
@@ -501,7 +499,6 @@ export default function AgendamentosPage() {
         doctor_id: null,
         scheduled_datetime: formattedDate,
         appointment_type: "consultation",
-        reason: "",
       });
     }
     setShowCreateModal(true);
@@ -888,6 +885,10 @@ export default function AgendamentosPage() {
               <span className="text-sm">Agendado</span>
             </div>
             <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-orange-500"></div>
+              <span className="text-sm">Retorno</span>
+            </div>
+            <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded bg-blue-500"></div>
               <span className="text-sm">Check-in</span>
             </div>
@@ -983,16 +984,6 @@ export default function AgendamentosPage() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="reason">Motivo da Consulta</Label>
-              <Textarea
-                id="reason"
-                placeholder="Descreva o motivo da consulta..."
-                value={formData.reason}
-                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                rows={3}
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateModal(false)}>
@@ -1080,16 +1071,6 @@ export default function AgendamentosPage() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-reason">Motivo da Consulta</Label>
-              <Textarea
-                id="edit-reason"
-                placeholder="Descreva o motivo da consulta..."
-                value={formData.reason}
-                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                rows={3}
-              />
             </div>
             {editingAppointment && (
               <div className="flex items-center justify-between pt-2 border-t">

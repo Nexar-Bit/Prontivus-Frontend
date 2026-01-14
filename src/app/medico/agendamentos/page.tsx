@@ -402,12 +402,14 @@ export default function AgendamentosPage() {
       endDate.setMinutes(endDate.getMinutes() + (apt.duration_minutes || 30));
       
       // Determine appointment type
-      let type: 'consultation' | 'procedure' | 'follow-up' | 'emergency' = 'consultation';
+      let type: 'consultation' | 'procedure' | 'follow-up' | 'return' | 'retorno' | 'emergency' = 'consultation';
       if (apt.appointment_type) {
         const typeLower = apt.appointment_type.toLowerCase();
         if (typeLower.includes('procedimento') || typeLower.includes('procedure')) {
           type = 'procedure';
-        } else if (typeLower.includes('retorno') || typeLower.includes('follow-up')) {
+        } else if (typeLower === 'return' || typeLower === 'retorno' || typeLower.includes('retorno')) {
+          type = typeLower as 'return' | 'retorno';
+        } else if (typeLower.includes('follow-up') || typeLower.includes('followup')) {
           type = 'follow-up';
         } else if (typeLower.includes('emergência') || typeLower.includes('emergency')) {
           type = 'emergency';

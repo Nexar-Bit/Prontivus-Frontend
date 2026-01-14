@@ -15,12 +15,21 @@ import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReturnApprovalRequests } from "@/components/appointments/ReturnApprovalRequests";
+
+interface PeriodStats {
+  day: number;
+  week: number;
+  month: number;
+}
 
 interface DoctorDashboardStats {
-  today_appointments_count: number;
-  queue_patients_count: number;
-  pending_records_count: number;
-  monthly_revenue: number;
+  appointments: PeriodStats;
+  queue_patients: PeriodStats;
+  pending_records: PeriodStats;
+  revenue_day: number;
+  revenue_week: number;
+  revenue_month: number;
 }
 
 interface UpcomingAppointment {
@@ -31,9 +40,16 @@ interface UpcomingAppointment {
   status: string;
 }
 
+interface WeeklySummary {
+  procedures_count: number;
+  new_consultations_count: number;
+  returns_count: number;
+}
+
 interface DoctorDashboardData {
   stats: DoctorDashboardStats;
   upcoming_appointments: UpcomingAppointment[];
+  weekly_summary?: WeeklySummary;
 }
 
 interface FinancialStats {
@@ -62,13 +78,16 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<DoctorDashboardStats>({
-    today_appointments_count: 0,
-    queue_patients_count: 0,
-    pending_records_count: 0,
-    monthly_revenue: 0,
+    appointments: { day: 0, week: 0, month: 0 },
+    queue_patients: { day: 0, week: 0, month: 0 },
+    pending_records: { day: 0, week: 0, month: 0 },
+    revenue_day: 0,
+    revenue_week: 0,
+    revenue_month: 0,
   });
   const [upcomingAppointments, setUpcomingAppointments] = useState<UpcomingAppointment[]>([]);
   const [financialData, setFinancialData] = useState<FinancialDashboardData | null>(null);
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -96,17 +115,17 @@ export default function DoctorDashboard() {
       
       // Validate and set stats
       if (dashboardData.stats) {
-        setStats({
-          today_appointments_count: dashboardData.stats.today_appointments_count || 0,
-          queue_patients_count: dashboardData.stats.queue_patients_count || 0,
-          pending_records_count: dashboardData.stats.pending_records_count || 0,
-          monthly_revenue: dashboardData.stats.monthly_revenue || 0,
-        });
+        setStats(dashboardData.stats);
       }
       
       // Set upcoming appointments
       if (dashboardData.upcoming_appointments) {
         setUpcomingAppointments(dashboardData.upcoming_appointments || []);
+      }
+      
+      // Set weekly summary
+      if (dashboardData.weekly_summary) {
+        setWeeklySummary(dashboardData.weekly_summary);
       }
 
       // Set financial data
@@ -195,44 +214,52 @@ export default function DoctorDashboard() {
 
   const statsConfig = [
     {
-      title: "Consultas Hoje",
-      value: stats.today_appointments_count.toString(),
+      title: "Consultas",
+      stats: stats?.appointments || { day: 0, week: 0, month: 0 },
       icon: CalendarDays,
       color: "text-green-600",
       bgColor: "bg-green-100",
       borderColor: "border-green-200",
       link: "/medico/agendamentos",
-      description: "Agendadas para hoje",
+      description: "Agendamentos",
+      formatValue: (value: number) => value.toString(),
     },
     {
-      title: "Pacientes na Fila",
-      value: stats.queue_patients_count.toString(),
+      title: "Pacientes",
+      stats: stats?.queue_patients || { day: 0, week: 0, month: 0 },
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-100",
       borderColor: "border-blue-200",
       link: "/medico/atendimento/fila",
-      description: "Aguardando atendimento",
+      description: "Na fila de atendimento",
+      formatValue: (value: number) => value.toString(),
     },
     {
       title: "Prontuários Pendentes",
-      value: stats.pending_records_count.toString(),
+      stats: stats?.pending_records || { day: 0, week: 0, month: 0 },
       icon: FileText,
       color: "text-purple-600",
       bgColor: "bg-purple-100",
       borderColor: "border-purple-200",
       link: "/medico/prontuarios",
       description: "Aguardando finalização",
+      formatValue: (value: number) => value.toString(),
     },
     {
-      title: "Receita do Mês",
-      value: formatCurrency(stats.monthly_revenue),
+      title: "Receita",
+      stats: { 
+        day: stats?.revenue_day || 0, 
+        week: stats?.revenue_week || 0, 
+        month: stats?.revenue_month || 0 
+      },
       icon: DollarSign,
       color: "text-orange-600",
       bgColor: "bg-orange-100",
       borderColor: "border-orange-200",
       link: "/medico/financeiro/dashboard",
-      description: "Total recebido este mês",
+      description: "Total recebido",
+      formatValue: (value: number) => formatCurrency(value),
     },
   ];
 
@@ -278,34 +305,51 @@ export default function DoctorDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statsConfig.map((stat, index) => {
-          const Icon = stat.icon;
+        {statsConfig.map((statConfig, index) => {
+          const Icon = statConfig.icon;
           const content = (
-            <Card className={`hover:shadow-lg transition-all cursor-pointer border-2 ${stat.borderColor}`}>
+            <Card className={`hover:shadow-lg transition-all cursor-pointer border-2 ${statConfig.borderColor}`}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-medium text-gray-600">
-                    {stat.title}
+                    {statConfig.title}
                   </CardTitle>
-                  <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                    <Icon className={`h-5 w-5 ${stat.color}`} />
+                  <div className={`p-2 rounded-lg ${statConfig.bgColor}`}>
+                    <Icon className={`h-5 w-5 ${statConfig.color}`} />
                   </div>
                 </div>
                 <CardDescription className="text-xs mt-1">
-                  {stat.description}
+                  {statConfig.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className={`text-3xl font-bold ${stat.color}`}>
-                  {stat.value}
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Hoje:</span>
+                    <span className={`text-lg font-semibold ${statConfig.color}`}>
+                      {statConfig.formatValue(statConfig.stats?.day || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Semanal:</span>
+                    <span className={`text-lg font-semibold ${statConfig.color}`}>
+                      {statConfig.formatValue(statConfig.stats?.week || 0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Mensal:</span>
+                    <span className={`text-lg font-semibold ${statConfig.color}`}>
+                      {statConfig.formatValue(statConfig.stats?.month || 0)}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           );
 
-          if (stat.link) {
+          if (statConfig.link) {
             return (
-              <Link key={index} href={stat.link}>
+              <Link key={index} href={statConfig.link}>
                 {content}
               </Link>
             );
@@ -313,6 +357,68 @@ export default function DoctorDashboard() {
           return <React.Fragment key={index}>{content}</React.Fragment>;
         })}
       </div>
+
+      {/* Weekly Summary Box */}
+      {weeklySummary && (
+        <Card className="border-2 border-blue-200">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-blue-600" />
+                  Resumo Semanal
+                </CardTitle>
+                <CardDescription>
+                  Estatísticas dos últimos 7 dias
+                </CardDescription>
+              </div>
+              <Link href="/medico/agendamentos">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  Ver Agenda
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <div>
+                  <p className="text-sm font-medium text-purple-600">Procedimentos</p>
+                  <p className="text-2xl font-bold text-purple-900 mt-1">
+                    {weeklySummary.procedures_count}
+                  </p>
+                </div>
+                <div className="p-3 bg-purple-100 rounded-full">
+                  <Stethoscope className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+                <div>
+                  <p className="text-sm font-medium text-green-600">Novas Consultas</p>
+                  <p className="text-2xl font-bold text-green-900 mt-1">
+                    {weeklySummary.new_consultations_count}
+                  </p>
+                </div>
+                <div className="p-3 bg-green-100 rounded-full">
+                  <CalendarDays className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div>
+                  <p className="text-sm font-medium text-blue-600">Retornos</p>
+                  <p className="text-2xl font-bold text-blue-900 mt-1">
+                    {weeklySummary.returns_count}
+                  </p>
+                </div>
+                <div className="p-3 bg-blue-100 rounded-full">
+                  <RefreshCw className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -472,6 +578,9 @@ export default function DoctorDashboard() {
 
         {/* Right Column - 1/3 width */}
         <div className="space-y-6">
+          {/* Return Approval Requests */}
+          <ReturnApprovalRequests onApprovalChange={loadData} />
+
           {/* Quick Actions */}
           <Card>
             <CardHeader>
@@ -542,7 +651,7 @@ export default function DoctorDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {stats.queue_patients_count > 0 && (
+              {(stats?.queue_patients?.day || 0) > 0 && (
                 <div className="flex items-start gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
@@ -550,12 +659,12 @@ export default function DoctorDashboard() {
                       Pacientes na Fila
                     </div>
                     <div className="text-xs text-yellow-700 mt-1">
-                      {stats.queue_patients_count} {stats.queue_patients_count === 1 ? 'paciente aguardando' : 'pacientes aguardando'} atendimento
+                      {stats.queue_patients.day} {(stats.queue_patients.day || 0) === 1 ? 'paciente aguardando' : 'pacientes aguardando'} atendimento
                     </div>
                   </div>
                 </div>
               )}
-              {stats.pending_records_count > 0 && (
+              {(stats?.pending_records?.day || 0) > 0 && (
                 <div className="flex items-start gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
                   <FileText className="h-5 w-5 text-purple-600 mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
@@ -563,12 +672,12 @@ export default function DoctorDashboard() {
                       Prontuários Pendentes
                     </div>
                     <div className="text-xs text-purple-700 mt-1">
-                      {stats.pending_records_count} {stats.pending_records_count === 1 ? 'prontuário' : 'prontuários'} aguardando finalização
+                      {stats.pending_records.day} {(stats.pending_records.day || 0) === 1 ? 'prontuário' : 'prontuários'} aguardando finalização
                     </div>
                   </div>
                 </div>
               )}
-              {stats.queue_patients_count === 0 && stats.pending_records_count === 0 && (
+              {(stats?.queue_patients?.day || 0) === 0 && (stats?.pending_records?.day || 0) === 0 && (
                 <div className="text-center py-8 text-gray-500">
                   <CheckCircle2 className="h-12 w-12 mx-auto mb-3 text-green-500" />
                   <p className="text-sm font-medium">Tudo em dia!</p>
@@ -589,19 +698,19 @@ export default function DoctorDashboard() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Consultas Hoje</span>
-                <span className="font-semibold">{stats.today_appointments_count}</span>
+                <span className="font-semibold">{stats?.appointments?.day || 0}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Pacientes Atendidos</span>
                 <span className="font-semibold text-green-600">
-                  {stats.today_appointments_count - stats.queue_patients_count}
+                  {Math.max(0, (stats?.appointments?.day || 0) - (stats?.queue_patients?.day || 0))}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Taxa de Conclusão</span>
                 <span className="font-semibold">
-                  {stats.today_appointments_count > 0
-                    ? Math.round(((stats.today_appointments_count - stats.pending_records_count) / stats.today_appointments_count) * 100)
+                  {(stats?.appointments?.day || 0) > 0
+                    ? Math.round(((Math.max(0, (stats?.appointments?.day || 0) - (stats?.pending_records?.day || 0))) / (stats?.appointments?.day || 1)) * 100)
                     : 0}%
                 </span>
               </div>
@@ -609,7 +718,7 @@ export default function DoctorDashboard() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">Receita do Mês</span>
                   <span className="font-bold text-green-600">
-                    {formatCurrency(stats.monthly_revenue)}
+                    {formatCurrency(stats?.revenue_month || 0)}
                   </span>
                 </div>
               </div>

@@ -30,7 +30,7 @@ export interface CalendarEvent {
   end: Date;
   resource: Appointment;
   status: AppointmentStatus;
-  type: 'consultation' | 'procedure' | 'follow-up' | 'emergency';
+  type: 'consultation' | 'procedure' | 'follow-up' | 'return' | 'retorno' | 'emergency';
   patientName: string;
   doctorName: string;
   urgent?: boolean;
@@ -61,11 +61,25 @@ const appointmentTypeColors = {
     hover: 'hover:from-purple-600 hover:to-purple-700',
   },
   'follow-up': {
-    bg: 'bg-gradient-to-r from-emerald-500 to-emerald-600',
-    border: 'border-emerald-400',
+    bg: 'bg-gradient-to-r from-orange-500 to-orange-600',
+    border: 'border-orange-400',
     text: 'text-white',
-    shadow: 'shadow-lg shadow-emerald-500/30',
-    hover: 'hover:from-emerald-600 hover:to-emerald-700',
+    shadow: 'shadow-lg shadow-orange-500/30',
+    hover: 'hover:from-orange-600 hover:to-orange-700',
+  },
+  return: {
+    bg: 'bg-gradient-to-r from-orange-500 to-orange-600',
+    border: 'border-orange-400',
+    text: 'text-white',
+    shadow: 'shadow-lg shadow-orange-500/30',
+    hover: 'hover:from-orange-600 hover:to-orange-700',
+  },
+  retorno: {
+    bg: 'bg-gradient-to-r from-orange-500 to-orange-600',
+    border: 'border-orange-400',
+    text: 'text-white',
+    shadow: 'shadow-lg shadow-orange-500/30',
+    hover: 'hover:from-orange-600 hover:to-orange-700',
   },
   emergency: {
     bg: 'bg-gradient-to-r from-red-500 to-red-600',

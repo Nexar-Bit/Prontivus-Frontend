@@ -63,6 +63,8 @@ import { SoapFormRef } from "@/components/consultation/soap-form";
 import { SymptomChecker } from "@/components/ai-diagnosis/SymptomChecker";
 import { ICD10Suggestions } from "@/components/ai-diagnosis/ICD10Suggestions";
 import { DrugInteractionChecker } from "@/components/ai-diagnosis/DrugInteractionChecker";
+import { ConsultationHistoryTimeline } from "@/components/consultation/ConsultationHistoryTimeline";
+import { StartConsultationDialog } from "@/components/consultation/StartConsultationDialog";
 
 export default function ConsultationPage() {
   const params = useParams();
@@ -84,6 +86,8 @@ export default function ConsultationPage() {
   const [transcriptionResult, setTranscriptionResult] = useState<any>(null);
   const soapFormRef = useRef<SoapFormRef>(null);
   const [diagnoses, setDiagnoses] = useState<any[]>([]);
+  const [showStartDialog, setShowStartDialog] = useState(false);
+  const [consultationMode, setConsultationMode] = useState<"presencial" | "telemedicina">("presencial");
 
   // Load appointment and related data
   useEffect(() => {
@@ -176,6 +180,41 @@ export default function ConsultationPage() {
       });
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  // Handle start consultation with mode and context
+  const handleStartConsultation = async (
+    mode: "presencial" | "telemedicina",
+    patientContext?: string,
+    audioDeviceId?: string
+  ) => {
+    try {
+      setShowStartDialog(false);
+      setConsultationMode(mode);
+      
+      // Update appointment status
+      await handleStatusUpdate(AppointmentStatus.IN_CONSULTATION);
+      
+      // Save patient context to sessionStorage for the record page
+      if (patientContext) {
+        sessionStorage.setItem(`patient_context_${appointmentId}`, patientContext);
+      }
+      if (audioDeviceId) {
+        sessionStorage.setItem(`audio_device_${appointmentId}`, audioDeviceId);
+      }
+      sessionStorage.setItem(`consultation_mode_${appointmentId}`, mode);
+      
+      // Redirect based on consultation mode
+      if (mode === "telemedicina") {
+        router.push(`/medico/atendimento/${appointmentId}/telemedicina`);
+      } else {
+        router.push(`/medico/atendimento/${appointmentId}/record`);
+      }
+    } catch (error: any) {
+      toast.error("Erro ao iniciar atendimento", {
+        description: error.message || "Não foi possível iniciar o atendimento",
+      });
     }
   };
 
@@ -456,7 +495,7 @@ export default function ConsultationPage() {
               appointment.status === AppointmentStatus.CHECKED_IN) && (
               <Button
                 variant="outline"
-                onClick={() => handleStatusUpdate(AppointmentStatus.IN_CONSULTATION)}
+                onClick={() => setShowStartDialog(true)}
                 disabled={updatingStatus}
                 className="border-blue-200 text-blue-700 hover:bg-blue-50"
               >
@@ -751,8 +790,24 @@ export default function ConsultationPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Consultation History Timeline */}
+          {patient && (
+            <ConsultationHistoryTimeline
+              patientId={patient.id}
+              currentAppointmentId={appointmentId}
+            />
+          )}
         </div>
       </div>
+
+      {/* Start Consultation Dialog */}
+      <StartConsultationDialog
+        open={showStartDialog}
+        onOpenChange={setShowStartDialog}
+        onStart={handleStartConsultation}
+        isStarting={updatingStatus}
+      />
 
       {/* Call Patient Dialog */}
       <Dialog open={showCallDialog} onOpenChange={setShowCallDialog}>

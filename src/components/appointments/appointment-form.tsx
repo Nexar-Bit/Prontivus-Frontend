@@ -46,7 +46,6 @@ const appointmentFormSchema = z.object({
   doctor_id: z.number({ message: "Médico é obrigatório" }),
   scheduled_datetime: z.string().min(1, "Data e hora são obrigatórias"),
   appointment_type: z.string().optional(),
-  reason: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -83,7 +82,6 @@ export function AppointmentForm({
             .toISOString()
             .slice(0, 16),
           appointment_type: appointment.appointment_type || "",
-          reason: appointment.reason || "",
           notes: appointment.notes || "",
         }
       : {
@@ -91,7 +89,6 @@ export function AppointmentForm({
             ? new Date(defaultDate).toISOString().slice(0, 16)
             : "",
           appointment_type: "",
-          reason: "",
           notes: "",
         },
   });
@@ -257,20 +254,6 @@ export function AppointmentForm({
                   <SelectItem value="Procedimento">Procedimento</SelectItem>
                 </SelectContent>
               </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="reason"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Motivo</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Motivo da consulta..." {...field} />
-              </FormControl>
               <FormMessage />
             </FormItem>
           )}

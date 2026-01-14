@@ -33,6 +33,8 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
+import { appointmentsApi } from "@/lib/appointments-api";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface AppointmentWizardProps {
   doctors: Doctor[];
@@ -76,12 +78,83 @@ export function AppointmentWizard({
   const [selectedDoctor, setSelectedDoctor] = React.useState<Doctor | null>(null);
   const [selectedTime, setSelectedTime] = React.useState<string>("");
   const [appointmentType, setAppointmentType] = React.useState<AppointmentType>('consultation');
-  const [reason, setReason] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [urgent, setUrgent] = React.useState(false);
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod | "">("");
   const [consultationPrice, setConsultationPrice] = React.useState<string>("");
   const [createInvoice, setCreateInvoice] = React.useState(false);
+  const [doctorProcedures, setDoctorProcedures] = React.useState<Array<{
+    id: number;
+    name: string;
+    description?: string;
+    code?: string;
+    price: number;
+    category: string;
+    type: string;
+  }>>([]);
+  const [loadingProcedures, setLoadingProcedures] = React.useState(false);
+  const [selectedProcedure, setSelectedProcedure] = React.useState<number | null>(null);
+  const [patientHistory, setPatientHistory] = React.useState<{
+    last_appointment_date?: string;
+    last_appointment_type?: string;
+    returns_count_this_month: number;
+    returns_count_total: number;
+    last_consultation_date?: string;
+    suggested_date?: string;
+    message?: string;
+  } | null>(null);
+  const [loadingHistory, setLoadingHistory] = React.useState(false);
+
+  // Load patient history when patient is selected
+  React.useEffect(() => {
+    if (selectedPatient?.id) {
+      loadPatientHistory(selectedPatient.id);
+    } else {
+      setPatientHistory(null);
+    }
+  }, [selectedPatient?.id, selectedDoctor?.id]);
+
+  const loadPatientHistory = async (patientId: number) => {
+    try {
+      setLoadingHistory(true);
+      const history = await appointmentsApi.getPatientHistory(patientId, selectedDoctor?.id);
+      setPatientHistory(history);
+      
+      // Update suggested date if available
+      if (history.suggested_date) {
+        const suggested = new Date(history.suggested_date);
+        setSelectedDate(suggested);
+      }
+    } catch (error) {
+      console.error("Failed to load patient history:", error);
+      setPatientHistory(null);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Load doctor procedures when doctor is selected
+  React.useEffect(() => {
+    if (selectedDoctor?.id) {
+      loadDoctorProcedures(selectedDoctor.id);
+    } else {
+      setDoctorProcedures([]);
+      setSelectedProcedure(null);
+    }
+  }, [selectedDoctor?.id]);
+
+  const loadDoctorProcedures = async (doctorId: number) => {
+    try {
+      setLoadingProcedures(true);
+      const procedures = await appointmentsApi.getDoctorProcedures(doctorId);
+      setDoctorProcedures(procedures);
+    } catch (error) {
+      console.error("Failed to load doctor procedures:", error);
+      setDoctorProcedures([]);
+    } finally {
+      setLoadingProcedures(false);
+    }
+  };
 
   // Mock doctor schedule - replace with API
   const doctorSchedule = React.useMemo(() => {
@@ -136,9 +209,15 @@ export function AppointmentWizard({
       clinic_id: clinicId,
       scheduled_datetime: appointmentDate.toISOString(),
       appointment_type: appointmentType,
-      reason: reason || undefined,
       notes: notes || undefined,
-      consultation_price: consultationPrice ? parseFloat(consultationPrice) : (selectedDoctor?.consultation_fee || undefined),
+      consultation_price: (() => {
+        // Use selected procedure price if available, otherwise use consultation price or doctor's fee
+        if (selectedProcedure) {
+          const procedure = doctorProcedures.find(p => p.id === selectedProcedure);
+          return procedure ? procedure.price : (consultationPrice ? parseFloat(consultationPrice) : (selectedDoctor?.consultation_fee || undefined));
+        }
+        return consultationPrice ? parseFloat(consultationPrice) : (selectedDoctor?.consultation_fee || undefined);
+      })(),
       payment_method: paymentMethod ? (paymentMethod as PaymentMethod) : undefined,
       create_invoice: createInvoice,
     };
@@ -174,17 +253,45 @@ export function AppointmentWizard({
       <div className="min-h-[500px]">
         {/* Step 1: Patient Selection */}
         {currentStep === 1 && (
-          <FormCard
-            title="Selecione o Paciente"
-            icon={User}
-            variant="medical"
-          >
-            <PatientSelector
-              value={selectedPatient || undefined}
-              onChange={setSelectedPatient}
-              recentPatients={recentPatients}
-            />
-          </FormCard>
+          <div className="space-y-4">
+            <FormCard
+              title="Selecione o Paciente"
+              icon={User}
+              variant="medical"
+            >
+              <PatientSelector
+                value={selectedPatient || undefined}
+                onChange={setSelectedPatient}
+                recentPatients={recentPatients}
+              />
+            </FormCard>
+            
+            {/* Patient History Notification */}
+            {selectedPatient && (
+              <div className="space-y-2">
+                {loadingHistory ? (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Carregando histórico...</AlertTitle>
+                    <AlertDescription>Buscando informações sobre as últimas consultas do paciente.</AlertDescription>
+                  </Alert>
+                ) : patientHistory?.message ? (
+                  <Alert className={patientHistory.returns_count_this_month > 1 ? "border-orange-500 bg-orange-50" : ""}>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Histórico do Paciente</AlertTitle>
+                    <AlertDescription className="whitespace-pre-line">
+                      {patientHistory.message}
+                      {patientHistory.returns_count_this_month > 1 && (
+                        <div className="mt-2 font-semibold text-orange-700">
+                          ⚠️ Requer aprovação médica para múltiplos retornos no mesmo mês.
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+              </div>
+            )}
+          </div>
         )}
 
         {/* Step 2: Doctor & Time Selection */}
@@ -228,28 +335,81 @@ export function AppointmentWizard({
               </div>
             </FormCard>
 
-            {selectedDoctor && doctorSchedule && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-1">
-                  <FormCard title="Selecione a Data" icon={CalendarIcon}>
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={(date) => date && setSelectedDate(date)}
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                      className="rounded-lg border"
-                    />
+            {selectedDoctor && (
+              <>
+                {/* Procedures Picklist */}
+                {doctorProcedures.length > 0 && (
+                  <FormCard
+                    title="Procedimentos Disponíveis"
+                    icon={Stethoscope}
+                    variant="medical"
+                  >
+                    {loadingProcedures ? (
+                      <div className="text-center py-4 text-gray-500">Carregando procedimentos...</div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {doctorProcedures.map((procedure) => (
+                          <button
+                            key={procedure.id}
+                            type="button"
+                            onClick={() => setSelectedProcedure(procedure.id)}
+                            className={cn(
+                              "p-3 rounded-lg border-2 transition-all text-left",
+                              selectedProcedure === procedure.id
+                                ? "border-[#0F4C75] bg-[#0F4C75]/5"
+                                : "border-gray-200 hover:border-gray-300"
+                            )}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900">{procedure.name}</p>
+                                {procedure.description && (
+                                  <p className="text-xs text-gray-500 mt-1">{procedure.description}</p>
+                                )}
+                                {procedure.code && (
+                                  <p className="text-xs text-gray-400 mt-1">Código: {procedure.code}</p>
+                                )}
+                              </div>
+                              <div className="ml-4 text-right">
+                                <p className="font-semibold text-[#0F4C75]">
+                                  R$ {procedure.price.toFixed(2).replace('.', ',')}
+                                </p>
+                                {selectedProcedure === procedure.id && (
+                                  <CheckCircle2 className="h-4 w-4 text-[#0F4C75] mt-1 ml-auto" />
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </FormCard>
-                </div>
-                <div className="lg:col-span-2">
-                  <TimeSlotSelector
-                    date={selectedDate}
-                    schedule={doctorSchedule}
-                    selectedTime={selectedTime}
-                    onTimeSelect={setSelectedTime}
-                  />
-                </div>
-              </div>
+                )}
+
+                {doctorSchedule && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-1">
+                      <FormCard title="Selecione a Data" icon={CalendarIcon}>
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={(date) => date && setSelectedDate(date)}
+                          disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                          className="rounded-lg border"
+                        />
+                      </FormCard>
+                    </div>
+                    <div className="lg:col-span-2">
+                      <TimeSlotSelector
+                        date={selectedDate}
+                        schedule={doctorSchedule}
+                        selectedTime={selectedTime}
+                        onTimeSelect={setSelectedTime}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -293,13 +453,6 @@ export function AppointmentWizard({
                   })}
                 </div>
               </div>
-
-              <MedicalInput
-                label="Motivo da Consulta"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Descreva o motivo da consulta..."
-              />
 
               <div>
                 <label className="text-sm font-medium mb-2 block">Observações</label>
@@ -480,13 +633,6 @@ export function AppointmentWizard({
                         </div>
                       )}
                     </div>
-                  </div>
-                )}
-
-                {reason && (
-                  <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
-                    <p className="text-xs font-medium text-blue-700 mb-1">Motivo</p>
-                    <p className="text-sm text-blue-900">{reason}</p>
                   </div>
                 )}
 
