@@ -415,19 +415,19 @@ export const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
             {voiceState.structuredData.soap_notes && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Subjetivo</h4>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Anamnese</h4>
                   <p className="text-sm">{voiceState.structuredData.soap_notes.subjective || 'Nenhuma informação'}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Objetivo</h4>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Exame Físico</h4>
                   <p className="text-sm">{voiceState.structuredData.soap_notes.objective || 'Nenhuma informação'}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Avaliação</h4>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Opinião da IA</h4>
                   <p className="text-sm">{voiceState.structuredData.soap_notes.assessment || 'Nenhuma informação'}</p>
                 </div>
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Plano</h4>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2">Conduta</h4>
                   <p className="text-sm">{voiceState.structuredData.soap_notes.plan || 'Nenhuma informação'}</p>
                 </div>
               </div>

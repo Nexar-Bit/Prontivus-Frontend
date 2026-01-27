@@ -42,7 +42,6 @@ import {
   Mic,
   Phone,
   Play,
-  UserCheck,
   Clock,
   Calendar,
   FileText,
@@ -60,7 +59,6 @@ import { DocumentSignatureButton } from "@/components/documents/DocumentSignatur
 import { VoiceRecorder } from "@/components/voice/VoiceRecorder";
 import { TranscriptionResult } from "@/components/voice/TranscriptionResult";
 import { SoapFormRef } from "@/components/consultation/soap-form";
-import { SymptomChecker } from "@/components/ai-diagnosis/SymptomChecker";
 import { ICD10Suggestions } from "@/components/ai-diagnosis/ICD10Suggestions";
 import { DrugInteractionChecker } from "@/components/ai-diagnosis/DrugInteractionChecker";
 import { ConsultationHistoryTimeline } from "@/components/consultation/ConsultationHistoryTimeline";
@@ -79,7 +77,6 @@ export default function ConsultationPage() {
   const [clinicalRecord, setClinicalRecord] = useState<ClinicalRecord | null>(null);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [examRequests, setExamRequests] = useState<ExamRequest[]>([]);
-  const [previousAppointments, setPreviousAppointments] = useState<Appointment[]>([]);
   const [showCallDialog, setShowCallDialog] = useState(false);
   const [isCalling, setIsCalling] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -107,24 +104,6 @@ export default function ConsultationPage() {
       // Load patient
       const patientData = await patientsApi.getById(appointmentData.patient_id);
       setPatient(patientData);
-
-      // Load previous appointments for this patient
-      try {
-        const previousAppts = await appointmentsApi.getAll({
-          patient_id: patientData.id,
-          status: AppointmentStatus.COMPLETED,
-        });
-        // Filter out current appointment and sort by date (most recent first)
-        const filtered = previousAppts
-          .filter((apt) => apt.id !== appointmentId)
-          .sort((a, b) => 
-            new Date(b.scheduled_datetime).getTime() - new Date(a.scheduled_datetime).getTime()
-          )
-          .slice(0, 10); // Get last 10 appointments
-        setPreviousAppointments(filtered);
-      } catch (error) {
-        console.error("Failed to load previous appointments:", error);
-      }
 
       // Try to load clinical record (may not exist yet)
       try {
@@ -380,10 +359,6 @@ export default function ConsultationPage() {
     }
   };
 
-  const handleDiagnosisUpdate = (newDiagnoses: any[]) => {
-    setDiagnoses(newDiagnoses);
-  };
-
   // Extract medication names from prescriptions for drug interaction checker
   const medicationNames = prescriptions
     .map(p => p.medication_name)
@@ -479,18 +454,6 @@ export default function ConsultationPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-center gap-3">
-            {appointment.status === AppointmentStatus.SCHEDULED && (
-              <Button
-                variant="outline"
-                onClick={() => handleStatusUpdate(AppointmentStatus.CHECKED_IN)}
-                disabled={updatingStatus}
-                className="border-orange-200 text-orange-700 hover:bg-orange-50"
-              >
-                <UserCheck className="h-4 w-4 mr-2" />
-                Realizar Check-in
-              </Button>
-            )}
-            
             {(appointment.status === AppointmentStatus.SCHEDULED || 
               appointment.status === AppointmentStatus.CHECKED_IN) && (
               <Button
@@ -544,57 +507,6 @@ export default function ConsultationPage() {
           {/* Patient Summary */}
           <PatientSummary patient={patient} />
 
-          {/* Previous Appointments */}
-          {previousAppointments.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Consultas Anteriores
-                </CardTitle>
-                <CardDescription>
-                  Histórico de consultas anteriores deste paciente
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {previousAppointments.map((prevAppt) => (
-                    <div
-                      key={prevAppt.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <Calendar className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <p className="font-medium">
-                            {format(new Date(prevAppt.scheduled_datetime), "PPP 'às' HH:mm", {
-                              locale: ptBR,
-                            })}
-                          </p>
-                          {prevAppt.reason && (
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {prevAppt.reason}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/medico/prontuario/${prevAppt.id}`)}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Ver Prontuário
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Voice Recording Section */}
           <VoiceRecorder
             onTranscriptionComplete={handleTranscriptionComplete}
@@ -612,9 +524,6 @@ export default function ConsultationPage() {
               onClose={() => setTranscriptionResult(null)}
             />
           )}
-
-          {/* AI Diagnosis Support Section */}
-          <SymptomChecker onDiagnosisUpdate={handleDiagnosisUpdate} />
 
           {/* SOAP Form */}
           <SoapForm
@@ -807,6 +716,13 @@ export default function ConsultationPage() {
         onOpenChange={setShowStartDialog}
         onStart={handleStartConsultation}
         isStarting={updatingStatus}
+        patientInfo={patient ? {
+          name: `${patient.first_name} ${patient.last_name}`,
+          age: patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : undefined,
+          gender: patient.gender,
+          allergies: patient.allergies || undefined,
+          activeProblems: patient.active_problems || undefined,
+        } : undefined}
       />
 
       {/* Call Patient Dialog */}

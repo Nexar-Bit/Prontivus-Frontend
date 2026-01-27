@@ -31,10 +31,15 @@ export function VoiceRecorder({
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string>('');
   const [recordingTime, setRecordingTime] = useState(0);
+  const [realTimeTranscription, setRealTimeTranscription] = useState<string>('');
+  const [isTranscribingChunk, setIsTranscribingChunk] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionStartTimeRef = useRef<number>(0);
+  const transcriptionQueueRef = useRef<Blob[]>([]);
+  const isTranscribingRef = useRef<boolean>(false);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -139,6 +144,8 @@ export function VoiceRecorder({
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
+          // Transcribe chunk in real-time
+          transcribeChunk(event.data);
         }
       };
 
@@ -156,9 +163,12 @@ export function VoiceRecorder({
         stopRecording();
       };
 
-      mediaRecorder.start(1000); // Collect data every second
+      sessionStartTimeRef.current = Date.now();
+      mediaRecorder.start(3000); // Collect data every 3 seconds for real-time transcription
       setIsRecording(true);
       setRecordingTime(0);
+      setRealTimeTranscription(''); // Reset transcription
+      transcriptionQueueRef.current = [];
       
       // Start timer
       timerRef.current = setInterval(() => {
@@ -169,6 +179,60 @@ export function VoiceRecorder({
     } catch (error: any) {
       console.error('Error starting recording:', error);
       toast.error('Erro inesperado ao iniciar gravação. Tente novamente.');
+    }
+  };
+
+  // Transcribe audio chunk in real-time
+  const transcribeChunk = async (audioChunk: Blob) => {
+    // Skip if already transcribing a chunk to avoid queue buildup
+    if (isTranscribingRef.current || audioChunk.size === 0) {
+      return;
+    }
+
+    try {
+      isTranscribingRef.current = true;
+      setIsTranscribingChunk(true);
+
+      const token = getAccessToken();
+      if (!token) return;
+
+      const formData = new FormData();
+      formData.append('audio_file', audioChunk, `chunk_${Date.now()}.webm`);
+      formData.append('language', language);
+      formData.append('enhance_medical_terms', String(enhanceMedicalTerms));
+      formData.append('structure_soap', 'false'); // Don't structure during real-time
+      
+      if (activeAppointmentId) {
+        formData.append('appointment_id', activeAppointmentId.toString());
+      }
+
+      const response = await fetch(`${API_URL}/api/v1/voice/transcribe`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+      if (result.success && result.text) {
+        // Append new transcription to existing text
+        setRealTimeTranscription(prev => {
+          const newText = result.text.trim();
+          if (prev && !prev.endsWith('.')) {
+            return `${prev} ${newText}`;
+          }
+          return prev ? `${prev} ${newText}` : newText;
+        });
+      }
+    } catch (error) {
+      console.error('Error transcribing chunk:', error);
+      // Don't show error toast for real-time transcription to avoid spam
+    } finally {
+      isTranscribingRef.current = false;
+      setIsTranscribingChunk(false);
     }
   };
 
@@ -184,7 +248,11 @@ export function VoiceRecorder({
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      toast.success('Gravação finalizada');
+      
+      // Wait a bit for any pending transcriptions to complete
+      setTimeout(() => {
+        toast.success('Gravação finalizada');
+      }, 500);
     }
   };
 
@@ -232,6 +300,11 @@ export function VoiceRecorder({
         throw new Error(result.error || 'Transcrição falhou');
       }
 
+      // Use real-time transcription if available, otherwise use final result
+      if (realTimeTranscription && result.text) {
+        result.text = realTimeTranscription + (result.text ? ` ${result.text}` : '');
+      }
+
       onTranscriptionComplete(result);
       toast.success('Transcrição concluída com sucesso!');
       
@@ -245,11 +318,13 @@ export function VoiceRecorder({
 
   const clearRecording = () => {
     setAudioBlob(null);
+    setRealTimeTranscription('');
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
       setAudioUrl('');
     }
     audioChunksRef.current = [];
+    transcriptionQueueRef.current = [];
   };
 
   const formatTime = (seconds: number) => {
@@ -289,10 +364,30 @@ export function VoiceRecorder({
       </div>
 
       {isRecording && (
-        <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-950/20 p-3 rounded-md">
-          <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
-          <span className="font-medium">Gravando... {formatTime(recordingTime)}</span>
-          <span className="text-muted-foreground">Fale claramente próximo ao microfone.</span>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 dark:bg-red-950/20 p-3 rounded-md">
+            <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
+            <span className="font-medium">Gravando... {formatTime(recordingTime)}</span>
+            <span className="text-muted-foreground">Fale claramente próximo ao microfone.</span>
+            {isTranscribingChunk && (
+              <Loader2 className="h-4 w-4 animate-spin ml-auto" />
+            )}
+          </div>
+          
+          {/* Real-time transcription display */}
+          {realTimeTranscription && (
+            <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-md border border-blue-200 dark:border-blue-800">
+              <div className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-2">
+                Transcrição em tempo real:
+              </div>
+              <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap max-h-48 overflow-y-auto">
+                {realTimeTranscription}
+                {isTranscribingChunk && (
+                  <span className="inline-block w-2 h-4 bg-blue-500 animate-pulse ml-1" />
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

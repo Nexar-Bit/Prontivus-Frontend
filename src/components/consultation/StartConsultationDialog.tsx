@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
@@ -12,8 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Mic, HelpCircle, Radio } from "lucide-react";
+import { Mic, HelpCircle, Radio, User, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -23,11 +22,22 @@ import {
 
 type ConsultationMode = "presencial" | "telemedicina";
 
+interface PatientContextInfo {
+  name: string;
+  age?: number;
+  gender?: string;
+  allergies?: string;
+  activeProblems?: string;
+  lastConsultation?: string;
+  currentMedications?: string;
+}
+
 interface StartConsultationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onStart: (mode: ConsultationMode, patientContext?: string, audioDeviceId?: string) => void;
   isStarting?: boolean;
+  patientInfo?: PatientContextInfo;
 }
 
 export function StartConsultationDialog({
@@ -35,6 +45,7 @@ export function StartConsultationDialog({
   onOpenChange,
   onStart,
   isStarting = false,
+  patientInfo,
 }: StartConsultationDialogProps) {
   const [mode, setMode] = useState<ConsultationMode>("presencial");
   const [patientContext, setPatientContext] = useState("");
@@ -47,6 +58,30 @@ export function StartConsultationDialog({
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+
+  // Pre-populate patient context when patient info is provided
+  useEffect(() => {
+    if (patientInfo && open) {
+      const contextParts: string[] = [];
+      
+      if (patientInfo.allergies) {
+        contextParts.push(`Alergias: ${patientInfo.allergies}`);
+      }
+      if (patientInfo.activeProblems) {
+        contextParts.push(`Problemas ativos: ${patientInfo.activeProblems}`);
+      }
+      if (patientInfo.currentMedications) {
+        contextParts.push(`Medicações em uso: ${patientInfo.currentMedications}`);
+      }
+      if (patientInfo.lastConsultation) {
+        contextParts.push(`Última consulta: ${patientInfo.lastConsultation}`);
+      }
+
+      if (contextParts.length > 0) {
+        setPatientContext(contextParts.join('\n\n'));
+      }
+    }
+  }, [patientInfo, open]);
 
   // Load audio devices
   useEffect(() => {
@@ -244,6 +279,45 @@ export function StartConsultationDialog({
         </DialogHeader>
 
         <div className="space-y-6 py-4">
+          {/* Patient Info Card */}
+          {patientInfo && (
+            <div className="p-4 border rounded-lg bg-blue-50/50 space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <User className="h-4 w-4 text-blue-600" />
+                <h3 className="font-medium text-blue-900">Informações do Paciente</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Nome:</span>{" "}
+                  <span className="font-medium">{patientInfo.name}</span>
+                </div>
+                {patientInfo.age && (
+                  <div>
+                    <span className="text-muted-foreground">Idade:</span>{" "}
+                    <span className="font-medium">{patientInfo.age} anos</span>
+                  </div>
+                )}
+                {patientInfo.gender && (
+                  <div>
+                    <span className="text-muted-foreground">Sexo:</span>{" "}
+                    <span className="font-medium">
+                      {patientInfo.gender === "male" ? "Masculino" : patientInfo.gender === "female" ? "Feminino" : "Outro"}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {patientInfo.allergies && (
+                <div className="flex items-start gap-2 pt-2 border-t">
+                  <AlertTriangle className="h-4 w-4 text-orange-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Alergias:</span>{" "}
+                    <span className="font-medium text-orange-900">{patientInfo.allergies}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Consultation Mode */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">

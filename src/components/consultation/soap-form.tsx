@@ -148,16 +148,16 @@ export const SoapForm = forwardRef<SoapFormRef, SoapFormProps>(
       <CardContent>
         <Tabs defaultValue="subjective" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="subjective">Subjetivo (S)</TabsTrigger>
-            <TabsTrigger value="objective">Objetivo (O)</TabsTrigger>
-            <TabsTrigger value="assessment">Avaliação (A)</TabsTrigger>
-            <TabsTrigger value="plan">Plano (P)</TabsTrigger>
+            <TabsTrigger value="subjective">Anamnese (A)</TabsTrigger>
+            <TabsTrigger value="objective">Exame Físico (E)</TabsTrigger>
+            <TabsTrigger value="assessment">Opinião da IA (O)</TabsTrigger>
+            <TabsTrigger value="plan">Conduta (C)</TabsTrigger>
           </TabsList>
 
           <TabsContent value="subjective" className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="subjective">
-                Subjetivo - Queixas e História do Paciente
+                Anamnese - Queixas e História do Paciente
               </Label>
               <p className="text-sm text-muted-foreground">
                 O que o paciente relata? Sintomas, queixas principais, história
@@ -176,7 +176,7 @@ export const SoapForm = forwardRef<SoapFormRef, SoapFormProps>(
           <TabsContent value="objective" className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="objective">
-                Objetivo - Dados Observáveis e Mensuráveis
+                Exame Físico - Dados Observáveis e Mensuráveis
               </Label>
               <p className="text-sm text-muted-foreground">
                 Sinais vitais, exame físico, resultados de exames, observações
@@ -195,10 +195,10 @@ export const SoapForm = forwardRef<SoapFormRef, SoapFormProps>(
           <TabsContent value="assessment" className="space-y-4 mt-4">
             <div className="space-y-2">
               <Label htmlFor="assessment">
-                Avaliação - Diagnóstico e Impressão Clínica
+                Opinião da IA - Diagnóstico e Impressão Clínica
               </Label>
               <p className="text-sm text-muted-foreground">
-                Sua análise, diagnósticos diferenciais, hipóteses diagnósticas,
+                Análise da IA, diagnósticos diferenciais, hipóteses diagnósticas,
                 CID-10.
               </p>
               <Textarea
@@ -278,7 +278,7 @@ export const SoapForm = forwardRef<SoapFormRef, SoapFormProps>(
 
           <TabsContent value="plan" className="space-y-4 mt-4">
             <div className="space-y-2">
-              <Label htmlFor="plan">Plano - Conduta e Tratamento</Label>
+              <Label htmlFor="plan">Conduta - Tratamento e Orientações</Label>
               <p className="text-sm text-muted-foreground">
                 Tratamento proposto, medicações, exames solicitados,
                 orientações, retorno.

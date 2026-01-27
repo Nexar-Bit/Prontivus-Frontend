@@ -275,10 +275,10 @@ export default function ProntuariosPage() {
     }
     
     const parts = [];
-    if (record.assessment) parts.push(`Avaliação: ${record.assessment.substring(0, 80)}${record.assessment.length > 80 ? '...' : ''}`);
-    if (record.plan_soap) parts.push(`Plano: ${record.plan_soap.substring(0, 80)}${record.plan_soap.length > 80 ? '...' : ''}`);
-    if (record.plan) parts.push(`Plano: ${record.plan.substring(0, 80)}${record.plan.length > 80 ? '...' : ''}`);
-    if (record.subjective) parts.push(`Subjetivo: ${record.subjective.substring(0, 60)}${record.subjective.length > 60 ? '...' : ''}`);
+    if (record.assessment) parts.push(`Opinião da IA: ${record.assessment.substring(0, 80)}${record.assessment.length > 80 ? '...' : ''}`);
+    if (record.plan_soap) parts.push(`Conduta: ${record.plan_soap.substring(0, 80)}${record.plan_soap.length > 80 ? '...' : ''}`);
+    if (record.plan) parts.push(`Conduta: ${record.plan.substring(0, 80)}${record.plan.length > 80 ? '...' : ''}`);
+    if (record.subjective) parts.push(`Anamnese: ${record.subjective.substring(0, 60)}${record.subjective.length > 60 ? '...' : ''}`);
     
     return parts.length > 0 ? parts.join(" • ") : "Prontuário sem descrição";
   };
@@ -566,7 +566,7 @@ export default function ProntuariosPage() {
 
                   <TabsContent value="soap" className="space-y-4">
                     <div>
-                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Subjetivo</Label>
+                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Anamnese</Label>
                       <div className="p-4 bg-gray-50 rounded-lg border min-h-[100px]">
                         <p className="text-sm text-gray-700 whitespace-pre-wrap">
                           {selectedRecord.clinical_record.subjective || (
@@ -576,7 +576,7 @@ export default function ProntuariosPage() {
                       </div>
                     </div>
                     <div>
-                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Objetivo</Label>
+                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Exame Físico</Label>
                       <div className="p-4 bg-gray-50 rounded-lg border min-h-[100px]">
                         <p className="text-sm text-gray-700 whitespace-pre-wrap">
                           {selectedRecord.clinical_record.objective || (
@@ -586,7 +586,7 @@ export default function ProntuariosPage() {
                       </div>
                     </div>
                     <div>
-                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Avaliação</Label>
+                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Opinião da IA</Label>
                       <div className="p-4 bg-blue-50 rounded-lg border min-h-[100px]">
                         <p className="text-sm text-gray-700 whitespace-pre-wrap">
                           {selectedRecord.clinical_record.assessment || (
@@ -596,7 +596,7 @@ export default function ProntuariosPage() {
                       </div>
                     </div>
                     <div>
-                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Plano</Label>
+                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Conduta</Label>
                       <div className="p-4 bg-green-50 rounded-lg border min-h-[100px]">
                         <p className="text-sm text-gray-700 whitespace-pre-wrap">
                           {selectedRecord.clinical_record.plan_soap || selectedRecord.clinical_record.plan || (

@@ -43,10 +43,10 @@ export function TranscriptionResult({ result, onApplyToForm, onClose }: Transcri
 
   const getSectionLabel = (section: string) => {
     const labels: Record<string, string> = {
-      subjective: 'S - Subjetivo',
-      objective: 'O - Objetivo',
-      assessment: 'A - Avaliação',
-      plan: 'P - Plano',
+      subjective: 'A - Anamnese',
+      objective: 'E - Exame Físico',
+      assessment: 'O - Opinião da IA',
+      plan: 'C - Conduta',
     };
     return labels[section] || section;
   };

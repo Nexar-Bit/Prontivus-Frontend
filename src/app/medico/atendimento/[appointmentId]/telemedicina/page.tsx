@@ -5,26 +5,34 @@ import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts";
 import { appointmentsApi } from "@/lib/appointments-api";
 import { patientsApi } from "@/lib/patients-api";
-import { Appointment, Patient, AppointmentStatus } from "@/lib/types";
+import { Appointment, Patient } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Mic, Square, Settings, FileText, Edit3, Check, X, Plus } from "lucide-react";
+import {
+  ArrowLeft,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  PhoneOff,
+  Settings,
+  Square,
+  Edit3,
+  Check,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 import { API_URL } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface TranscriptionSegment {
-  timestamp: number; // seconds
+  timestamp: number;
   text: string;
-  speaker?: "doctor" | "patient";
 }
 
 interface ICDSuggestion {
@@ -40,7 +48,7 @@ interface ExamSuggestion {
   approved: boolean;
 }
 
-export default function RecordConsultationPage() {
+export default function TelemedicinePage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
@@ -49,37 +57,47 @@ export default function RecordConsultationPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [patientContext, setPatientContext] = useState("");
+
+  // Video call state
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isVideoOn, setIsVideoOn] = useState(true);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+
+  // Transcription state
   const [transcription, setTranscription] = useState<TranscriptionSegment[]>([]);
   const [fullTranscription, setFullTranscription] = useState("");
-  const [patientContext, setPatientContext] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingMode, setRecordingMode] = useState<"voice" | "manual">("voice");
-  
+
   // Manual mode fields
   const [anamnesis, setAnamnesis] = useState("");
   const [physicalExam, setPhysicalExam] = useState("");
   const [aiOpinion, setAiOpinion] = useState("");
   const [conduct, setConduct] = useState("");
-  
+
   // AI Suggestions
   const [icdSuggestions, setIcdSuggestions] = useState<ICDSuggestion[]>([]);
   const [examSuggestions, setExamSuggestions] = useState<ExamSuggestion[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
+  // Refs for media
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
+  const videoChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const transcriptionIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const sessionStartTimeRef = useRef<number>(0);
 
-  // Load appointment data and patient context
+  // Load appointment data
   useEffect(() => {
     if (appointmentId) {
       loadData();
-      
+
       // Load patient context from sessionStorage
       const savedContext = sessionStorage.getItem(`patient_context_${appointmentId}`);
       if (savedContext) {
@@ -106,15 +124,14 @@ export default function RecordConsultationPage() {
     }
   };
 
-  // Start recording
-  const startRecording = async () => {
+  // Start video call
+  const startVideoCall = async () => {
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast.error("Seu navegador não suporta gravação de áudio");
-        return;
-      }
-
       const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
@@ -122,48 +139,105 @@ export default function RecordConsultationPage() {
         },
       });
 
-      streamRef.current = stream;
+      localStreamRef.current = stream;
 
-      if (!window.MediaRecorder) {
-        toast.error("Seu navegador não suporta gravação de áudio");
-        stream.getTracks().forEach((track) => track.stop());
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      setIsCallActive(true);
+      toast.success("Chamada iniciada");
+
+      // In a real implementation, you would establish WebRTC connection here
+      // For now, we just display the local video
+
+    } catch (error: any) {
+      console.error("Error starting video call:", error);
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        toast.error("Permissão de câmera/microfone negada");
+      } else {
+        toast.error("Erro ao iniciar chamada de vídeo");
+      }
+    }
+  };
+
+  // End video call
+  const endVideoCall = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+    }
+
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+
+    setIsCallActive(false);
+    toast.info("Chamada encerrada");
+  };
+
+  // Toggle microphone
+  const toggleMic = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMicOn(audioTrack.enabled);
+        toast.info(audioTrack.enabled ? "Microfone ligado" : "Microfone desligado");
+      }
+    }
+  };
+
+  // Toggle video
+  const toggleVideo = () => {
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoOn(videoTrack.enabled);
+        toast.info(videoTrack.enabled ? "Câmera ligada" : "Câmera desligada");
+      }
+    }
+  };
+
+  // Start recording (audio + video + transcription)
+  const startRecording = async () => {
+    try {
+      if (!localStreamRef.current) {
+        toast.error("Inicie a chamada de vídeo primeiro");
         return;
       }
 
-      let mimeType = "audio/webm;codecs=opus";
+      // Create combined recorder for audio and video
+      let mimeType = "video/webm;codecs=vp8,opus";
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        const alternatives = ["audio/webm", "audio/ogg;codecs=opus", "audio/mp4", "audio/wav"];
+        const alternatives = ["video/webm", "video/mp4"];
         mimeType = alternatives.find((type) => MediaRecorder.isTypeSupported(type)) || "";
       }
 
-      const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      const mediaRecorder = new MediaRecorder(localStreamRef.current, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      videoChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-          // Send chunk for transcription
-          transcribeChunk(event.data);
+          videoChunksRef.current.push(event.data);
+          // Extract audio for transcription
+          transcribeFromStream(event.data);
         }
       };
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: mimeType || "audio/webm",
+      mediaRecorder.onstop = async () => {
+        const videoBlob = new Blob(videoChunksRef.current, {
+          type: mimeType || "video/webm",
         });
-        // Final transcription
-        transcribeFinalAudio(audioBlob);
-      };
-
-      mediaRecorder.onerror = (event) => {
-        console.error("MediaRecorder error:", event);
-        toast.error("Erro na gravação de áudio");
-        stopRecording();
+        // Save recording
+        await saveRecording(videoBlob);
       };
 
       sessionStartTimeRef.current = Date.now();
-      mediaRecorder.start(5000); // Collect data every 5 seconds for real-time transcription
+      mediaRecorder.start(5000); // Collect data every 5 seconds
       setIsRecording(true);
       setRecordingTime(0);
       setTranscription([]);
@@ -177,22 +251,36 @@ export default function RecordConsultationPage() {
       toast.success("Gravação iniciada");
     } catch (error: any) {
       console.error("Error starting recording:", error);
-      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        toast.error("Permissão de microfone negada. Por favor, permita o acesso nas configurações do navegador.");
-      } else {
-        toast.error("Erro ao iniciar gravação");
-      }
+      toast.error("Erro ao iniciar gravação");
     }
   };
 
-  // Transcribe audio chunk (real-time)
-  const transcribeChunk = async (audioChunk: Blob) => {
+  // Stop recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      toast.success("Gravação finalizada");
+      // Load AI suggestions after recording stops
+      loadAISuggestions();
+    }
+  };
+
+  // Transcribe from stream
+  const transcribeFromStream = async (chunk: Blob) => {
+    // In a real implementation, extract audio from video chunk and transcribe
+    // For now, this is a placeholder
     try {
       const token = getAccessToken();
       if (!token) return;
 
+      // Create audio-only blob from video chunk (simplified)
       const formData = new FormData();
-      formData.append("audio_file", audioChunk, `chunk_${Date.now()}.webm`);
+      formData.append("audio_file", chunk, `chunk_${Date.now()}.webm`);
       formData.append("language", "pt-BR");
       formData.append("enhance_medical_terms", "true");
       formData.append("structure_soap", "false");
@@ -211,9 +299,6 @@ export default function RecordConsultationPage() {
       const result = await response.json();
       if (result.success && result.text) {
         const currentTime = Math.floor((Date.now() - sessionStartTimeRef.current) / 1000);
-        const minutes = Math.floor(currentTime / 60);
-        const seconds = currentTime % 60;
-
         const newSegment: TranscriptionSegment = {
           timestamp: currentTime,
           text: result.text,
@@ -223,12 +308,12 @@ export default function RecordConsultationPage() {
         setFullTranscription((prev) => (prev ? `${prev} ${result.text}` : result.text));
       }
     } catch (error) {
-      console.error("Error transcribing chunk:", error);
+      console.error("Error transcribing stream:", error);
     }
   };
 
-  // Final transcription
-  const transcribeFinalAudio = async (audioBlob: Blob) => {
+  // Save recording (video/audio)
+  const saveRecording = async (videoBlob: Blob) => {
     try {
       setIsProcessing(true);
       const token = getAccessToken();
@@ -238,13 +323,10 @@ export default function RecordConsultationPage() {
       }
 
       const formData = new FormData();
-      formData.append("audio_file", audioBlob, `recording_${appointmentId}.webm`);
-      formData.append("language", "pt-BR");
-      formData.append("enhance_medical_terms", "true");
-      formData.append("structure_soap", "false");
+      formData.append("video_file", videoBlob, `telemedicine_${appointmentId}.webm`);
       formData.append("appointment_id", appointmentId.toString());
 
-      const response = await fetch(`${API_URL}/api/v1/voice/transcribe`, {
+      const response = await fetch(`${API_URL}/api/v1/voice/save-telemedicine-recording`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -253,42 +335,19 @@ export default function RecordConsultationPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Erro na transcrição");
+        throw new Error("Erro ao salvar gravação");
       }
 
-      const result = await response.json();
-      if (result.success && result.text) {
-        setFullTranscription(result.text);
-        toast.success("Transcrição concluída");
-      }
+      toast.success("Gravação salva com sucesso");
     } catch (error: any) {
-      console.error("Error in final transcription:", error);
-      toast.error("Erro na transcrição final");
+      console.error("Error saving recording:", error);
+      toast.error("Erro ao salvar gravação");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Stop recording
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
-      setIsRecording(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      toast.success("Gravação finalizada");
-      // Load AI suggestions after recording stops
-      loadAISuggestions();
-    }
-  };
-
-  // Load AI suggestions for ICD-10 codes and exams
+  // Load AI suggestions
   const loadAISuggestions = async () => {
     try {
       setLoadingSuggestions(true);
@@ -296,7 +355,7 @@ export default function RecordConsultationPage() {
       if (!token) return;
 
       const contentToAnalyze = recordingMode === "voice" ? fullTranscription : `${anamnesis}\n\n${physicalExam}`;
-      
+
       if (!contentToAnalyze.trim()) {
         toast.error("Não há conteúdo para gerar sugestões");
         return;
@@ -320,8 +379,7 @@ export default function RecordConsultationPage() {
       }
 
       const result = await response.json();
-      
-      // Set ICD suggestions
+
       if (result.icd_codes && Array.isArray(result.icd_codes)) {
         const suggestions = result.icd_codes.map((icd: any) => ({
           code: icd.code,
@@ -331,8 +389,7 @@ export default function RecordConsultationPage() {
         }));
         setIcdSuggestions(suggestions);
       }
-      
-      // Set exam suggestions
+
       if (result.recommended_exams && Array.isArray(result.recommended_exams)) {
         const exams = result.recommended_exams.map((exam: any) => ({
           name: exam.name || exam,
@@ -351,14 +408,14 @@ export default function RecordConsultationPage() {
     }
   };
 
-  // Approve/reject ICD suggestion
+  // Toggle ICD approval
   const toggleICDApproval = (index: number) => {
     setIcdSuggestions((prev) =>
       prev.map((item, i) => (i === index ? { ...item, approved: !item.approved } : item))
     );
   };
 
-  // Approve/reject exam suggestion
+  // Toggle exam approval
   const toggleExamApproval = (index: number) => {
     setExamSuggestions((prev) =>
       prev.map((item, i) => (i === index ? { ...item, approved: !item.approved } : item))
@@ -375,32 +432,6 @@ export default function RecordConsultationPage() {
     setExamSuggestions((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-      if (transcriptionIntervalRef.current) {
-        clearInterval(transcriptionIntervalRef.current);
-      }
-    };
-  }, []);
-
-  // Auto-start recording when page loads
-  useEffect(() => {
-    if (!isLoading && appointment && patient && !isRecording) {
-      // Small delay to ensure page is fully loaded
-      const timer = setTimeout(() => {
-        startRecording();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, appointment, patient]);
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -412,6 +443,18 @@ export default function RecordConsultationPage() {
     const secs = seconds % 60;
     return `${String(mins).padStart(2, "0")}m ${String(secs).padStart(2, "0")}s`;
   };
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -451,24 +494,22 @@ export default function RecordConsultationPage() {
               Voltar
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">Nova Consulta</h1>
+              <h1 className="text-2xl font-bold">Telemedicina</h1>
               <p className="text-sm text-muted-foreground">
                 {patient.first_name} {patient.last_name}
               </p>
             </div>
           </div>
-          <Tabs value={recordingMode} onValueChange={(v) => setRecordingMode(v as "voice" | "manual")}>
-            <TabsList>
-              <TabsTrigger value="voice">
-                <Mic className="h-4 w-4 mr-2" />
-                Modo Voz
-              </TabsTrigger>
-              <TabsTrigger value="manual">
-                <Edit3 className="h-4 w-4 mr-2" />
-                Modo Manual
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="flex items-center gap-3">
+            <Badge variant={isCallActive ? "default" : "secondary"}>
+              {isCallActive ? "Chamada Ativa" : "Chamada Inativa"}
+            </Badge>
+            {isRecording && (
+              <Badge variant="destructive" className="animate-pulse">
+                Gravando
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
@@ -476,8 +517,107 @@ export default function RecordConsultationPage() {
       <div className="flex-1 overflow-hidden">
         <div className="max-w-7xl mx-auto h-full p-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-            {/* Left Column - Patient Context & Content */}
+            {/* Left Column - Video Call */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Video Display */}
+              <Card className="relative">
+                <CardContent className="p-0">
+                  <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
+                    {/* Remote video (patient) */}
+                    <video
+                      ref={remoteVideoRef}
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-cover"
+                    />
+
+                    {/* Local video (doctor) - Picture in Picture */}
+                    <div className="absolute bottom-4 right-4 w-48 h-36 bg-gray-800 rounded-lg overflow-hidden border-2 border-white shadow-lg">
+                      <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+
+                    {/* No call overlay */}
+                    {!isCallActive && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                        <div className="text-center">
+                          <Video className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                          <p className="text-white mb-4">Clique para iniciar a chamada de vídeo</p>
+                          <Button onClick={startVideoCall} size="lg">
+                            <Video className="h-5 w-5 mr-2" />
+                            Iniciar Chamada
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Call controls */}
+                    {isCallActive && (
+                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+                        <div className="flex items-center gap-2 bg-black/50 rounded-full p-2">
+                          <Button
+                            size="icon"
+                            variant={isMicOn ? "secondary" : "destructive"}
+                            onClick={toggleMic}
+                            className="rounded-full"
+                          >
+                            {isMicOn ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant={isVideoOn ? "secondary" : "destructive"}
+                            onClick={toggleVideo}
+                            className="rounded-full"
+                          >
+                            {isVideoOn ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="destructive"
+                            onClick={endVideoCall}
+                            className="rounded-full"
+                          >
+                            <PhoneOff className="h-4 w-4" />
+                          </Button>
+                          {isRecording ? (
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              onClick={stopRecording}
+                              className="rounded-full animate-pulse"
+                            >
+                              <Square className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              size="icon"
+                              variant="secondary"
+                              onClick={startRecording}
+                              className="rounded-full"
+                              disabled={!isCallActive}
+                            >
+                              <Mic className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recording timer */}
+                    {isRecording && (
+                      <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        {formatTime(recordingTime)}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Patient Context */}
               <Card>
                 <CardHeader>
@@ -485,7 +625,7 @@ export default function RecordConsultationPage() {
                 </CardHeader>
                 <CardContent>
                   <Textarea
-                    placeholder="Preencha este campo com informações clínicas do paciente: medicamentos, prontuários anteriores ou exames. Isso ajuda a fornecer um documento clínico mais completo."
+                    placeholder="Informações clínicas do paciente..."
                     value={patientContext}
                     onChange={(e) => setPatientContext(e.target.value)}
                     className="min-h-[100px] resize-y"
@@ -493,105 +633,77 @@ export default function RecordConsultationPage() {
                 </CardContent>
               </Card>
 
-              {/* Voice Mode - Transcription */}
-              {recordingMode === "voice" && (
-                <Card className="flex-1">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Transcrição da consulta</CardTitle>
-                      <Badge variant="secondary">BETA</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="max-h-[400px] overflow-y-auto">
-                    <div className="space-y-4">
-                      {transcription.length === 0 && !fullTranscription && (
+              {/* Transcription / Manual Entry */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Documentação</CardTitle>
+                    <Tabs value={recordingMode} onValueChange={(v) => setRecordingMode(v as "voice" | "manual")}>
+                      <TabsList className="grid w-[200px] grid-cols-2">
+                        <TabsTrigger value="voice">Voz</TabsTrigger>
+                        <TabsTrigger value="manual">Manual</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {recordingMode === "voice" ? (
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {transcription.length === 0 && !fullTranscription ? (
                         <div className="text-center text-muted-foreground py-8">
                           <Mic className="h-12 w-12 mx-auto mb-4 opacity-50" />
                           <p>Aguardando transcrição...</p>
                         </div>
-                      )}
-                      {fullTranscription && (
-                        <div className="space-y-2">
-                          <p className="text-sm whitespace-pre-wrap">{fullTranscription}</p>
+                      ) : (
+                        <div className="space-y-4">
+                          {fullTranscription && <p className="text-sm whitespace-pre-wrap">{fullTranscription}</p>}
+                          {transcription.map((segment, index) => (
+                            <div key={index} className="space-y-1">
+                              <p className="text-xs text-muted-foreground font-mono">
+                                {formatTimestamp(segment.timestamp)}
+                              </p>
+                              <p className="text-sm">{segment.text}</p>
+                            </div>
+                          ))}
                         </div>
                       )}
-                      {transcription.map((segment, index) => (
-                        <div key={index} className="space-y-1">
-                          <p className="text-xs text-muted-foreground font-mono">
-                            {formatTimestamp(segment.timestamp)}
-                          </p>
-                          <p className="text-sm">{segment.text}</p>
-                        </div>
-                      ))}
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Manual Mode - Forms */}
-              {recordingMode === "manual" && (
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Anamnese</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Textarea
-                        placeholder="Descreva a história clínica do paciente, queixas, sintomas..."
-                        value={anamnesis}
-                        onChange={(e) => setAnamnesis(e.target.value)}
-                        className="min-h-[150px] resize-y"
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Exame Físico</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Textarea
-                        placeholder="Descreva os achados do exame físico..."
-                        value={physicalExam}
-                        onChange={(e) => setPhysicalExam(e.target.value)}
-                        className="min-h-[120px] resize-y"
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Opinião da IA</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Textarea
-                        placeholder="Insights gerados pela IA..."
-                        value={aiOpinion}
-                        onChange={(e) => setAiOpinion(e.target.value)}
-                        className="min-h-[100px] resize-y"
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Conduta</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Textarea
-                        placeholder="Descreva a conduta, tratamentos, prescrições..."
-                        value={conduct}
-                        onChange={(e) => setConduct(e.target.value)}
-                        className="min-h-[120px] resize-y"
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Button onClick={loadAISuggestions} disabled={loadingSuggestions || (!anamnesis && !physicalExam)}>
-                    {loadingSuggestions ? "Carregando..." : "Gerar Sugestões da IA"}
-                  </Button>
-                </div>
-              )}
+                  ) : (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Anamnese</label>
+                        <Textarea
+                          placeholder="História clínica..."
+                          value={anamnesis}
+                          onChange={(e) => setAnamnesis(e.target.value)}
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Exame Físico</label>
+                        <Textarea
+                          placeholder="Achados do exame..."
+                          value={physicalExam}
+                          onChange={(e) => setPhysicalExam(e.target.value)}
+                          className="min-h-[80px]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Conduta</label>
+                        <Textarea
+                          placeholder="Tratamento, prescrições..."
+                          value={conduct}
+                          onChange={(e) => setConduct(e.target.value)}
+                          className="min-h-[80px]"
+                        />
+                      </div>
+                      <Button onClick={loadAISuggestions} disabled={loadingSuggestions || (!anamnesis && !physicalExam)}>
+                        {loadingSuggestions ? "Carregando..." : "Gerar Sugestões da IA"}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             {/* Right Column - AI Suggestions */}
@@ -604,13 +716,11 @@ export default function RecordConsultationPage() {
                 <CardContent>
                   {loadingSuggestions ? (
                     <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">Carregando sugestões...</p>
+                      <p className="text-sm text-muted-foreground">Carregando...</p>
                     </div>
                   ) : icdSuggestions.length === 0 ? (
                     <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">
-                        Nenhuma sugestão disponível. {recordingMode === "voice" ? "Grave" : "Preencha os campos e gere"} a consulta para obter sugestões.
-                      </p>
+                      <p className="text-sm text-muted-foreground">Nenhuma sugestão disponível</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -631,13 +741,9 @@ export default function RecordConsultationPage() {
                                   variant={icd.approved ? "default" : "outline"}
                                   onClick={() => toggleICDApproval(index)}
                                 >
-                                  {icd.approved ? <Check className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                                  <Check className="h-3 w-3" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => removeICDSuggestion(index)}
-                                >
+                                <Button size="sm" variant="ghost" onClick={() => removeICDSuggestion(index)}>
                                   <X className="h-3 w-3" />
                                 </Button>
                               </div>
@@ -658,13 +764,11 @@ export default function RecordConsultationPage() {
                 <CardContent>
                   {loadingSuggestions ? (
                     <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">Carregando sugestões...</p>
+                      <p className="text-sm text-muted-foreground">Carregando...</p>
                     </div>
                   ) : examSuggestions.length === 0 ? (
                     <div className="text-center py-4">
-                      <p className="text-sm text-muted-foreground">
-                        Nenhuma sugestão disponível. {recordingMode === "voice" ? "Grave" : "Preencha os campos e gere"} a consulta para obter sugestões.
-                      </p>
+                      <p className="text-sm text-muted-foreground">Nenhuma sugestão disponível</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -682,13 +786,9 @@ export default function RecordConsultationPage() {
                                   variant={exam.approved ? "default" : "outline"}
                                   onClick={() => toggleExamApproval(index)}
                                 >
-                                  {exam.approved ? <Check className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                                  <Check className="h-3 w-3" />
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => removeExamSuggestion(index)}
-                                >
+                                <Button size="sm" variant="ghost" onClick={() => removeExamSuggestion(index)}>
                                   <X className="h-3 w-3" />
                                 </Button>
                               </div>
@@ -704,50 +804,6 @@ export default function RecordConsultationPage() {
           </div>
         </div>
       </div>
-
-      {/* Bottom Bar - Recording Controls */}
-      {recordingMode === "voice" && (
-        <div className="bg-white border-t px-6 py-4">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div
-                className={`h-12 w-12 rounded-full flex items-center justify-center ${
-                  isRecording ? "bg-red-500 animate-pulse" : "bg-gray-300"
-                }`}
-              >
-                {isRecording ? (
-                  <Square className="h-6 w-6 text-white" />
-                ) : (
-                  <Mic className="h-6 w-6 text-gray-600" />
-                )}
-              </div>
-              <div>
-                <p className="text-sm font-medium">{formatTime(recordingTime)}</p>
-                <p className="text-xs text-muted-foreground">
-                  {isRecording ? "Gravando..." : "Gravação parada"}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {isRecording ? (
-                <Button onClick={stopRecording} variant="destructive">
-                  <Square className="h-4 w-4 mr-2" />
-                  Parar gravação
-                </Button>
-              ) : (
-                <Button onClick={startRecording} disabled={isProcessing}>
-                  <Mic className="h-4 w-4 mr-2" />
-                  Iniciar gravação
-                </Button>
-              )}
-              <Button variant="ghost" size="icon">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

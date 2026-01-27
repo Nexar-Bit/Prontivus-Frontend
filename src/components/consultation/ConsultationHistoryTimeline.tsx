@@ -54,8 +54,9 @@ export function ConsultationHistoryTimeline({
       setHistory(filtered);
     } catch (error: any) {
       console.error("Failed to load consultation history:", error);
+      setHistory([]);
       toast.error("Erro ao carregar histórico", {
-        description: "Não foi possível carregar o histórico de consultas",
+        description: error?.response?.data?.detail || error?.message || "Não foi possível carregar o histórico de consultas",
       });
     } finally {
       setIsLoading(false);

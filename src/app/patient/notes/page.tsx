@@ -587,25 +587,25 @@ export default function PatientNotesPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                           {item.clinical_record?.subjective && (
                             <div>
-                              <div className="font-semibold">Subjetivo</div>
+                              <div className="font-semibold">Anamnese</div>
                               <div className="text-gray-700 whitespace-pre-wrap">{item.clinical_record.subjective}</div>
                             </div>
                           )}
                           {item.clinical_record?.objective && (
                             <div>
-                              <div className="font-semibold">Objetivo</div>
+                              <div className="font-semibold">Exame Físico</div>
                               <div className="text-gray-700 whitespace-pre-wrap">{item.clinical_record.objective}</div>
                             </div>
                           )}
                           {item.clinical_record?.assessment && (
                             <div>
-                              <div className="font-semibold">Avaliação</div>
+                              <div className="font-semibold">Opinião da IA</div>
                               <div className="text-gray-700 whitespace-pre-wrap">{item.clinical_record.assessment}</div>
                             </div>
                           )}
                           {(item.clinical_record?.plan_soap || item.clinical_record?.plan) && (
                             <div>
-                              <div className="font-semibold">Plano</div>
+                              <div className="font-semibold">Conduta</div>
                               <div className="text-gray-700 whitespace-pre-wrap">{item.clinical_record.plan_soap || item.clinical_record?.plan}</div>
                             </div>
                           )}
@@ -653,7 +653,7 @@ export default function PatientNotesPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {item.clinical_record?.subjective && (
                           <div>
-                            <div className="font-semibold text-gray-700 mb-2">Subjetivo</div>
+                            <div className="font-semibold text-gray-700 mb-2">Anamnese</div>
                             <div className="text-gray-900 whitespace-pre-wrap p-3 bg-gray-50 rounded-lg border border-gray-200">
                               {item.clinical_record.subjective}
                             </div>
@@ -661,7 +661,7 @@ export default function PatientNotesPage() {
                         )}
                         {item.clinical_record?.objective && (
                           <div>
-                            <div className="font-semibold text-gray-700 mb-2">Objetivo</div>
+                            <div className="font-semibold text-gray-700 mb-2">Exame Físico</div>
                             <div className="text-gray-900 whitespace-pre-wrap p-3 bg-gray-50 rounded-lg border border-gray-200">
                               {item.clinical_record.objective}
                             </div>
@@ -669,7 +669,7 @@ export default function PatientNotesPage() {
                         )}
                         {item.clinical_record?.assessment && (
                           <div>
-                            <div className="font-semibold text-gray-700 mb-2">Avaliação</div>
+                            <div className="font-semibold text-gray-700 mb-2">Opinião da IA</div>
                             <div className="text-gray-900 whitespace-pre-wrap p-3 bg-gray-50 rounded-lg border border-gray-200">
                               {item.clinical_record.assessment}
                             </div>
@@ -677,7 +677,7 @@ export default function PatientNotesPage() {
                         )}
                         {(item.clinical_record?.plan_soap || item.clinical_record?.plan) && (
                           <div>
-                            <div className="font-semibold text-gray-700 mb-2">Plano</div>
+                            <div className="font-semibold text-gray-700 mb-2">Conduta</div>
                             <div className="text-gray-900 whitespace-pre-wrap p-3 bg-gray-50 rounded-lg border border-gray-200">
                               {item.clinical_record.plan_soap || item.clinical_record?.plan}
                             </div>
