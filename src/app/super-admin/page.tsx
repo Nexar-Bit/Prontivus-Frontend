@@ -119,33 +119,6 @@ export default function SuperAdminDashboard() {
       link: "/super-admin/configuracoes/usuarios",
       description: "Usuários em todo o sistema",
     },
-    {
-      title: "Módulos Ativos",
-      value: systemMetrics?.total_modules_active ?? 0,
-      icon: Settings,
-      color: "text-indigo-600",
-      bgColor: "bg-indigo-100",
-      link: "/super-admin/configuracoes/modulos",
-      description: "Módulos ativados nas clínicas",
-    },
-    {
-      title: "Licenças Expiradas",
-      value: stats?.expired_licenses ?? 0,
-      icon: AlertTriangle,
-      color: "text-red-600",
-      bgColor: "bg-red-100",
-      link: "/super-admin/configuracoes/licenciamento",
-      description: "Requer atenção imediata",
-    },
-    {
-      title: "Licenças Próximas do Vencimento",
-      value: stats?.clinics_near_expiration ?? 0,
-      icon: Clock,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
-      link: "/super-admin/configuracoes/licenciamento",
-      description: "Renovação necessária em breve",
-    },
   ];
 
   if (loading) {
@@ -314,52 +287,13 @@ export default function SuperAdminDashboard() {
                 </span>
               </div>
 
-              {stats && stats.expired_licenses > 0 && (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-red-50 border border-red-200">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                    <div>
-                      <p className="font-medium text-gray-900">Atenção Necessária</p>
-                      <p className="text-sm text-gray-600">
-                        {stats.expired_licenses} licença{stats.expired_licenses > 1 ? 's' : ''} expirada{stats.expired_licenses > 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href="/super-admin/configuracoes/licenciamento"
-                    className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors"
-                  >
-                    Verificar
-                  </Link>
-                </div>
-              )}
-
-              {stats && stats.clinics_near_expiration > 0 && (
-                <div className="flex items-center justify-between p-3 rounded-lg bg-orange-50 border border-orange-200">
-                  <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-orange-600" />
-                    <div>
-                      <p className="font-medium text-gray-900">Licenças Próximas do Vencimento</p>
-                      <p className="text-sm text-gray-600">
-                        {stats.clinics_near_expiration} clínica{stats.clinics_near_expiration > 1 ? 's' : ''} precisa{stats.clinics_near_expiration > 1 ? 'm' : ''} renovar
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href="/super-admin/configuracoes/licenciamento"
-                    className="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full hover:bg-orange-200 transition-colors"
-                  >
-                    Renovar
-                  </Link>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* System Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
         {/* System Health */}
         <Card>
           <CardHeader>
@@ -395,81 +329,6 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Module Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Database className="h-5 w-5 text-indigo-600" />
-              Distribuição de Módulos
-            </CardTitle>
-            <CardDescription>
-              Módulos ativos no sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Total de Módulos Ativos</span>
-                <span className="text-lg font-bold text-indigo-600">
-                  {systemMetrics?.total_modules_active ?? 0}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Clínicas com Integrações</span>
-                <span className="text-lg font-bold text-purple-600">
-                  {systemMetrics?.total_integrations ?? 0}
-                </span>
-              </div>
-              <Link
-                href="/super-admin/configuracoes/modulos"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block"
-              >
-                Ver detalhes →
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* License Status */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Key className="h-5 w-5 text-green-600" />
-              Status de Licenças
-            </CardTitle>
-            <CardDescription>
-              Visão geral das licenças
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Licenças Válidas</span>
-                <span className="text-lg font-bold text-green-600">
-                  {(stats?.total_clinics ?? 0) - (stats?.expired_licenses ?? 0)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Expiradas</span>
-                <span className="text-lg font-bold text-red-600">
-                  {stats?.expired_licenses ?? 0}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Próximas do Vencimento</span>
-                <span className="text-lg font-bold text-orange-600">
-                  {stats?.clinics_near_expiration ?? 0}
-                </span>
-              </div>
-              <Link
-                href="/super-admin/configuracoes/licenciamento"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block"
-              >
-                Gerenciar licenças →
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Quick Actions */}
@@ -489,15 +348,6 @@ export default function SuperAdminDashboard() {
               <Building className="h-6 w-6 text-blue-600 mb-2" />
               <h4 className="font-semibold text-gray-900">Gerenciar Clínicas</h4>
               <p className="text-sm text-gray-600 mt-1">Cadastrar e editar todas as clínicas</p>
-            </Link>
-
-            <Link
-              href="/super-admin/configuracoes/licenciamento"
-              className="p-4 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50/50 transition-colors"
-            >
-              <Key className="h-6 w-6 text-green-600 mb-2" />
-              <h4 className="font-semibold text-gray-900">Licenciamento</h4>
-              <p className="text-sm text-gray-600 mt-1">Gerenciar licenças e módulos do sistema</p>
             </Link>
 
             <Link

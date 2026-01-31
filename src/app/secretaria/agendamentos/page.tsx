@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, Plus, Search, Filter, Clock, User, Stethoscope, CheckCircle2, XCircle, AlertCircle, RefreshCw, Edit, Trash2, ChevronLeft, ChevronRight, LogIn } from "lucide-react";
+import { CalendarDays, Plus, Search, Filter, Clock, User, Stethoscope, CheckCircle2, XCircle, AlertCircle, RefreshCw, Edit, Trash2, ChevronLeft, ChevronRight, LogIn, Phone, PhoneCall } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,8 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { usePatientCalling } from "@/hooks/usePatientCalling";
+import { patientCallingApi } from "@/lib/patient-calling-api";
 import { Calendar, momentLocalizer, View, Event } from "react-big-calendar";
 import withDragAndDrop from "react-big-calendar/lib/addons/dragAndDrop";
 import { DndProvider } from "react-dnd";
@@ -87,6 +89,7 @@ interface CalendarEvent extends Event {
 
 export default function AgendamentosPage() {
   const { user } = useAuth();
+  const { activeCalls, connected } = usePatientCalling();
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
@@ -110,6 +113,7 @@ export default function AgendamentosPage() {
   const [canceling, setCanceling] = useState(false);
   const [view, setView] = useState<View>("month");
   const [isDragging, setIsDragging] = useState(false);
+  const [answeringCall, setAnsweringCall] = useState<number | null>(null);
 
   useEffect(() => {
     loadData();
@@ -480,6 +484,34 @@ export default function AgendamentosPage() {
     }
   };
 
+  const handleAnswerCall = async (appointmentId: number) => {
+    try {
+      setAnsweringCall(appointmentId);
+      await patientCallingApi.answer(appointmentId);
+      toast.success("Chamada atendida!");
+      await loadAppointments();
+    } catch (error: any) {
+      console.error("Failed to answer call:", error);
+      toast.error("Erro ao atender chamada", {
+        description: error?.message || error?.detail || "Não foi possível atender a chamada",
+      });
+    } finally {
+      setAnsweringCall(null);
+    }
+  };
+
+  const handleCompleteCall = async (appointmentId: number) => {
+    try {
+      await patientCallingApi.complete(appointmentId);
+      toast.success("Chamada finalizada!");
+    } catch (error: any) {
+      console.error("Failed to complete call:", error);
+      toast.error("Erro ao finalizar chamada", {
+        description: error?.message || error?.detail || "Não foi possível finalizar a chamada",
+      });
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       patient_id: null,
@@ -679,9 +711,18 @@ export default function AgendamentosPage() {
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-blue-600" />
               Fila de Pacientes
+              {activeCalls.filter(c => c.status === "called").length > 0 && (
+                <Badge className="bg-red-500 text-white animate-pulse ml-2">
+                  <PhoneCall className="h-3 w-3 mr-1" />
+                  {activeCalls.filter(c => c.status === "called").length} chamada{activeCalls.filter(c => c.status === "called").length > 1 ? 's' : ''}
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription>
               Pacientes que realizaram check-in e aguardam consulta
+              {!connected && (
+                <span className="text-orange-600 ml-2">(Desconectado - reconectando...)</span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -692,29 +733,91 @@ export default function AgendamentosPage() {
                   const time = format(appointmentDate, "HH:mm", { locale: ptBR });
                   const isInConsultation = appointment.status?.toLowerCase() === "in_consultation";
                   
+                  // Check if there's an active call for this appointment
+                  const activeCall = activeCalls.find(call => call.appointment_id === appointment.id);
+                  const isCalling = activeCall && activeCall.status === "called";
+                  const isCallAnswered = activeCall && activeCall.status === "answered";
+                  
                   return (
                     <div
                       key={appointment.id}
-                      className={`flex items-center justify-between p-3 border rounded-lg ${
-                        isInConsultation ? 'bg-purple-50 border-purple-200' : 'bg-blue-50 border-blue-200'
+                      className={`flex items-center justify-between p-3 border rounded-lg transition-all ${
+                        isCalling 
+                          ? 'bg-red-50 border-red-300 animate-pulse' 
+                          : isInConsultation 
+                            ? 'bg-purple-50 border-purple-200' 
+                            : 'bg-blue-50 border-blue-200'
                       }`}
                     >
                       <div className="flex items-center gap-3 flex-1">
                         <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          isInConsultation ? 'bg-purple-100' : 'bg-blue-100'
+                          isCalling 
+                            ? 'bg-red-100 animate-bounce' 
+                            : isInConsultation 
+                              ? 'bg-purple-100' 
+                              : 'bg-blue-100'
                         }`}>
-                          <User className={`h-6 w-6 ${
-                            isInConsultation ? 'text-purple-600' : 'text-blue-600'
-                          }`} />
+                          {isCalling ? (
+                            <PhoneCall className="h-6 w-6 text-red-600 animate-pulse" />
+                          ) : (
+                            <User className={`h-6 w-6 ${
+                              isInConsultation ? 'text-purple-600' : 'text-blue-600'
+                            }`} />
+                          )}
                         </div>
                         <div className="flex-1">
-                          <div className="font-semibold">{appointment.patient_name}</div>
+                          <div className="font-semibold flex items-center gap-2">
+                            {appointment.patient_name}
+                            {isCalling && (
+                              <Badge className="bg-red-500 text-white animate-pulse">
+                                <Phone className="h-3 w-3 mr-1" />
+                                Chamando
+                              </Badge>
+                            )}
+                            {isCallAnswered && (
+                              <Badge className="bg-green-500 text-white">
+                                <Phone className="h-3 w-3 mr-1" />
+                                Em Atendimento
+                              </Badge>
+                            )}
+                          </div>
                           <div className="text-sm text-gray-600">{appointment.doctor_name}</div>
                           <div className="text-xs text-gray-500">Horário: {time}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {getStatusBadge(appointment.status)}
+                        {isCalling && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleAnswerCall(appointment.id)}
+                            disabled={answeringCall === appointment.id}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            {answeringCall === appointment.id ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                Atendendo...
+                              </>
+                            ) : (
+                              <>
+                                <Phone className="h-4 w-4 mr-1" />
+                                Atender
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        {isCallAnswered && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleCompleteCall(appointment.id)}
+                            className="border-green-600 text-green-600 hover:bg-green-50"
+                          >
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                            Finalizar
+                          </Button>
+                        )}
                       </div>
                     </div>
                   );

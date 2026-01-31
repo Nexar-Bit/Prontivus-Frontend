@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building, Users, Key, Package, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Building, Users, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SuperAdminRoute } from "@/components/auth/ProtectedRoute";
 
@@ -28,26 +28,6 @@ const configurations = [
     link: "/super-admin/configuracoes/usuarios",
     color: "bg-purple-500",
   },
-  {
-    id: "licenciamento",
-    name: "Licenciamento",
-    description: "Gerenciar licenças, ativações e configurações de módulos para cada clínica do sistema.",
-    icon: Key,
-    status: "Disponível",
-    statusVariant: "default",
-    link: "/super-admin/configuracoes/licenciamento",
-    color: "bg-green-500",
-  },
-  {
-    id: "modulos",
-    name: "Módulos",
-    description: "Ativar e desativar módulos do sistema para cada clínica, controlando quais funcionalidades estão disponíveis.",
-    icon: Package,
-    status: "Disponível",
-    statusVariant: "default",
-    link: "/super-admin/configuracoes/modulos",
-    color: "bg-orange-500",
-  },
 ];
 
 export default function SuperAdminConfiguracoesPage() {
@@ -58,7 +38,7 @@ export default function SuperAdminConfiguracoesPage() {
           <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
         </div>
         <p className="text-muted-foreground">
-          Gerencie as configurações gerais do sistema Prontivus, incluindo clínicas, usuários, licenciamento e módulos.
+          Gerencie as configurações gerais do sistema Prontivus, incluindo clínicas e usuários.
         </p>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
@@ -106,20 +86,6 @@ export default function SuperAdminConfiguracoesPage() {
               <p className="text-sm text-gray-700">
                 Controle completo sobre todos os usuários do sistema. Crie novos usuários, edite informações,
                 atribua permissões e roles, e gerencie o acesso às funcionalidades do sistema.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">Licenciamento</h3>
-              <p className="text-sm text-gray-700">
-                Gerencie licenças e ativações para cada clínica. Configure períodos de validade, limites de uso,
-                e monitore o status de cada licença no sistema.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg">Módulos do Sistema</h3>
-              <p className="text-sm text-gray-700">
-                Ative ou desative módulos específicos para cada clínica. Controle quais funcionalidades estão
-                disponíveis, como módulos de IA, relatórios avançados, integrações fiscais e muito mais.
               </p>
             </div>
           </CardContent>

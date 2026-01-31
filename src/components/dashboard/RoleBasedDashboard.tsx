@@ -55,14 +55,10 @@ function SuperAdminDashboard() {
   const stats = [
     { title: "Total Clínicas", value: "0", icon: Building, color: "text-purple-600", bgColor: "bg-purple-100", link: "/super-admin/configuracoes/clinica" },
     { title: "Usuários Ativos", value: "0", icon: Users, color: "text-blue-600", bgColor: "bg-blue-100" },
-    { title: "Licenças Ativas", value: "0", icon: Shield, color: "text-green-600", bgColor: "bg-green-100", link: "/super-admin/configuracoes/licenciamento" },
-    { title: "Módulos Ativos", value: "0", icon: Activity, color: "text-orange-600", bgColor: "bg-orange-100", link: "/super-admin/configuracoes/modulos" },
   ];
 
   const quickActions = [
     { title: "Gerenciar Clínicas", link: "/super-admin/configuracoes/clinica", icon: Building },
-    { title: "Licenciamento", link: "/super-admin/configuracoes/licenciamento", icon: Shield },
-    { title: "Módulos", link: "/super-admin/configuracoes/modulos", icon: Activity },
     { title: "Integrações", link: "/super-admin/integracoes/tiss", icon: TrendingUp },
   ];
 

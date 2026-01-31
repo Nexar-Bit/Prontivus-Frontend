@@ -87,15 +87,11 @@ const canAccessRoute = (
     '/admin/cadastros/insumos': () => isAdmin() && canAccessInventory(),
     '/admin/configuracoes': () => isAdmin(),
     '/admin/configuracoes/clinica': () => isAdmin(),
-    '/admin/configuracoes/licenciamento': () => isAdmin(),
-    '/admin/configuracoes/modulos': () => isAdmin(),
     '/admin/relatorios': () => isAdmin() && canAccessReports(),
     
     // Super Admin routes
     '/super-admin': () => isAdmin(), // Assuming SuperAdmin is also admin role
     '/super-admin/configuracoes/clinica': () => isAdmin(),
-    '/super-admin/configuracoes/licenciamento': () => isAdmin(),
-    '/super-admin/configuracoes/modulos': () => isAdmin(),
     '/super-admin/integracoes': () => isAdmin(),
     
     // General routes
